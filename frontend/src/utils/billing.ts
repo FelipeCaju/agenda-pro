@@ -1,0 +1,119 @@
+import type { OrganizationPayment, OrganizationProfile } from "@/services/organizationService";
+
+const PAYMENT_ALERT_WINDOW_DAYS = 5;
+
+function toDateParts(value?: string | null) {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return null;
+  }
+
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function differenceInDays(value?: string | null) {
+  const target = toDateParts(value);
+
+  if (!target) {
+    return null;
+  }
+
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((target.getTime() - today.getTime()) / 86_400_000);
+}
+
+export function getPaymentStatusLabel(status?: string | null) {
+  if (status === "paid") return "Pago";
+  if (status === "pending") return "Pendente";
+  if (status === "overdue") return "Em atraso";
+  if (status === "canceled") return "Cancelado";
+  return "Sem registro";
+}
+
+export function getSubscriptionStatusLabel(status?: string | null) {
+  if (status === "active") return "Ativa";
+  if (status === "overdue") return "Em atraso";
+  if (status === "blocked") return "Bloqueada";
+  if (status === "trial") return "Em teste";
+  if (status === "canceled") return "Cancelada";
+  return status ?? "Indefinido";
+}
+
+export function getBillingAlert(
+  organization?: OrganizationProfile | null,
+  payments: OrganizationPayment[] = [],
+) {
+  const latestPayment = payments[0] ?? null;
+  const dueInDays = differenceInDays(organization?.dueDate ?? latestPayment?.dueDate ?? null);
+
+  if (!organization) {
+    return {
+      hasAlert: false,
+      tone: "info" as const,
+      title: "",
+      description: "",
+    };
+  }
+
+  if (organization.subscriptionStatus === "overdue") {
+    return {
+      hasAlert: true,
+      tone: "danger" as const,
+      title: "Pagamento em atraso",
+      description: "A assinatura esta em atraso. Atualize o pagamento para evitar bloqueio.",
+    };
+  }
+
+  if (organization.subscriptionStatus === "blocked") {
+    return {
+      hasAlert: true,
+      tone: "danger" as const,
+      title: "Conta bloqueada",
+      description: "A empresa esta bloqueada por assinatura. Verifique o historico de pagamento.",
+    };
+  }
+
+  if (organization.subscriptionStatus === "canceled") {
+    return {
+      hasAlert: true,
+      tone: "danger" as const,
+      title: "Assinatura cancelada",
+      description: "A conta foi cancelada. Os dados seguem intactos, mas o acesso esta limitado.",
+    };
+  }
+
+  if (dueInDays !== null && dueInDays < 0) {
+    return {
+      hasAlert: true,
+      tone: "danger" as const,
+      title: "Vencimento expirado",
+      description: "O vencimento passou. Confira o historico e regularize o pagamento.",
+    };
+  }
+
+  if (dueInDays !== null && dueInDays <= PAYMENT_ALERT_WINDOW_DAYS) {
+    return {
+      hasAlert: true,
+      tone: "warning" as const,
+      title: "Pagamento proximo do vencimento",
+      description: `O vencimento acontece em ${Math.max(dueInDays, 0)} dia(s). Vale se organizar para nao atrasar.`,
+    };
+  }
+
+  if (latestPayment && latestPayment.status === "pending") {
+    return {
+      hasAlert: true,
+      tone: "warning" as const,
+      title: "Pagamento pendente",
+      description: "Existe um pagamento pendente no historico mais recente.",
+    };
+  }
+
+  return {
+    hasAlert: false,
+    tone: "info" as const,
+    title: "",
+    description: "",
+  };
+}

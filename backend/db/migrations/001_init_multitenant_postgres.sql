@@ -1,0 +1,4 @@
+-- LEGADO
+-- O projeto passou a usar MySQL como banco padrao.
+-- Use este arquivo para criar o schema no XAMPP/phpMyAdmin:
+-- backend/db/migrations/001_init_multitenant_mysql.sql

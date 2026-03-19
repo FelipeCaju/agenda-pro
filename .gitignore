@@ -1,0 +1,12 @@
+node_modules
+dist
+.vite
+.DS_Store
+coverage
+frontend/dist
+backend/dist
+.env
+.env.local
+frontend/.capacitor
+frontend/android/local.properties
+frontend/ios/App/App/public

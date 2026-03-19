@@ -1,0 +1,192 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color: #102033;
+  color-scheme: light;
+  background: #edf2fa;
+  font-family: "Manrope", "Segoe UI", sans-serif;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html {
+  background: #edf2fa;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: #edf2fa;
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100vh;
+  background: #edf2fa;
+  overflow-x: hidden;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+*,
+*::before,
+*::after {
+  min-width: 0;
+}
+
+::selection {
+  background: rgba(29, 140, 248, 0.18);
+  color: #102033;
+}
+
+@layer base {
+  body {
+    @apply text-ink;
+  }
+
+  input,
+  select,
+  textarea,
+  button {
+    font: inherit;
+  }
+}
+
+@layer components {
+  .app-input,
+  .app-select,
+  .app-textarea {
+    @apply w-full rounded-[18px] border border-slate-200 bg-white px-4 py-3 text-sm text-ink shadow-[0_2px_10px_rgba(15,23,42,0.04)] outline-none transition duration-200 placeholder:text-slate-400 focus:border-brand-200 focus:ring-4 focus:ring-brand-100;
+  }
+
+  .app-textarea {
+    @apply min-h-28 resize-none;
+  }
+
+  .app-surface-muted {
+    @apply rounded-[22px] border border-slate-200 bg-white;
+  }
+
+  .app-message-success {
+    @apply border border-emerald-100 text-emerald-700;
+    background-color: rgba(236, 253, 245, 0.85);
+  }
+
+  .app-message-error {
+    @apply border border-rose-100 text-rose-700;
+    background-color: rgba(255, 241, 242, 0.85);
+  }
+
+  .app-toggle-panel {
+    @apply flex items-start gap-3 rounded-[22px] border border-slate-200 bg-white px-4 py-4 shadow-[0_4px_16px_rgba(15,23,42,0.05)];
+  }
+
+  .app-checkbox {
+    @apply mt-0.5 h-5 w-5 shrink-0 cursor-pointer appearance-none rounded-[7px] border border-slate-300 bg-white shadow-sm outline-none transition duration-200;
+  }
+
+  .app-checkbox:hover {
+    @apply border-brand-200;
+  }
+
+  .app-checkbox:focus-visible {
+    @apply ring-4 ring-brand-100;
+  }
+
+  .app-checkbox:checked {
+    @apply border-brand-500 bg-brand-500;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5 10.2 8.2 13.4 15 6.6' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 14px 14px;
+  }
+
+  .app-checkbox-danger:checked {
+    @apply border-rose-600 bg-rose-600;
+  }
+
+  .app-pill {
+    @apply inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold tracking-[0.08em] text-slate-500 shadow-sm;
+  }
+
+  .app-whatsapp-preview {
+    @apply overflow-hidden rounded-[30px] border bg-white p-3;
+    border-color: rgba(226, 232, 240, 0.95);
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+  }
+
+  .app-whatsapp-device {
+    @apply rounded-[26px] border border-slate-200 bg-white p-3;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  }
+
+  .app-whatsapp-device-header {
+    @apply rounded-[20px] bg-white px-4 py-3 shadow-[0_8px_24px_rgba(15,23,42,0.05)];
+  }
+
+  .app-whatsapp-device-screen {
+    @apply mt-3 rounded-[24px] border border-slate-200/80 p-4;
+    background:
+      radial-gradient(circle at top right, rgba(255, 255, 255, 0.72), transparent 24%),
+      linear-gradient(180deg, #eef8f1 0%, #e7f5ea 100%);
+  }
+
+  .app-whatsapp-message-card {
+    @apply rounded-[22px] border px-4 py-4;
+    border-color: rgba(167, 243, 208, 0.85);
+    background: linear-gradient(180deg, #effcf3 0%, #e5f8eb 100%);
+    box-shadow: 0 10px 24px rgba(22, 163, 74, 0.08);
+  }
+
+  .app-whatsapp-message-line {
+    @apply flex items-start gap-2 text-sm text-slate-700;
+  }
+
+  .app-whatsapp-message-dot {
+    @apply mt-1.5 h-2 w-2 shrink-0 rounded-full bg-emerald-500;
+  }
+
+  .app-whatsapp-bubble {
+    @apply mt-3 max-w-[19rem] rounded-[22px] rounded-tl-[10px] px-4 py-3 text-sm leading-7 text-slate-700;
+    background: linear-gradient(180deg, #dcf8c6 0%, #d5f5c1 100%);
+    border: 1px solid rgba(134, 239, 172, 0.7);
+    box-shadow: 0 10px 24px rgba(34, 197, 94, 0.12);
+  }
+
+  .app-whatsapp-caption {
+    @apply text-sm leading-6;
+    color: #3f5f52;
+  }
+
+  .app-whatsapp-panel {
+    @apply rounded-[28px] border border-slate-200 bg-white p-4 shadow-[0_10px_28px_rgba(15,23,42,0.06)];
+  }
+
+  .app-whatsapp-note {
+    @apply rounded-[20px] border px-4 py-4;
+    border-color: rgba(167, 243, 208, 0.75);
+    background: linear-gradient(180deg, #f1fcf5 0%, #e8f9ee 100%);
+  }
+
+  .app-switch {
+    @apply relative inline-flex h-8 w-14 shrink-0 cursor-pointer rounded-full border border-slate-200 bg-slate-200/80 transition;
+  }
+
+  .app-switch[data-state="checked"] {
+    @apply border-emerald-300 bg-emerald-200/80;
+  }
+
+  .app-switch-thumb {
+    @apply absolute left-1 top-1 h-6 w-6 rounded-full bg-white shadow-[0_3px_8px_rgba(15,23,42,0.16)] transition;
+  }
+
+  .app-switch[data-state="checked"] .app-switch-thumb {
+    transform: translateX(24px);
+  }
+}
