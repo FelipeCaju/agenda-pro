@@ -7,6 +7,10 @@ frontend/dist
 backend/dist
 .env
 .env.local
+backend/.env
+frontend/.env
 frontend/.capacitor
 frontend/android/local.properties
+frontend/android/.idea/
 frontend/ios/App/App/public
+.codex-*.log

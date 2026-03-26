@@ -1,4 +1,4 @@
-import { getRequestAuthContext } from "../lib/request-auth.js";
+import { getRequestActiveAuthContext } from "../lib/request-auth.js";
 import { getDashboardSummary } from "../services/dashboard.service.js";
 
 function sendError(response, error) {
@@ -9,7 +9,7 @@ function sendError(response, error) {
 
 export async function getDashboardSummaryController(request, response) {
   try {
-    const { organization } = await getRequestAuthContext(request);
+    const { organization } = await getRequestActiveAuthContext(request);
     const data = await getDashboardSummary({
       organizationId: organization.id,
       period: request.query.period ?? "today",

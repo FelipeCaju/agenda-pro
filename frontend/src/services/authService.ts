@@ -33,6 +33,10 @@ export type SessionOrganization = {
   dueDate: string | null;
   trialEnd: string | null;
   isBlocked: boolean;
+  pixKey?: string;
+  paymentGraceDays?: number;
+  paymentAlertDays?: number;
+  graceUntil?: string | null;
 };
 
 export type AuthSession = {

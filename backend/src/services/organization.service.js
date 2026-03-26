@@ -1,7 +1,10 @@
 import {
+  getLatestOrganizationPayment,
   getOrganizationById,
+  getPlatformSettings,
   listOrganizationPayments,
   listUsersByOrganization,
+  notifyOrganizationPaymentPaid,
   updateOrganizationById,
 } from "../lib/data.js";
 import {
@@ -17,8 +20,10 @@ function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-function buildOrganizationPayload(organization) {
-  const access = evaluateSubscriptionAccess(organization);
+async function buildOrganizationPayload(organization) {
+  const latestPayment = await getLatestOrganizationPayment(organization.id);
+  const platformSettings = await getPlatformSettings();
+  const access = evaluateSubscriptionAccess(organization, latestPayment, platformSettings);
 
   return {
     id: organization.id,
@@ -28,12 +33,19 @@ function buildOrganizationPayload(organization) {
     monthly_amount: Number(organization.monthly_amount ?? 0),
     subscription_status: access.subscriptionStatus,
     subscription_plan: organization.subscription_plan,
-    due_date: organization.due_date,
+    due_date: access.dueDate ?? organization.due_date,
     trial_end: organization.trial_end,
     is_blocked: access.isBlocked,
     block_reason: access.blockReason,
     can_access: access.canAccess,
     is_trial_valid: access.isTrialValid,
+    pix_key: platformSettings.pix_key,
+    payment_grace_days: access.graceDays,
+    payment_alert_days: access.alertDays,
+    grace_until: access.graceUntil,
+    latest_payment_id: latestPayment?.id ?? null,
+    latest_payment_status: latestPayment?.status ?? null,
+    payment_notice_visible: access.shouldShowPaymentNotice,
   };
 }
 
@@ -145,4 +157,16 @@ export async function updateCurrentOrganization({ organizationId, input }) {
   }
 
   return buildOrganizationPayload(nextOrganization);
+}
+
+export async function markCurrentOrganizationPaymentAsPaid({ organizationId, paymentId, note }) {
+  const payment = await notifyOrganizationPaymentPaid(organizationId, paymentId, note);
+
+  if (!payment) {
+    const error = new Error("Pagamento nao encontrado.");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  return payment;
 }

@@ -636,6 +636,30 @@ function mapOrganizationPayment(row) {
     due_date: row.due_date,
     payment_method: row.payment_method,
     notes: row.notes,
+    customer_notified_paid_at: normalizeDateTime(row.customer_notified_paid_at),
+    customer_payment_note: row.customer_payment_note ?? null,
+    created_at: normalizeDateTime(row.created_at),
+    updated_at: normalizeDateTime(row.updated_at),
+  };
+}
+
+function mapPlatformSettings(row) {
+  if (!row) {
+    return {
+      id: "default",
+      pix_key: "",
+      payment_grace_days: 5,
+      payment_alert_days: 5,
+      created_at: null,
+      updated_at: null,
+    };
+  }
+
+  return {
+    id: row.id,
+    pix_key: row.pix_key ?? "",
+    payment_grace_days: Number(row.payment_grace_days ?? 5),
+    payment_alert_days: Number(row.payment_alert_days ?? 5),
     created_at: normalizeDateTime(row.created_at),
     updated_at: normalizeDateTime(row.updated_at),
   };
@@ -693,6 +717,55 @@ async function ensureTablesExist() {
 async function hasTable(tableName) {
   const rows = await query(`SHOW TABLES LIKE ?`, [tableName]);
   return rows.length > 0;
+}
+
+async function hasColumn(tableName, columnName) {
+  const rows = await query(
+    `SELECT COLUMN_NAME
+      FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = ?
+        AND COLUMN_NAME = ?
+      LIMIT 1`,
+    [tableName, columnName],
+  );
+
+  return rows.length > 0;
+}
+
+async function ensurePlatformSettingsInfrastructure() {
+  await execute(
+    `CREATE TABLE IF NOT EXISTS platform_settings (
+      id VARCHAR(64) PRIMARY KEY,
+      pix_key TEXT NULL,
+      payment_grace_days INT NOT NULL DEFAULT 5,
+      payment_alert_days INT NOT NULL DEFAULT 5,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )`,
+  );
+
+  await execute(
+    `INSERT IGNORE INTO platform_settings (
+      id, pix_key, payment_grace_days, payment_alert_days
+    ) VALUES ('default', '', 5, 5)`,
+  );
+
+  if (await hasTable("organization_payments")) {
+    if (!(await hasColumn("organization_payments", "customer_notified_paid_at"))) {
+      await execute(
+        `ALTER TABLE organization_payments
+          ADD COLUMN customer_notified_paid_at DATETIME NULL AFTER notes`,
+      );
+    }
+
+    if (!(await hasColumn("organization_payments", "customer_payment_note"))) {
+      await execute(
+        `ALTER TABLE organization_payments
+          ADD COLUMN customer_payment_note TEXT NULL AFTER customer_notified_paid_at`,
+      );
+    }
+  }
 }
 
 async function ensureProfessionalsTablesExist() {
@@ -969,6 +1042,7 @@ async function ensureInitialized() {
 
   await ensureTablesExist();
   await ensureSeedData();
+  await ensurePlatformSettingsInfrastructure();
   initialized = true;
 }
 
@@ -1064,6 +1138,30 @@ export async function listAdminOrganizations() {
   }));
 }
 
+export async function getPlatformSettings() {
+  await ensureInitialized();
+  const rows = await query("SELECT * FROM platform_settings WHERE id = 'default' LIMIT 1");
+  return mapPlatformSettings(rows[0]);
+}
+
+export async function updatePlatformSettings(input) {
+  await ensureInitialized();
+  const statement = buildUpdateStatement(input, [
+    "pix_key",
+    "payment_grace_days",
+    "payment_alert_days",
+  ]);
+
+  if (statement) {
+    await execute(
+      `UPDATE platform_settings SET ${statement.sql} WHERE id = 'default'`,
+      statement.params,
+    );
+  }
+
+  return getPlatformSettings();
+}
+
 export async function getAdminOrganizationDetails(organizationId) {
   await ensureInitialized();
   const organization = await getOrganizationById(organizationId);
@@ -1103,6 +1201,11 @@ export async function listOrganizationPayments(organizationId) {
   return rows.map(mapOrganizationPayment);
 }
 
+export async function getLatestOrganizationPayment(organizationId) {
+  const payments = await listOrganizationPayments(organizationId);
+  return payments[0] ?? null;
+}
+
 export async function createOrganizationPayment(organizationId, input) {
   await ensureInitialized();
 
@@ -1134,6 +1237,33 @@ export async function createOrganizationPayment(organizationId, input) {
   );
 
   const rows = await query("SELECT * FROM organization_payments WHERE id = ? LIMIT 1", [id]);
+  return mapOrganizationPayment(rows[0]);
+}
+
+export async function notifyOrganizationPaymentPaid(organizationId, paymentId, note = null) {
+  await ensureInitialized();
+
+  if (!(await hasTable("organization_payments"))) {
+    const error = new Error("Historico de pagamentos indisponivel no momento.");
+    error.statusCode = 500;
+    throw error;
+  }
+
+  await execute(
+    `UPDATE organization_payments
+      SET customer_notified_paid_at = CURRENT_TIMESTAMP,
+          customer_payment_note = ?
+      WHERE organization_id = ?
+        AND id = ?
+        AND status <> 'paid'`,
+    [note || null, organizationId, paymentId],
+  );
+
+  const rows = await query(
+    "SELECT * FROM organization_payments WHERE organization_id = ? AND id = ? LIMIT 1",
+    [organizationId, paymentId],
+  );
+
   return mapOrganizationPayment(rows[0]);
 }
 

@@ -12,6 +12,7 @@ import {
 } from "@/hooks/use-organization-query";
 import { useSettingsMutations } from "@/hooks/use-settings-mutations";
 import { useSettingsQuery } from "@/hooks/use-settings-query";
+import { getBillingAlert } from "@/utils/billing";
 import { formatDateBR, formatMonthYearBR } from "@/utils/date";
 
 const currencyOptions = ["BRL", "USD", "EUR"];
@@ -148,6 +149,9 @@ export function SettingsPage() {
     isLoading: isLoadingSettings,
   } = useSettingsQuery();
   const {
+    isNotifyingPaymentPaid,
+    notifyPaymentPaid,
+    notifyPaymentPaidError,
     isUpdatingOrganization,
     updateOrganization,
     updateOrganizationError,
@@ -245,6 +249,8 @@ export function SettingsPage() {
     () => buildPreviewMessage(lembreteMensagem, nomeNegocio.trim() || companyName.trim()),
     [companyName, lembreteMensagem, nomeNegocio],
   );
+  const billingAlert = useMemo(() => getBillingAlert(organization, payments), [organization, payments]);
+  const latestPayment = payments[0] ?? null;
 
   async function handleCompanySubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -355,6 +361,19 @@ export function SettingsPage() {
     }
   }
 
+  async function handleNotifyPaymentPaid() {
+    if (!organization?.latestPaymentId) {
+      return;
+    }
+
+    try {
+      await notifyPaymentPaid({ paymentId: organization.latestPaymentId });
+      setSuccessMessage("Aviso de pagamento enviado ao administrador.");
+    } catch {
+      return;
+    }
+  }
+
   if (isInitialLoading) {
     return (
       <FullscreenState
@@ -385,11 +404,14 @@ export function SettingsPage() {
       <MobilePageHeader
         action={
           <Button
-            className="min-h-8 rounded-xl px-3 py-2 text-xs md:min-h-[46px] md:rounded-[18px] md:px-4 md:py-3 md:text-sm"
+            className="relative min-h-8 rounded-xl px-3 py-2 text-xs md:min-h-[46px] md:rounded-[18px] md:px-4 md:py-3 md:text-sm"
             onClick={() => navigate("/gestao")}
             type="button"
             variant="secondary"
           >
+            {billingAlert.hasAlert ? (
+              <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-white" />
+            ) : null}
             Gestao
           </Button>
         }
@@ -721,6 +743,40 @@ export function SettingsPage() {
         <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Cobranca</p>
         <h3 className="mt-1 text-lg font-semibold text-ink">Historico da organizacao</h3>
 
+        {organization?.paymentNoticeVisible ? (
+          <div className="mt-4 space-y-3 rounded-2xl border border-amber-100 bg-amber-50/80 px-4 py-4">
+            <p className="text-sm font-semibold text-amber-800">Pagamento disponivel</p>
+            <p className="text-sm text-amber-700">
+              A notificacao segue visivel ate a baixa do pagamento pela administracao.
+            </p>
+            {organization.pixKey ? (
+              <div className="rounded-2xl bg-white/80 px-3 py-3">
+                <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Chave Pix</p>
+                <p className="mt-2 break-all text-sm font-semibold text-ink">{organization.pixKey}</p>
+              </div>
+            ) : null}
+            <Button
+              disabled={
+                isNotifyingPaymentPaid ||
+                !organization.latestPaymentId ||
+                Boolean(latestPayment?.customerNotifiedPaidAt)
+              }
+              onClick={() => void handleNotifyPaymentPaid()}
+              type="button"
+              variant="secondary"
+            >
+              {latestPayment?.customerNotifiedPaidAt
+                ? "Administrador ja avisado"
+                : isNotifyingPaymentPaid
+                  ? "Enviando aviso..."
+                  : "Ja paguei, avisar administrador"}
+            </Button>
+            {notifyPaymentPaidError ? (
+              <p className="text-sm text-rose-600">{notifyPaymentPaidError.message}</p>
+            ) : null}
+          </div>
+        ) : null}
+
         <div className="mt-4 space-y-3">
           {payments.length ? (
             payments.map((payment) => (
@@ -735,6 +791,9 @@ export function SettingsPage() {
                     <p className="text-sm text-slate-500">
                       Pago em {formatDateBR(payment.paidAt)}
                     </p>
+                  ) : null}
+                  {payment.customerNotifiedPaidAt ? (
+                    <p className="text-sm text-amber-700">Cliente ja avisou que fez o pagamento.</p>
                   ) : null}
                 </div>
                 <div className="text-right">

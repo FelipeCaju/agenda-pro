@@ -1,9 +1,10 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { MobilePageHeader } from "@/components/layout/mobile-page-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { PasswordField } from "@/components/ui/password-field";
+import { useAdminPlatformSettingsQuery } from "@/hooks/use-admin-platform-settings-query";
 import { useAdminMutations } from "@/hooks/use-admin-mutations";
 import { useAdminOrganizationsQuery } from "@/hooks/use-admin-organizations-query";
 
@@ -38,7 +39,15 @@ function formatCurrency(value: number) {
 export function PlatformAdminPage() {
   const navigate = useNavigate();
   const { data = [], error, isLoading, isError } = useAdminOrganizationsQuery();
-  const { createOrganization, createOrganizationError, isCreatingOrganization } = useAdminMutations();
+  const {
+    createOrganization,
+    createOrganizationError,
+    isCreatingOrganization,
+    isUpdatingPlatformSettings,
+    updatePlatformSettings,
+    updatePlatformSettingsError,
+  } = useAdminMutations();
+  const { data: platformSettings } = useAdminPlatformSettingsQuery();
   const [nomeEmpresa, setNomeEmpresa] = useState("");
   const [ownerName, setOwnerName] = useState("");
   const [emailResponsavel, setEmailResponsavel] = useState("");
@@ -48,6 +57,34 @@ export function PlatformAdminPage() {
   const [subscriptionPlan, setSubscriptionPlan] = useState<"trial" | "pro">("trial");
   const [trialDays, setTrialDays] = useState("5");
   const [successMessage, setSuccessMessage] = useState("");
+  const [pixKey, setPixKey] = useState("");
+  const [paymentGraceDays, setPaymentGraceDays] = useState("5");
+  const [paymentAlertDays, setPaymentAlertDays] = useState("5");
+
+  useEffect(() => {
+    if (!platformSettings) {
+      return;
+    }
+
+    setPixKey(platformSettings.pixKey ?? "");
+    setPaymentGraceDays(String(platformSettings.paymentGraceDays ?? 5));
+    setPaymentAlertDays(String(platformSettings.paymentAlertDays ?? 5));
+  }, [platformSettings]);
+
+  async function handlePlatformSettingsSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    try {
+      await updatePlatformSettings({
+        pixKey,
+        paymentGraceDays: Number(paymentGraceDays),
+        paymentAlertDays: Number(paymentAlertDays),
+      });
+      setSuccessMessage("Configuracoes financeiras da plataforma atualizadas com sucesso.");
+    } catch {
+      return;
+    }
+  }
 
   async function handleCreateOrganization(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -82,6 +119,58 @@ export function PlatformAdminPage() {
   return (
     <section className="space-y-4">
       <MobilePageHeader subtitle="Empresas, mensalidade e pagamento do mes" title="Empresas" />
+
+      <Card>
+        <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Financeiro da plataforma</p>
+        <h3 className="mt-2 text-lg font-semibold text-ink">Pix e tolerancia de pagamento</h3>
+
+        <form className="mt-4 space-y-4" onSubmit={handlePlatformSettingsSubmit}>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-ink">Chave Pix</label>
+            <input className="app-input" onChange={(event) => setPixKey(event.target.value)} value={pixKey} />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-ink">Dias de folga apos o vencimento</label>
+              <input
+                className="app-input"
+                min="0"
+                onChange={(event) => setPaymentGraceDays(event.target.value)}
+                step="1"
+                type="number"
+                value={paymentGraceDays}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-ink">Dias para antecipar alerta</label>
+              <input
+                className="app-input"
+                min="0"
+                onChange={(event) => setPaymentAlertDays(event.target.value)}
+                step="1"
+                type="number"
+                value={paymentAlertDays}
+              />
+            </div>
+          </div>
+
+          <div className="rounded-[22px] border border-slate-200 bg-slate-50/80 px-4 py-4 text-sm text-slate-600">
+            <p>
+              Exemplo: vencimento no dia <strong>5</strong> com folga de <strong>{paymentGraceDays || "0"}</strong>{" "}
+              dia(s) bloqueia somente depois do dia <strong>{5 + Number(paymentGraceDays || 0)}</strong>.
+            </p>
+          </div>
+
+          {updatePlatformSettingsError ? (
+            <p className="text-sm text-rose-600">{updatePlatformSettingsError.message}</p>
+          ) : null}
+
+          <Button disabled={isUpdatingPlatformSettings} type="submit">
+            {isUpdatingPlatformSettings ? "Salvando..." : "Salvar configuracoes financeiras"}
+          </Button>
+        </form>
+      </Card>
 
       <Card>
         <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Nova empresa</p>

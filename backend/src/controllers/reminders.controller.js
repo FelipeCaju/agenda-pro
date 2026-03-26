@@ -1,4 +1,4 @@
-import { getRequestAuthContext } from "../lib/request-auth.js";
+import { getRequestActiveAuthContext } from "../lib/request-auth.js";
 import {
   listOrganizationReminders,
   registerReminderReply,
@@ -13,7 +13,7 @@ function sendError(response, error) {
 
 export async function listReminders(request, response) {
   try {
-    const { organization } = await getRequestAuthContext(request);
+    const { organization } = await getRequestActiveAuthContext(request);
     const data = await listOrganizationReminders({
       organizationId: organization.id,
     });
@@ -31,7 +31,7 @@ export async function listReminders(request, response) {
 
 export async function sendManualReminderController(request, response) {
   try {
-    const { organization } = await getRequestAuthContext(request);
+    const { organization } = await getRequestActiveAuthContext(request);
     const data = await sendManualReminder({
       organizationId: organization.id,
       appointmentId: request.body?.appointmentId,
@@ -48,7 +48,7 @@ export async function sendManualReminderController(request, response) {
 
 export async function registerReminderReplyController(request, response) {
   try {
-    const { organization } = await getRequestAuthContext(request);
+    const { organization } = await getRequestActiveAuthContext(request);
     const data = await registerReminderReply({
       organizationId: organization.id,
       appointmentId: request.params.appointmentId,

@@ -1,4 +1,4 @@
-import { getRequestAuthContext } from "../lib/request-auth.js";
+import { getRequestActiveAuthContext, getRequestAuthContext } from "../lib/request-auth.js";
 import { processIncomingWhatsappReply } from "../services/reminder.service.js";
 import {
   getWhatsappStatus,
@@ -13,7 +13,7 @@ function sendError(response, error) {
 
 export async function getWhatsappStatusController(request, response) {
   try {
-    const { organization } = await getRequestAuthContext(request);
+    const { organization } = await getRequestActiveAuthContext(request);
     const data = await getWhatsappStatus({
       organizationId: organization.id,
     });
@@ -26,7 +26,7 @@ export async function getWhatsappStatusController(request, response) {
 
 export async function sendWhatsappTestMessageController(request, response) {
   try {
-    const { organization } = await getRequestAuthContext(request);
+    const { organization } = await getRequestActiveAuthContext(request);
     const data = await sendWhatsappTestMessage({
       organizationId: organization.id,
       input: request.body ?? {},

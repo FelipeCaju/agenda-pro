@@ -26,8 +26,16 @@ export type AdminOrganizationPayment = {
   dueDate: string | null;
   paymentMethod: string | null;
   notes: string | null;
+  customerNotifiedPaidAt: string | null;
+  customerPaymentNote: string | null;
   createdAt: string | null;
   updatedAt: string | null;
+};
+
+export type PlatformSettings = {
+  pixKey: string;
+  paymentGraceDays: number;
+  paymentAlertDays: number;
 };
 
 export type AdminOrganizationDetails = {
@@ -140,6 +148,8 @@ function mapPayment(model: any): AdminOrganizationPayment {
     dueDate: model.due_date,
     paymentMethod: model.payment_method,
     notes: model.notes,
+    customerNotifiedPaidAt: model.customer_notified_paid_at ?? null,
+    customerPaymentNote: model.customer_payment_note ?? null,
     createdAt: model.created_at,
     updatedAt: model.updated_at,
   };
@@ -241,5 +251,25 @@ export const adminService = {
       members: response.data.members,
       payments: (response.data.payments ?? []).map(mapPayment),
     } satisfies AdminOrganizationDetails;
+  },
+  async getPlatformSettings() {
+    const response = await apiClient.get<any>("/admin/platform-settings");
+    return {
+      pixKey: response.data.pix_key ?? "",
+      paymentGraceDays: Number(response.data.payment_grace_days ?? 5),
+      paymentAlertDays: Number(response.data.payment_alert_days ?? 5),
+    } satisfies PlatformSettings;
+  },
+  async updatePlatformSettings(input: PlatformSettings) {
+    const response = await apiClient.patch<any>("/admin/platform-settings", {
+      pix_key: input.pixKey,
+      payment_grace_days: input.paymentGraceDays,
+      payment_alert_days: input.paymentAlertDays,
+    });
+    return {
+      pixKey: response.data.pix_key ?? "",
+      paymentGraceDays: Number(response.data.payment_grace_days ?? 5),
+      paymentAlertDays: Number(response.data.payment_alert_days ?? 5),
+    } satisfies PlatformSettings;
   },
 };

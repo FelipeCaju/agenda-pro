@@ -2,7 +2,9 @@ import {
   createOrganization,
   createUser,
   deactivateUserById,
+  getLatestOrganizationPayment,
   getOrganizationById,
+  getPlatformSettings,
   getUserByEmail,
   updateUserPasswordById,
 } from "../lib/data.js";
@@ -98,8 +100,10 @@ async function createSessionPayload({ token, user, organization, needsOnboarding
     };
   }
 
+  const latestPayment = organization ? await getLatestOrganizationPayment(organization.id) : null;
+  const platformSettings = organization ? await getPlatformSettings() : null;
   const access = organization
-    ? evaluateSubscriptionAccess(organization)
+    ? evaluateSubscriptionAccess(organization, latestPayment, platformSettings)
     : {
         subscriptionStatus: null,
         canAccess: false,
@@ -125,9 +129,13 @@ async function createSessionPayload({ token, user, organization, needsOnboarding
           monthlyAmount: Number(organization.monthly_amount ?? 0),
           subscriptionStatus: access.subscriptionStatus,
           subscriptionPlan: organization.subscription_plan,
-          dueDate: organization.due_date,
+          dueDate: access.dueDate ?? organization.due_date,
           trialEnd: organization.trial_end,
           isBlocked: access.isBlocked,
+          pixKey: platformSettings?.pix_key ?? "",
+          paymentGraceDays: access.graceDays ?? 5,
+          paymentAlertDays: access.alertDays ?? 5,
+          graceUntil: access.graceUntil ?? null,
         }
       : null,
     access: {
@@ -176,6 +184,28 @@ export async function requireAuthenticatedContext(token) {
     user,
     organization,
   };
+}
+
+export async function requireActiveAuthenticatedContext(token) {
+  const context = await requireAuthenticatedContext(token);
+  const latestPayment = await getLatestOrganizationPayment(context.organization.id);
+  const platformSettings = await getPlatformSettings();
+  const access = evaluateSubscriptionAccess(context.organization, latestPayment, platformSettings);
+
+  if (!access.canAccess) {
+    const error = new Error(
+      access.blockReason === "payment_overdue"
+        ? "Seu acesso esta temporariamente bloqueado. Regularize o pagamento ou avise o administrador se ele ja foi feito."
+        : access.blockReason === "trial_expired"
+          ? "O periodo de teste terminou. Ajuste a assinatura para voltar a usar o sistema."
+          : "Sua organizacao esta com o acesso restrito no momento.",
+    );
+    error.statusCode = 402;
+    error.code = access.blockReason ?? "subscription_blocked";
+    throw error;
+  }
+
+  return context;
 }
 
 export async function requirePlatformAdminContext(token) {

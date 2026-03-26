@@ -33,6 +33,7 @@ import {
   getCurrentOrganizationController,
   listCurrentOrganizationPaymentsController,
   listOrganizationMembersController,
+  notifyCurrentOrganizationPaymentPaidController,
   updateCurrentOrganizationController,
 } from "../controllers/organization.controller.js";
 import {
@@ -68,8 +69,10 @@ import {
   createAdminOrganizationController,
   createAdminOrganizationPaymentController,
   getAdminOrganizationController,
+  getPlatformSettingsController,
   listAdminOrganizationPaymentsController,
   listAdminOrganizationsController,
+  updatePlatformSettingsController,
   updateAdminOrganizationSubscriptionController,
 } from "../controllers/platform-admin.controller.js";
 import { getRequestPlatformAdminContext } from "../lib/request-auth.js";
@@ -103,6 +106,10 @@ router.get("/organizations/current", getCurrentOrganizationController);
 router.patch("/organizations/current", updateCurrentOrganizationController);
 router.get("/organizations/current/users", listOrganizationMembersController);
 router.get("/organizations/current/payments", listCurrentOrganizationPaymentsController);
+router.post(
+  "/organizations/current/payments/:paymentId/notify-paid",
+  notifyCurrentOrganizationPaymentPaidController,
+);
 router.get("/organizations/current/professionals", listProfessionalsController);
 router.get("/organizations/current/professionals/:professionalId", getProfessionalController);
 router.post("/organizations/current/professionals", createProfessionalController);
@@ -136,6 +143,8 @@ router.delete("/services/:serviceId", deleteServiceController);
 router.get("/reminders", listReminders);
 router.post("/reminders/manual-send", sendManualReminderController);
 router.patch("/reminders/:appointmentId/reply", registerReminderReplyController);
+router.get("/admin/platform-settings", getPlatformSettingsController);
+router.patch("/admin/platform-settings", updatePlatformSettingsController);
 router.get("/admin/organizations", listAdminOrganizationsController);
 router.post("/admin/organizations", createAdminOrganizationController);
 router.get("/admin/organizations/:organizationId", getAdminOrganizationController);

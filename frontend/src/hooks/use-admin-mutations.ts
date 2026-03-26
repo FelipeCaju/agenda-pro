@@ -4,6 +4,7 @@ import {
   type AdminOrganizationCreateInput,
   type AdminPaymentInput,
   type AdminSubscriptionInput,
+  type PlatformSettings,
 } from "@/services/adminService";
 
 export function useAdminMutations(organizationId?: string) {
@@ -34,15 +35,25 @@ export function useAdminMutations(organizationId?: string) {
     },
   });
 
+  const updatePlatformSettingsMutation = useMutation({
+    mutationFn: (input: PlatformSettings) => adminService.updatePlatformSettings(input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["admin", "platform-settings"] });
+    },
+  });
+
   return {
     updateSubscription: updateSubscriptionMutation.mutateAsync,
     createPayment: createPaymentMutation.mutateAsync,
     createOrganization: createOrganizationMutation.mutateAsync,
+    updatePlatformSettings: updatePlatformSettingsMutation.mutateAsync,
     isUpdatingSubscription: updateSubscriptionMutation.isPending,
     isCreatingPayment: createPaymentMutation.isPending,
     isCreatingOrganization: createOrganizationMutation.isPending,
+    isUpdatingPlatformSettings: updatePlatformSettingsMutation.isPending,
     updateSubscriptionError: updateSubscriptionMutation.error,
     createPaymentError: createPaymentMutation.error,
     createOrganizationError: createOrganizationMutation.error,
+    updatePlatformSettingsError: updatePlatformSettingsMutation.error,
   };
 }

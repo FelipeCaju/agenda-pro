@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { MobilePageHeader } from "@/components/layout/mobile-page-header";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import {
   useOrganizationPaymentsQuery,
   useOrganizationQuery,
 } from "@/hooks/use-organization-query";
+import { useOrganizationMutations } from "@/hooks/use-organization-mutations";
 import {
   getBillingAlert,
   getPaymentStatusLabel,
@@ -30,11 +31,26 @@ export function ManagementPage() {
     useProfessionalsQuery();
   const { data: payments = [], error: paymentsError, isLoading: isLoadingPayments } =
     useOrganizationPaymentsQuery();
+  const { isNotifyingPaymentPaid, notifyPaymentPaid, notifyPaymentPaidError } = useOrganizationMutations();
   const billingAlert = useMemo(() => getBillingAlert(organization, payments), [organization, payments]);
   const latestPayment = payments[0] ?? null;
+  const [paymentSignalMessage, setPaymentSignalMessage] = useState("");
 
   const isLoading = isLoadingOrganization || isLoadingProfessionals || isLoadingPayments;
   const isInitialLoading = isLoading && !organization;
+
+  async function handleNotifyPaymentPaid() {
+    if (!organization?.latestPaymentId) {
+      return;
+    }
+
+    try {
+      await notifyPaymentPaid({ paymentId: organization.latestPaymentId });
+      setPaymentSignalMessage("Aviso enviado para o administrador. A mensagem segue visivel ate a baixa do pagamento.");
+    } catch {
+      return;
+    }
+  }
 
   return (
     <section className="space-y-4">
@@ -104,6 +120,12 @@ export function ManagementPage() {
         </Card>
       ) : null}
 
+      {paymentSignalMessage ? (
+        <Card className="app-message-success">
+          <p className="text-sm font-medium text-emerald-700">{paymentSignalMessage}</p>
+        </Card>
+      ) : null}
+
       {organization ? (
         <>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -123,13 +145,53 @@ export function ManagementPage() {
               <h3 className="mt-2 text-lg font-semibold text-ink">Situacao da assinatura</h3>
               <div className="mt-4 space-y-2 text-sm text-slate-600">
                 <p>Vencimento {formatDateBR(organization.dueDate)}</p>
+                {organization.graceUntil ? <p>Bloqueio apos {formatDateBR(organization.graceUntil)}</p> : null}
                 <p>
                   Ultimo status {latestPayment ? getPaymentStatusLabel(latestPayment.status) : "Sem historico"}
                 </p>
                 <p>
                   Ultimo valor {latestPayment ? formatCurrency(latestPayment.amount) : "Nao informado"}
                 </p>
+                {organization.pixKey ? <p>Pix {organization.pixKey}</p> : null}
+                {latestPayment?.customerNotifiedPaidAt ? (
+                  <p>Voce ja avisou o administrador sobre este pagamento.</p>
+                ) : null}
               </div>
+              {organization.paymentNoticeVisible && latestPayment?.status !== "paid" ? (
+                <div className="mt-4 space-y-3 rounded-2xl border border-amber-100 bg-amber-50/80 px-4 py-4">
+                  <p className="text-sm font-semibold text-amber-800">
+                    Pagamento disponivel para regularizacao
+                  </p>
+                  <p className="text-sm text-amber-700">
+                    Faça o pagamento via Pix e, se ja tiver pago, toque abaixo para avisar o administrador.
+                  </p>
+                  {organization.pixKey ? (
+                    <div className="rounded-2xl bg-white/80 px-3 py-3">
+                      <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Chave Pix</p>
+                      <p className="mt-2 break-all text-sm font-semibold text-ink">{organization.pixKey}</p>
+                    </div>
+                  ) : null}
+                  <Button
+                    disabled={
+                      isNotifyingPaymentPaid ||
+                      !organization.latestPaymentId ||
+                      Boolean(latestPayment?.customerNotifiedPaidAt)
+                    }
+                    onClick={() => void handleNotifyPaymentPaid()}
+                    type="button"
+                    variant="secondary"
+                  >
+                    {latestPayment?.customerNotifiedPaidAt
+                      ? "Administrador ja avisado"
+                      : isNotifyingPaymentPaid
+                        ? "Enviando aviso..."
+                        : "Ja paguei, avisar administrador"}
+                  </Button>
+                  {notifyPaymentPaidError ? (
+                    <p className="text-sm text-rose-600">{notifyPaymentPaidError.message}</p>
+                  ) : null}
+                </div>
+              ) : null}
             </Card>
 
             <Card>

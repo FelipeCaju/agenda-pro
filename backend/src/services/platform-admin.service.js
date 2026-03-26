@@ -3,8 +3,10 @@ import {
   createOrganizationPayment,
   createUser,
   getAdminOrganizationDetails,
+  getPlatformSettings,
   listAdminOrganizations,
   listOrganizationPayments,
+  updatePlatformSettings,
   updateOrganizationById,
 } from "../lib/data.js";
 import { hashPassword, isValidPassword } from "../lib/password.js";
@@ -337,4 +339,32 @@ export async function createPaymentForPlatformAdmin(organizationId, input) {
   });
 
   return payment;
+}
+
+export async function getPlatformSettingsForAdmin() {
+  return getPlatformSettings();
+}
+
+export async function updatePlatformSettingsForAdmin(input) {
+  const pixKey = normalizeString(input.pix_key ?? input.pixKey);
+  const paymentGraceDays = Number(input.payment_grace_days ?? input.paymentGraceDays ?? 5);
+  const paymentAlertDays = Number(input.payment_alert_days ?? input.paymentAlertDays ?? 5);
+
+  if (!Number.isInteger(paymentGraceDays) || paymentGraceDays < 0 || paymentGraceDays > 60) {
+    const error = new Error("Folga de pagamento invalida. Use entre 0 e 60 dias.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (!Number.isInteger(paymentAlertDays) || paymentAlertDays < 0 || paymentAlertDays > 60) {
+    const error = new Error("Janela de alerta invalida. Use entre 0 e 60 dias.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return updatePlatformSettings({
+    pix_key: pixKey,
+    payment_grace_days: paymentGraceDays,
+    payment_alert_days: paymentAlertDays,
+  });
 }

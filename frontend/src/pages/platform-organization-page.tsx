@@ -242,6 +242,11 @@ export function PlatformOrganizationPage() {
                         {payment.paidAt ? formatDateBR(payment.paidAt) : formatDateBR(payment.dueDate)}
                       </span>
                     </div>
+                    {payment.customerNotifiedPaidAt ? (
+                      <p className="mt-2 text-sm font-medium text-amber-700">
+                        Cliente informou que ja pagou e aguarda confirmacao administrativa.
+                      </p>
+                    ) : null}
                     {payment.notes ? <p className="mt-2 text-sm text-slate-500">{payment.notes}</p> : null}
                   </div>
                 ))

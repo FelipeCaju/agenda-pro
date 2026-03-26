@@ -4,9 +4,9 @@ const config: CapacitorConfig = {
   appId: "com.agendapro.app",
   appName: "AgendaPro",
   webDir: "dist",
-  bundledWebRuntime: false,
   server: {
-    androidScheme: "https",
+    androidScheme: "http",
+    cleartext: true,
   },
   plugins: {
     SplashScreen: {

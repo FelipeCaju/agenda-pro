@@ -18,9 +18,23 @@ export function useOrganizationMutations() {
     },
   });
 
+  const notifyPaymentPaidMutation = useMutation({
+    mutationFn: ({ paymentId, note }: { paymentId: string; note?: string }) =>
+      organizationService.notifyPaymentPaid(paymentId, note),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: organizationKeys.current() }),
+        queryClient.invalidateQueries({ queryKey: organizationKeys.payments() }),
+      ]);
+    },
+  });
+
   return {
     updateOrganization: updateMutation.mutateAsync,
+    notifyPaymentPaid: notifyPaymentPaidMutation.mutateAsync,
     isUpdatingOrganization: updateMutation.isPending,
+    isNotifyingPaymentPaid: notifyPaymentPaidMutation.isPending,
     updateOrganizationError: updateMutation.error,
+    notifyPaymentPaidError: notifyPaymentPaidMutation.error,
   };
 }

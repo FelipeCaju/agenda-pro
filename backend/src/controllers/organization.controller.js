@@ -1,8 +1,9 @@
-import { getRequestAuthContext } from "../lib/request-auth.js";
+import { getRequestActiveAuthContext, getRequestAuthContext } from "../lib/request-auth.js";
 import {
   getCurrentOrganization,
   listCurrentOrganizationPayments,
   listOrganizationMembers,
+  markCurrentOrganizationPaymentAsPaid,
   updateCurrentOrganization,
 } from "../services/organization.service.js";
 
@@ -27,7 +28,7 @@ export async function getCurrentOrganizationController(request, response) {
 
 export async function listOrganizationMembersController(request, response) {
   try {
-    const { organization } = await getRequestAuthContext(request);
+    const { organization } = await getRequestActiveAuthContext(request);
     const data = await listOrganizationMembers({
       organizationId: organization.id,
     });
@@ -63,7 +64,7 @@ export async function listCurrentOrganizationPaymentsController(request, respons
 
 export async function updateCurrentOrganizationController(request, response) {
   try {
-    const { organization } = await getRequestAuthContext(request);
+    const { organization } = await getRequestActiveAuthContext(request);
     const data = await updateCurrentOrganization({
       organizationId: organization.id,
       input: request.body ?? {},
@@ -72,6 +73,24 @@ export async function updateCurrentOrganizationController(request, response) {
     response.json({
       data,
       message: "Organizacao atualizada com sucesso.",
+    });
+  } catch (error) {
+    sendError(response, error);
+  }
+}
+
+export async function notifyCurrentOrganizationPaymentPaidController(request, response) {
+  try {
+    const { organization } = await getRequestAuthContext(request);
+    const data = await markCurrentOrganizationPaymentAsPaid({
+      organizationId: organization.id,
+      paymentId: request.params.paymentId,
+      note: request.body?.note ?? null,
+    });
+
+    response.json({
+      data,
+      message: "Aviso de pagamento enviado para o administrador.",
     });
   } catch (error) {
     sendError(response, error);

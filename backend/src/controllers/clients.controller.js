@@ -1,4 +1,4 @@
-import { getRequestAuthContext } from "../lib/request-auth.js";
+import { getRequestActiveAuthContext } from "../lib/request-auth.js";
 import {
   createClient,
   getClient,
@@ -16,7 +16,7 @@ function sendError(response, error) {
 
 export async function listClientsController(request, response) {
   try {
-    const { organization } = await getRequestAuthContext(request);
+    const { organization } = await getRequestActiveAuthContext(request);
     const clients = await listClients({
       organizationId: organization.id,
       search: request.query.search ?? request.query.q ?? "",
@@ -35,7 +35,7 @@ export async function listClientsController(request, response) {
 
 export async function getClientController(request, response) {
   try {
-    const { organization } = await getRequestAuthContext(request);
+    const { organization } = await getRequestActiveAuthContext(request);
     const client = await getClient({
       organizationId: organization.id,
       clientId: request.params.clientId,
@@ -51,7 +51,7 @@ export async function getClientController(request, response) {
 
 export async function createClientController(request, response) {
   try {
-    const { organization } = await getRequestAuthContext(request);
+    const { organization } = await getRequestActiveAuthContext(request);
     const client = await createClient({
       organizationId: organization.id,
       input: request.body,
@@ -68,7 +68,7 @@ export async function createClientController(request, response) {
 
 export async function updateClientController(request, response) {
   try {
-    const { organization } = await getRequestAuthContext(request);
+    const { organization } = await getRequestActiveAuthContext(request);
     const client = await updateClient({
       organizationId: organization.id,
       clientId: request.params.clientId,
@@ -86,7 +86,7 @@ export async function updateClientController(request, response) {
 
 export async function toggleClientActiveController(request, response) {
   try {
-    const { organization } = await getRequestAuthContext(request);
+    const { organization } = await getRequestActiveAuthContext(request);
     const client = await toggleClientActive({
       organizationId: organization.id,
       clientId: request.params.clientId,
@@ -104,7 +104,7 @@ export async function toggleClientActiveController(request, response) {
 
 export async function deleteClientController(request, response) {
   try {
-    const { organization } = await getRequestAuthContext(request);
+    const { organization } = await getRequestActiveAuthContext(request);
     await removeClient({
       organizationId: organization.id,
       clientId: request.params.clientId,

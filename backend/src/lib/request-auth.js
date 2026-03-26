@@ -1,4 +1,5 @@
 import {
+  requireActiveAuthenticatedContext,
   requireAuthenticatedContext,
   requirePlatformAdminContext,
 } from "../services/auth.service.js";
@@ -10,6 +11,10 @@ function readToken(request) {
 
 export async function getRequestAuthContext(request) {
   return requireAuthenticatedContext(readToken(request));
+}
+
+export async function getRequestActiveAuthContext(request) {
+  return requireActiveAuthenticatedContext(readToken(request));
 }
 
 export async function getRequestPlatformAdminContext(request) {

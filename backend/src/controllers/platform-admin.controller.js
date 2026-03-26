@@ -2,8 +2,10 @@ import {
   createOrganizationForPlatformAdmin,
   createPaymentForPlatformAdmin,
   getOrganizationForPlatformAdmin,
+  getPlatformSettingsForAdmin,
   listOrganizationsForPlatformAdmin,
   listPaymentsForPlatformAdmin,
+  updatePlatformSettingsForAdmin,
   updateOrganizationSubscriptionForPlatformAdmin,
 } from "../services/platform-admin.service.js";
 
@@ -74,6 +76,27 @@ export async function createAdminOrganizationPaymentController(request, response
         request.body ?? {},
       ),
       message: "Pagamento registrado com sucesso.",
+    });
+  } catch (error) {
+    sendError(response, error);
+  }
+}
+
+export async function getPlatformSettingsController(_request, response) {
+  try {
+    response.json({
+      data: await getPlatformSettingsForAdmin(),
+    });
+  } catch (error) {
+    sendError(response, error);
+  }
+}
+
+export async function updatePlatformSettingsController(request, response) {
+  try {
+    response.json({
+      data: await updatePlatformSettingsForAdmin(request.body ?? {}),
+      message: "Configuracoes da plataforma atualizadas com sucesso.",
     });
   } catch (error) {
     sendError(response, error);

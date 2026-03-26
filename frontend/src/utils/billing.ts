@@ -1,7 +1,5 @@
 import type { OrganizationPayment, OrganizationProfile } from "@/services/organizationService";
 
-const PAYMENT_ALERT_WINDOW_DAYS = 5;
-
 function toDateParts(value?: string | null) {
   if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     return null;
@@ -45,6 +43,7 @@ export function getBillingAlert(
   payments: OrganizationPayment[] = [],
 ) {
   const latestPayment = payments[0] ?? null;
+  const alertWindowDays = Number(organization?.paymentAlertDays ?? 5);
   const dueInDays = differenceInDays(organization?.dueDate ?? latestPayment?.dueDate ?? null);
 
   if (!organization) {
@@ -59,9 +58,12 @@ export function getBillingAlert(
   if (organization.subscriptionStatus === "overdue") {
     return {
       hasAlert: true,
-      tone: "danger" as const,
-      title: "Pagamento em atraso",
-      description: "A assinatura esta em atraso. Atualize o pagamento para evitar bloqueio.",
+      tone: "warning" as const,
+      title: "Pagamento pendente",
+      description:
+        organization.graceUntil
+          ? `Existe um pagamento pendente. O acesso segue liberado ate ${organization.graceUntil.split("-").reverse().join("/")}.`
+          : "Existe um pagamento pendente. Regularize para evitar bloqueio.",
     };
   }
 
@@ -92,7 +94,7 @@ export function getBillingAlert(
     };
   }
 
-  if (dueInDays !== null && dueInDays <= PAYMENT_ALERT_WINDOW_DAYS) {
+  if (dueInDays !== null && dueInDays <= alertWindowDays) {
     return {
       hasAlert: true,
       tone: "warning" as const,
@@ -106,7 +108,9 @@ export function getBillingAlert(
       hasAlert: true,
       tone: "warning" as const,
       title: "Pagamento pendente",
-      description: "Existe um pagamento pendente no historico mais recente.",
+      description: latestPayment.customerNotifiedPaidAt
+        ? "Voce ja avisou o administrador sobre este pagamento. A notificacao segue visivel ate a baixa."
+        : "Existe um pagamento pendente no historico mais recente.",
     };
   }
 

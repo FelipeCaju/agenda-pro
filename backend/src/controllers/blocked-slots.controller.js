@@ -1,4 +1,4 @@
-import { getRequestAuthContext } from "../lib/request-auth.js";
+import { getRequestActiveAuthContext } from "../lib/request-auth.js";
 import {
   createBlockedSlot,
   deleteBlockedSlot,
@@ -13,7 +13,7 @@ function sendError(response, error) {
 
 export async function listBlockedSlotsController(request, response) {
   try {
-    const { organization } = await getRequestAuthContext(request);
+    const { organization } = await getRequestActiveAuthContext(request);
     const data = await listBlockedSlots({
       organizationId: organization.id,
       date: request.query.date,
@@ -34,7 +34,7 @@ export async function listBlockedSlotsController(request, response) {
 
 export async function createBlockedSlotController(request, response) {
   try {
-    const { organization } = await getRequestAuthContext(request);
+    const { organization } = await getRequestActiveAuthContext(request);
     const data = await createBlockedSlot({
       organizationId: organization.id,
       input: request.body ?? {},
@@ -51,7 +51,7 @@ export async function createBlockedSlotController(request, response) {
 
 export async function deleteBlockedSlotController(request, response) {
   try {
-    const { organization } = await getRequestAuthContext(request);
+    const { organization } = await getRequestActiveAuthContext(request);
     await deleteBlockedSlot({
       organizationId: organization.id,
       blockedSlotId: request.params.blockedSlotId,

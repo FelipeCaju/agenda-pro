@@ -1,4 +1,4 @@
-import { getRequestAuthContext } from "../lib/request-auth.js";
+import { getRequestActiveAuthContext } from "../lib/request-auth.js";
 import {
   createBusinessService,
   getBusinessService,
@@ -16,7 +16,7 @@ function sendError(response, error) {
 
 export async function listServicesController(request, response) {
   try {
-    const { organization } = await getRequestAuthContext(request);
+    const { organization } = await getRequestActiveAuthContext(request);
     const services = await listBusinessServices({
       organizationId: organization.id,
       search: request.query.search ?? request.query.q ?? "",
@@ -35,7 +35,7 @@ export async function listServicesController(request, response) {
 
 export async function getServiceController(request, response) {
   try {
-    const { organization } = await getRequestAuthContext(request);
+    const { organization } = await getRequestActiveAuthContext(request);
     const service = await getBusinessService({
       organizationId: organization.id,
       serviceId: request.params.serviceId,
@@ -51,7 +51,7 @@ export async function getServiceController(request, response) {
 
 export async function createServiceController(request, response) {
   try {
-    const { organization } = await getRequestAuthContext(request);
+    const { organization } = await getRequestActiveAuthContext(request);
     const service = await createBusinessService({
       organizationId: organization.id,
       input: request.body,
@@ -68,7 +68,7 @@ export async function createServiceController(request, response) {
 
 export async function updateServiceController(request, response) {
   try {
-    const { organization } = await getRequestAuthContext(request);
+    const { organization } = await getRequestActiveAuthContext(request);
     const service = await updateBusinessService({
       organizationId: organization.id,
       serviceId: request.params.serviceId,
@@ -86,7 +86,7 @@ export async function updateServiceController(request, response) {
 
 export async function toggleServiceActiveController(request, response) {
   try {
-    const { organization } = await getRequestAuthContext(request);
+    const { organization } = await getRequestActiveAuthContext(request);
     const service = await toggleBusinessServiceActive({
       organizationId: organization.id,
       serviceId: request.params.serviceId,
@@ -104,7 +104,7 @@ export async function toggleServiceActiveController(request, response) {
 
 export async function deleteServiceController(request, response) {
   try {
-    const { organization } = await getRequestAuthContext(request);
+    const { organization } = await getRequestActiveAuthContext(request);
     await removeBusinessService({
       organizationId: organization.id,
       serviceId: request.params.serviceId,

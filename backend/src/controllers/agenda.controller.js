@@ -1,4 +1,4 @@
-import { getRequestAuthContext } from "../lib/request-auth.js";
+import { getRequestActiveAuthContext } from "../lib/request-auth.js";
 import {
   createAppointment,
   getAppointment,
@@ -17,7 +17,7 @@ function sendError(response, error) {
 
 export async function listAgendaController(request, response) {
   try {
-    const { organization } = await getRequestAuthContext(request);
+    const { organization } = await getRequestActiveAuthContext(request);
     const appointments = await listAppointments({
       organizationId: organization.id,
       date: request.query.date,
@@ -38,7 +38,7 @@ export async function listAgendaController(request, response) {
 
 export async function getAppointmentController(request, response) {
   try {
-    const { organization } = await getRequestAuthContext(request);
+    const { organization } = await getRequestActiveAuthContext(request);
     const appointment = await getAppointment({
       organizationId: organization.id,
       appointmentId: request.params.appointmentId,
@@ -54,7 +54,7 @@ export async function getAppointmentController(request, response) {
 
 export async function createAppointmentController(request, response) {
   try {
-    const { organization } = await getRequestAuthContext(request);
+    const { organization } = await getRequestActiveAuthContext(request);
     const result = await createAppointment({
       organizationId: organization.id,
       input: request.body,
@@ -77,7 +77,7 @@ export async function createAppointmentController(request, response) {
 
 export async function updateAppointmentController(request, response) {
   try {
-    const { organization } = await getRequestAuthContext(request);
+    const { organization } = await getRequestActiveAuthContext(request);
     const appointment = await updateAppointment({
       organizationId: organization.id,
       appointmentId: request.params.appointmentId,
@@ -95,7 +95,7 @@ export async function updateAppointmentController(request, response) {
 
 export async function updateAppointmentStatusController(request, response) {
   try {
-    const { organization } = await getRequestAuthContext(request);
+    const { organization } = await getRequestActiveAuthContext(request);
     const appointment = await updateAppointmentStatus({
       organizationId: organization.id,
       appointmentId: request.params.appointmentId,
@@ -113,7 +113,7 @@ export async function updateAppointmentStatusController(request, response) {
 
 export async function updateAppointmentPaymentStatusController(request, response) {
   try {
-    const { organization } = await getRequestAuthContext(request);
+    const { organization } = await getRequestActiveAuthContext(request);
     const appointment = await updateAppointmentPaymentStatus({
       organizationId: organization.id,
       appointmentId: request.params.appointmentId,
@@ -131,7 +131,7 @@ export async function updateAppointmentPaymentStatusController(request, response
 
 export async function deleteAppointmentController(request, response) {
   try {
-    const { organization } = await getRequestAuthContext(request);
+    const { organization } = await getRequestActiveAuthContext(request);
     await removeAppointment({
       organizationId: organization.id,
       appointmentId: request.params.appointmentId,

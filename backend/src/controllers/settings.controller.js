@@ -1,4 +1,4 @@
-import { getRequestAuthContext } from "../lib/request-auth.js";
+import { getRequestActiveAuthContext } from "../lib/request-auth.js";
 import { getSettings, updateSettings } from "../services/settings.service.js";
 
 function sendError(response, error) {
@@ -9,7 +9,7 @@ function sendError(response, error) {
 
 export async function getSettingsController(request, response) {
   try {
-    const { organization } = await getRequestAuthContext(request);
+    const { organization } = await getRequestActiveAuthContext(request);
     const data = await getSettings({
       organizationId: organization.id,
     });
@@ -22,7 +22,7 @@ export async function getSettingsController(request, response) {
 
 export async function updateSettingsController(request, response) {
   try {
-    const { organization } = await getRequestAuthContext(request);
+    const { organization } = await getRequestActiveAuthContext(request);
     const data = await updateSettings({
       organizationId: organization.id,
       input: request.body ?? {},
