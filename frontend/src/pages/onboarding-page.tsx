@@ -85,6 +85,9 @@ export function OnboardingPage() {
           <Button className="w-full" disabled={isSubmitting} type="submit">
             {isSubmitting ? "Concluindo..." : "Concluir cadastro inicial"}
           </Button>
+          <Button className="w-full" onClick={() => navigate("/login")} type="button" variant="secondary">
+            Voltar ao login
+          </Button>
         </form>
       </Card>
     </div>

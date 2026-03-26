@@ -734,6 +734,34 @@ async function hasColumn(tableName, columnName) {
 }
 
 async function ensurePlatformSettingsInfrastructure() {
+  if (!(await hasColumn("organizations", "monthly_amount"))) {
+    await execute(
+      `ALTER TABLE organizations
+        ADD COLUMN monthly_amount DECIMAL(12,2) NOT NULL DEFAULT 0 AFTER telefone`,
+    );
+  }
+
+  if (!(await hasColumn("organizations", "subscription_plan"))) {
+    await execute(
+      `ALTER TABLE organizations
+        ADD COLUMN subscription_plan VARCHAR(50) NULL AFTER subscription_status`,
+    );
+  }
+
+  if (!(await hasColumn("organizations", "due_date"))) {
+    await execute(
+      `ALTER TABLE organizations
+        ADD COLUMN due_date DATE NULL AFTER subscription_plan`,
+    );
+  }
+
+  if (!(await hasColumn("organizations", "trial_end"))) {
+    await execute(
+      `ALTER TABLE organizations
+        ADD COLUMN trial_end DATE NULL AFTER due_date`,
+    );
+  }
+
   await execute(
     `CREATE TABLE IF NOT EXISTS platform_settings (
       id VARCHAR(64) PRIMARY KEY,
