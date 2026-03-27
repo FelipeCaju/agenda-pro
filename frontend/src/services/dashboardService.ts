@@ -19,6 +19,8 @@ export type DashboardSummary = {
     pendingAppointments: number;
     canceledAppointments: number;
     scheduledRevenue: number;
+    paidRevenue: number;
+    pendingRevenue: number;
     averageTicket: number;
     activeClients: number;
     activeServices: number;
@@ -40,6 +42,14 @@ export type DashboardSummary = {
       nome: string;
       cor: string;
       total: number;
+    }>;
+    servicesFinancial: Array<{
+      serviceId: string;
+      nome: string;
+      cor: string;
+      totalAppointments: number;
+      paidRevenue: number;
+      pendingRevenue: number;
     }>;
   };
   lists: {
