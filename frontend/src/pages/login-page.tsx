@@ -10,8 +10,8 @@ export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { clearError, error, isLoading, isSessionExpired, signIn } = useAuth();
-  const [email, setEmail] = useState("contato@agendapro.app");
-  const [password, setPassword] = useState("Agenda123!");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const redirectTo = (location.state as { from?: string } | null)?.from ?? "/";
   const successMessage = (location.state as { successMessage?: string } | null)?.successMessage ?? "";
@@ -71,15 +71,6 @@ export function LoginPage() {
           <Button className="w-full" disabled={isSubmitting || isLoading} type="submit">
             {isSubmitting ? "Entrando..." : "Entrar com email e senha"}
           </Button>
-          <div className="rounded-[24px] border border-slate-200/70 bg-slate-50/[0.85] px-4 py-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-              Acessos para teste
-            </p>
-            <p className="mt-2 text-sm leading-6 text-slate-500">
-              Use `contato@agendapro.app` ou `bloqueado@agendapro.app` com a senha
-              `Agenda123!`. Qualquer email novo segue para o primeiro acesso.
-            </p>
-          </div>
         </form>
       </Card>
     </div>
