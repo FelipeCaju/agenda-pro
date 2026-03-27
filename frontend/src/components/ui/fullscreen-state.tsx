@@ -1,4 +1,5 @@
 import { type ReactNode } from "react";
+import { AppBrandIcon } from "@/components/ui/app-brand-icon";
 import { Card } from "@/components/ui/card";
 
 type FullscreenStateProps = {
@@ -17,6 +18,9 @@ export function FullscreenState({
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-10">
       <Card className="w-full max-w-lg bg-white p-6 shadow-[0_16px_40px_rgba(15,23,42,0.08)]">
+        <div className="mb-5 flex justify-center">
+          <AppBrandIcon className="h-20 w-20 rounded-[28px] p-0 shadow-[0_14px_30px_rgba(15,23,42,0.12)]" />
+        </div>
         {eyebrow ? (
           <p className="text-xs uppercase tracking-[0.28em] text-brand-700">{eyebrow}</p>
         ) : null}
