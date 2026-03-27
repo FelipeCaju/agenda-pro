@@ -96,12 +96,7 @@ function ServiceFinanceChart({
   return (
     <Card className="rounded-[22px] border border-slate-200/70 bg-white px-4 py-4 shadow-[0_4px_16px_rgba(15,23,36,0.05)]">
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold text-ink">Financeiro por servico</p>
-          <p className="mt-1 text-xs text-slate-500">
-            Toque em uma barra para filtrar os indicadores do painel.
-          </p>
-        </div>
+        <p className="text-sm font-semibold text-ink">Financeiro por servico</p>
         {selectedServiceId ? (
           <button
             className="rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600"
@@ -204,6 +199,27 @@ export function DashboardPage() {
     [data?.charts.servicesFinancial],
   );
 
+  const totalPaidRevenue = useMemo(
+    () =>
+      serviceFinancialItems.reduce((total, item) => total + safeNumber(item.paidRevenue), 0),
+    [serviceFinancialItems],
+  );
+
+  const totalPendingRevenue = useMemo(
+    () =>
+      serviceFinancialItems.reduce((total, item) => total + safeNumber(item.pendingRevenue), 0),
+    [serviceFinancialItems],
+  );
+
+  const totalServiceAppointments = useMemo(
+    () =>
+      serviceFinancialItems.reduce(
+        (total, item) => total + safeNumber(item.totalAppointments),
+        0,
+      ),
+    [serviceFinancialItems],
+  );
+
   const selectedServiceFinancial = useMemo(
     () =>
       serviceFinancialItems.find((item) => item.serviceId === selectedServiceId) ?? null,
@@ -255,10 +271,10 @@ export function DashboardPage() {
     }
 
     if (!selectedServiceFinancial) {
-        return {
-        receivedRevenue: safeNumber(data.kpis.paidRevenue),
-        pendingRevenue: safeNumber(data.kpis.pendingRevenue),
-        totalAppointments: safeNumber(data.kpis.totalAppointments),
+      return {
+        receivedRevenue: totalPaidRevenue,
+        pendingRevenue: totalPendingRevenue,
+        totalAppointments: totalServiceAppointments || safeNumber(data.kpis.totalAppointments),
         averageTicket: safeNumber(data.kpis.averageTicket),
       };
     }
@@ -274,7 +290,13 @@ export function DashboardPage() {
             safeNumber(selectedServiceFinancial.totalAppointments)
           : 0,
     };
-  }, [data, selectedServiceFinancial]);
+  }, [
+    data,
+    selectedServiceFinancial,
+    totalPaidRevenue,
+    totalPendingRevenue,
+    totalServiceAppointments,
+  ]);
 
   return (
     <section className="space-y-4 pb-24">
@@ -311,14 +333,11 @@ export function DashboardPage() {
           </label>
         </div>
 
-        <div className="mt-4 rounded-[18px] bg-slate-50 px-3 py-3">
-          <p className="text-xs text-slate-500">
-            O painel agora cruza os indicadores pelo periodo selecionado. O detalhe por servico
-            fica no grafico abaixo.
-          </p>
-          <p className="mt-2 text-xs font-medium text-slate-600">
-            Periodo aplicado: {data?.range.start ?? startDate} ate {data?.range.end ?? endDate}
-          </p>
+        <div className="mt-4 flex items-center justify-between rounded-[18px] bg-slate-50 px-3 py-3 text-xs font-medium text-slate-600">
+          <span>Periodo</span>
+          <span>
+            {data?.range.start ?? startDate} ate {data?.range.end ?? endDate}
+          </span>
         </div>
       </Card>
 
@@ -346,9 +365,6 @@ export function DashboardPage() {
           {!serviceFinancialItems.length ? (
             <Card className="rounded-[22px] border border-slate-200/70 bg-white px-4 py-4 shadow-[0_4px_16px_rgba(15,23,36,0.05)]">
               <p className="text-sm font-semibold text-ink">Sem dados no periodo</p>
-              <p className="mt-2 text-sm text-slate-500">
-                Ajuste as datas para um intervalo com atendimentos registrados.
-              </p>
             </Card>
           ) : null}
 
