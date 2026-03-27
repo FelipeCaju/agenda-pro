@@ -83,7 +83,7 @@ export function LoginPage() {
         <span className="app-pill">AgendaPro</span>
         <h1 className="mt-4 text-3xl font-bold tracking-[-0.04em] text-ink">Entrar</h1>
         <p className="mt-3 text-sm leading-7 text-slate-500">
-          Acesso seguro por email e senha, pronto para clientes no iPhone e no Android sem depender de um provedor externo.
+          Acesso seguro por email e senha, com criacao de conta e trial direto pela tela inicial.
         </p>
         <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
           <input
