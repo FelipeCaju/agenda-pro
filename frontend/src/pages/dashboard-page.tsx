@@ -13,9 +13,12 @@ import { useDashboardSummary } from "@/hooks/use-dashboard-summary";
 import { useSettingsQuery } from "@/hooks/use-settings-query";
 import { getTodayDate } from "@/utils/agenda";
 
-function getMonthStartDate() {
-  const today = new Date();
-  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-01`;
+function getPastDate(daysToSubtract: number) {
+  const value = new Date();
+  value.setDate(value.getDate() - daysToSubtract);
+  return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(
+    value.getDate(),
+  ).padStart(2, "0")}`;
 }
 
 function safeNumber(value: unknown) {
@@ -93,6 +96,10 @@ function ServiceFinanceChart({
     1,
   );
 
+  if (!items.length) {
+    return null;
+  }
+
   return (
     <Card className="rounded-[22px] border border-slate-200/70 bg-white px-4 py-4 shadow-[0_4px_16px_rgba(15,23,36,0.05)]">
       <div className="flex items-start justify-between gap-3">
@@ -107,14 +114,7 @@ function ServiceFinanceChart({
           </button>
         ) : null}
       </div>
-
       <div className="mt-5 space-y-4">
-        {!items.length ? (
-          <div className="rounded-[18px] bg-slate-50 px-4 py-4 text-sm text-slate-500">
-            Nenhum servico com movimentacao no periodo selecionado.
-          </div>
-        ) : null}
-
         {items.map((item) => {
           const total = item.paidRevenue + item.pendingRevenue;
           const paidWidth = total > 0 ? (item.paidRevenue / maxTotal) * 100 : 0;
@@ -174,7 +174,7 @@ function ServiceFinanceChart({
 }
 
 export function DashboardPage() {
-  const [startDate, setStartDate] = useState(getMonthStartDate());
+  const [startDate, setStartDate] = useState(getPastDate(29));
   const [endDate, setEndDate] = useState(getTodayDate());
   const { data, error, isError, isLoading } = useDashboardSummary({
     period: "30d",
@@ -332,13 +332,6 @@ export function DashboardPage() {
             </div>
           </label>
         </div>
-
-        <div className="mt-4 flex items-center justify-between rounded-[18px] bg-slate-50 px-3 py-3 text-xs font-medium text-slate-600">
-          <span>Periodo</span>
-          <span>
-            {data?.range.start ?? startDate} ate {data?.range.end ?? endDate}
-          </span>
-        </div>
       </Card>
 
       {isLoading ? (
@@ -361,12 +354,6 @@ export function DashboardPage() {
             onSelect={setSelectedServiceId}
             selectedServiceId={selectedServiceId}
           />
-
-          {!serviceFinancialItems.length ? (
-            <Card className="rounded-[22px] border border-slate-200/70 bg-white px-4 py-4 shadow-[0_4px_16px_rgba(15,23,36,0.05)]">
-              <p className="text-sm font-semibold text-ink">Sem dados no periodo</p>
-            </Card>
-          ) : null}
 
           <div className="grid grid-cols-2 gap-3">
             <MetricCard
