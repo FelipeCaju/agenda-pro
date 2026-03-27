@@ -60,6 +60,25 @@ function formatSummaryDate(date: string) {
   return date ? formatDateBR(date) : "--";
 }
 
+function addMinutesToTime(time: string, minutesToAdd: number) {
+  if (!time || !Number.isFinite(minutesToAdd) || minutesToAdd <= 0) {
+    return "";
+  }
+
+  const [hours, minutes] = time.split(":").map(Number);
+
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) {
+    return "";
+  }
+
+  const totalMinutes = hours * 60 + minutes + minutesToAdd;
+  const normalizedMinutes = ((totalMinutes % (24 * 60)) + 24 * 60) % (24 * 60);
+  const nextHours = String(Math.floor(normalizedMinutes / 60)).padStart(2, "0");
+  const nextMinutes = String(normalizedMinutes % 60).padStart(2, "0");
+
+  return `${nextHours}:${nextMinutes}`;
+}
+
 export function NewAppointment({
   clients,
   professionals,
@@ -116,6 +135,26 @@ export function NewAppointment({
       };
     });
   }, [selectedService]);
+
+  useEffect(() => {
+    if (!selectedService || !values.horarioInicial) {
+      return;
+    }
+
+    const nextEndTime = addMinutesToTime(
+      values.horarioInicial,
+      Number(selectedService.duracaoMinutos ?? 0),
+    );
+
+    if (!nextEndTime || nextEndTime === values.horarioFinal) {
+      return;
+    }
+
+    setValues((current) => ({
+      ...current,
+      horarioFinal: nextEndTime,
+    }));
+  }, [selectedService, values.horarioInicial, values.horarioFinal]);
 
   useEffect(() => {
     if (!values.servicoId) {
