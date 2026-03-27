@@ -1,21 +1,73 @@
 # AgendaPro
 
-AgendaPro e uma plataforma SaaS de agenda e gestao operacional para negocios de atendimento, com frontend web/mobile em React + Capacitor e backend Node.js + Express com persistencia em MySQL.
+AgendaPro e uma plataforma SaaS para agenda, atendimento e operacao de negocios de servico. O sistema foi construido para operar em modelo multi-tenant, com varias empresas compartilhando o mesmo banco de dados e isolamento logico por organizacao.
 
-## Visao Geral
+## Resumo Executivo
 
-- multiempresa com isolamento por `organization_id`
-- autenticacao de clientes e acesso administrativo de plataforma
-- agenda, clientes, servicos, funcionarios, bloqueios e lembretes
-- controle de assinatura, cobranca, Pix e bloqueio por inadimplencia
-- app Android via Capacitor consumindo a mesma API do ambiente web
+- frontend web em React + Vite
+- app Android via Capacitor
+- backend REST em Node.js + Express
+- persistencia em MySQL
+- controle de trial, assinatura, cobranca e bloqueio por inadimplencia
+- administracao centralizada por acesso master da plataforma
 
-## Stack
+## Arquitetura
 
-- `frontend/`: React 18, Vite, React Router, React Query, Tailwind CSS, Capacitor
-- `backend/`: Node.js, Express
-- `database`: MySQL
-- `deploy`: Render para API e Android Studio para app mobile
+```text
+Web / Android
+     |
+     v
+Frontend React + Vite + Capacitor
+     |
+     v
+API REST Node.js + Express
+     |
+     v
+MySQL
+```
+
+O frontend nunca acessa o banco diretamente. Toda autenticacao, segregacao multi-tenant, regra de negocio e cobranca passam pelo backend.
+
+## Principais Funcionalidades
+
+- login por email e senha
+- criacao de conta com onboarding e trial
+- gestao de clientes
+- gestao de servicos
+- gestao de funcionarios
+- agenda de atendimentos
+- bloqueio de horarios
+- lembretes e integracao com WhatsApp
+- configuracoes da empresa
+- painel com indicadores operacionais e financeiros
+- area master para administracao de clientes SaaS
+- cobranca com Pix, alerta de vencimento, folga configuravel e bloqueio de acesso
+
+## Perfis de Acesso
+
+### Cliente SaaS
+
+Cada empresa cliente acessa somente os seus dados e pode operar:
+
+- clientes
+- servicos
+- agenda
+- funcionarios
+- bloqueios
+- configuracoes
+- pagamentos e assinatura
+
+### Super Admin
+
+O acesso master da plataforma permite:
+
+- cadastrar e acompanhar organizacoes
+- configurar status de assinatura
+- registrar pagamentos
+- definir chave Pix da plataforma
+- configurar dias de alerta e dias de folga
+- acompanhar clientes bloqueados
+- visualizar quando um cliente sinaliza que ja realizou o pagamento
 
 ## Estrutura do Repositorio
 
@@ -39,16 +91,40 @@ agenda-pro/
       pages/
       routes/
       services/
+      utils/
   docs/
 ```
 
-## Ambientes
+## Tecnologias
+
+### Frontend
+
+- React 18
+- Vite
+- React Router
+- React Query
+- Tailwind CSS
+- Capacitor
 
 ### Backend
 
-Arquivo base: `backend/.env.example`
+- Node.js
+- Express
+- MySQL
 
-Variaveis mais importantes:
+### Deploy
+
+- backend: Render
+- frontend web: Vercel
+- app Android: Android Studio / Capacitor
+
+## Variaveis de Ambiente
+
+### Backend
+
+Arquivo de referencia: `backend/.env.example`
+
+Variaveis principais:
 
 - `PORT`
 - `DB_CLIENT`
@@ -57,12 +133,17 @@ Variaveis mais importantes:
 - `DB_NAME`
 - `DB_USER`
 - `DB_PASSWORD`
+- `DB_CONNECTION_LIMIT`
 - `PLATFORM_ADMIN_EMAILS`
 - `PLATFORM_ADMIN_PASSWORD`
+- `Z_API_BASE_URL`
+- `Z_API_INSTANCE_ID`
+- `Z_API_TOKEN`
+- `Z_API_CLIENT_TOKEN`
 
 ### Frontend
 
-Arquivo base: `frontend/.env.example`
+Arquivo de referencia: `frontend/.env.example`
 
 Variavel principal:
 
@@ -70,10 +151,10 @@ Variavel principal:
 
 Exemplos:
 
-- web local: `http://127.0.0.1:3333/api`
+- local web: `http://127.0.0.1:3333/api`
 - emulador Android: `http://10.0.2.2:3333/api`
 - celular na rede local: `http://SEU_IP:3333/api`
-- producao: `https://SEU_BACKEND/api`
+- producao: `https://SUA_API_PUBLICA/api`
 
 ## Execucao Local
 
@@ -95,7 +176,7 @@ Subir frontend web:
 npm.cmd run dev --workspace frontend
 ```
 
-Build do frontend:
+Gerar build do frontend:
 
 ```powershell
 npm.cmd run build --workspace frontend
@@ -103,7 +184,7 @@ npm.cmd run build --workspace frontend
 
 ## Android
 
-Gerar e sincronizar assets:
+Sincronizar assets do app:
 
 ```powershell
 npm.cmd run build --workspace frontend
@@ -116,7 +197,9 @@ Abrir no Android Studio:
 npm.cmd run cap:open:android --workspace frontend
 ```
 
-Abra a pasta `frontend/android` no Android Studio.
+Projeto Android:
+
+- [frontend/android](/c:/Users/leole/Documents/projetos-pessoais/agenda-pro/agenda-pro/frontend/android)
 
 ## Deploy
 
@@ -128,19 +211,32 @@ Configuracao recomendada:
 - `Build Command`: `npm install`
 - `Start Command`: `npm run start`
 
-Depois do deploy, atualize o frontend para apontar `VITE_API_URL` para a URL publica da API.
+### Frontend Web na Vercel
 
-## Documentacao
+Configuracao recomendada:
 
-- [Documentacao do Sistema](/c:/Users/leole/Documents/projetos-pessoais/agenda-pro/agenda-pro/docs/SYSTEM_DOCUMENTATION.md)
+- `Framework`: `Vite`
+- `Root Directory`: `frontend`
+- `Build Command`: `npm run build`
+- `Output Directory`: `dist`
+- `Install Command`: `npm install`
+
+Variavel obrigatoria:
+
+- `VITE_API_URL=https://SUA_API_PUBLICA/api`
+
+## Status Atual do Produto
+
+- multi-tenant ativo em MySQL
+- onboarding com criacao de conta disponivel
+- area web publicada
+- backend publicado no Render
+- Android operacional via Capacitor
+- controle de trial, vencimento, Pix e bloqueio habilitado
+- painel com filtros por periodo e indicadores financeiros por servico
+
+## Documentacao Complementar
+
 - [Arquitetura](/c:/Users/leole/Documents/projetos-pessoais/agenda-pro/agenda-pro/ARCHITECTURE.md)
+- [Documentacao do Sistema](/c:/Users/leole/Documents/projetos-pessoais/agenda-pro/agenda-pro/docs/SYSTEM_DOCUMENTATION.md)
 - [Modelo de Dados Multi-tenant](/c:/Users/leole/Documents/projetos-pessoais/agenda-pro/agenda-pro/backend/docs/multi-tenant-data-model.md)
-
-## Status Atual
-
-- multi-tenant ativo no MySQL
-- autenticacao e onboarding em producao
-- modulo administrativo de plataforma
-- cobranca com Pix, aviso de pagamento e bloqueio por assinatura
-- frontend otimizado com cache de queries, filtros reais no painel e lazy loading de rotas
-
