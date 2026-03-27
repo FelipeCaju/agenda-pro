@@ -18,6 +18,11 @@ function getMonthStartDate() {
   return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-01`;
 }
 
+function safeNumber(value: unknown) {
+  const parsed = Number(value ?? 0);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 function MetricCard({
   icon,
   iconTone,
@@ -250,22 +255,23 @@ export function DashboardPage() {
     }
 
     if (!selectedServiceFinancial) {
-      return {
-        receivedRevenue: data.kpis.paidRevenue,
-        pendingRevenue: data.kpis.pendingRevenue,
-        totalAppointments: data.kpis.totalAppointments,
-        averageTicket: data.kpis.averageTicket,
+        return {
+        receivedRevenue: safeNumber(data.kpis.paidRevenue),
+        pendingRevenue: safeNumber(data.kpis.pendingRevenue),
+        totalAppointments: safeNumber(data.kpis.totalAppointments),
+        averageTicket: safeNumber(data.kpis.averageTicket),
       };
     }
 
     return {
-      receivedRevenue: selectedServiceFinancial.paidRevenue,
-      pendingRevenue: selectedServiceFinancial.pendingRevenue,
-      totalAppointments: selectedServiceFinancial.totalAppointments,
+      receivedRevenue: safeNumber(selectedServiceFinancial.paidRevenue),
+      pendingRevenue: safeNumber(selectedServiceFinancial.pendingRevenue),
+      totalAppointments: safeNumber(selectedServiceFinancial.totalAppointments),
       averageTicket:
-        selectedServiceFinancial.totalAppointments > 0
-          ? (selectedServiceFinancial.paidRevenue + selectedServiceFinancial.pendingRevenue) /
-            selectedServiceFinancial.totalAppointments
+        safeNumber(selectedServiceFinancial.totalAppointments) > 0
+          ? (safeNumber(selectedServiceFinancial.paidRevenue) +
+              safeNumber(selectedServiceFinancial.pendingRevenue)) /
+            safeNumber(selectedServiceFinancial.totalAppointments)
           : 0,
     };
   }, [data, selectedServiceFinancial]);

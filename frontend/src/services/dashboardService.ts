@@ -121,6 +121,11 @@ type DashboardSummaryApiModel = {
   };
 };
 
+function toNumber(value: unknown) {
+  const parsed = Number(value ?? 0);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 function mapAppointment(model: AppointmentApiModel): Appointment {
   return {
     id: model.id,
@@ -176,6 +181,42 @@ function mapReminder(model: ReminderApiModel): Reminder {
 function fromApi(model: DashboardSummaryApiModel): DashboardSummary {
   return {
     ...model,
+    kpis: {
+      totalAppointments: toNumber(model.kpis?.totalAppointments),
+      confirmedAppointments: toNumber(model.kpis?.confirmedAppointments),
+      pendingAppointments: toNumber(model.kpis?.pendingAppointments),
+      canceledAppointments: toNumber(model.kpis?.canceledAppointments),
+      scheduledRevenue: toNumber(model.kpis?.scheduledRevenue),
+      paidRevenue: toNumber(model.kpis?.paidRevenue),
+      pendingRevenue: toNumber(model.kpis?.pendingRevenue),
+      averageTicket: toNumber(model.kpis?.averageTicket),
+      activeClients: toNumber(model.kpis?.activeClients),
+      activeServices: toNumber(model.kpis?.activeServices),
+      reminderQueue: toNumber(model.kpis?.reminderQueue),
+    },
+    charts: {
+      ...model.charts,
+      timeline: (model.charts?.timeline ?? []).map((item) => ({
+        ...item,
+        total: toNumber(item.total),
+        confirmed: toNumber(item.confirmed),
+        revenue: toNumber(item.revenue),
+      })),
+      statusBreakdown: (model.charts?.statusBreakdown ?? []).map((item) => ({
+        ...item,
+        total: toNumber(item.total),
+      })),
+      servicesByVolume: (model.charts?.servicesByVolume ?? []).map((item) => ({
+        ...item,
+        total: toNumber(item.total),
+      })),
+      servicesFinancial: (model.charts?.servicesFinancial ?? []).map((item) => ({
+        ...item,
+        totalAppointments: toNumber(item.totalAppointments),
+        paidRevenue: toNumber(item.paidRevenue),
+        pendingRevenue: toNumber(item.pendingRevenue),
+      })),
+    },
     lists: {
       upcomingAppointments: (model.lists.upcomingAppointments ?? []).map(mapAppointment),
       reminders: (model.lists.reminders ?? []).map(mapReminder),
