@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { PasswordField } from "@/components/ui/password-field";
 import { useAuth } from "@/hooks/use-auth";
+import { ApiError } from "@/services/apiClient";
 import { getPostAuthRedirect } from "@/utils/auth";
 
 export function LoginPage() {
@@ -13,12 +14,15 @@ export function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isStartingTrial, setIsStartingTrial] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
   const redirectTo = (location.state as { from?: string } | null)?.from ?? "/";
   const successMessage = (location.state as { successMessage?: string } | null)?.successMessage ?? "";
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsSubmitting(true);
+    setLocalError(null);
 
     try {
       const session = await signIn({ email, password, provider: "email" });
@@ -33,6 +37,43 @@ export function LoginPage() {
       navigate(nextPath, { replace: true });
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function handleStartTrial() {
+    const normalizedEmail = email.trim().toLowerCase();
+    setLocalError(null);
+
+    if (!normalizedEmail) {
+      setLocalError("Informe seu email para criar a conta.");
+      return;
+    }
+
+    setIsStartingTrial(true);
+
+    try {
+      const session = await signIn({
+        email: normalizedEmail,
+        password: "__start_onboarding__",
+        provider: "email",
+      });
+
+      if (session.access.needsOnboarding) {
+        navigate("/onboarding", { replace: true });
+        return;
+      }
+
+      navigate(getPostAuthRedirect(session), { replace: true });
+    } catch (signInError) {
+      if (signInError instanceof ApiError && [401, 403, 409].includes(signInError.status)) {
+        setLocalError("Esse email ja possui conta. Use sua senha para entrar.");
+      } else if (signInError instanceof Error) {
+        setLocalError(signInError.message);
+      } else {
+        setLocalError("Nao foi possivel iniciar o cadastro agora.");
+      }
+    } finally {
+      setIsStartingTrial(false);
     }
   }
 
@@ -66,10 +107,20 @@ export function LoginPage() {
           {isSessionExpired ? (
             <p className="text-sm text-amber-700">Sua sessao expirou. Entre novamente.</p>
           ) : null}
+          {localError ? <p className="text-sm text-rose-600">{localError}</p> : null}
           {error ? <p className="text-sm text-rose-600">{error}</p> : null}
           {successMessage ? <p className="text-sm text-emerald-700">{successMessage}</p> : null}
           <Button className="w-full" disabled={isSubmitting || isLoading} type="submit">
             {isSubmitting ? "Entrando..." : "Entrar com email e senha"}
+          </Button>
+          <Button
+            className="w-full"
+            disabled={isSubmitting || isLoading || isStartingTrial}
+            onClick={handleStartTrial}
+            type="button"
+            variant="secondary"
+          >
+            {isStartingTrial ? "Abrindo cadastro..." : "Criar conta"}
           </Button>
         </form>
       </Card>
