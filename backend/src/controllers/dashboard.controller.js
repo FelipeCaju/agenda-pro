@@ -14,6 +14,10 @@ export async function getDashboardSummaryController(request, response) {
       organizationId: organization.id,
       period: request.query.period ?? "today",
       status: request.query.status ?? "all",
+      startDate: request.query.startDate ?? null,
+      endDate: request.query.endDate ?? null,
+      clientId: request.query.clientId ?? null,
+      serviceId: request.query.serviceId ?? null,
     });
 
     response.json({ data });

@@ -13,5 +13,8 @@ export function useClientsQuery(search = "") {
   return useQuery({
     queryKey: clientKeys.list(search),
     queryFn: () => clientService.list({ search }),
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    placeholderData: (previousData) => previousData,
   });
 }

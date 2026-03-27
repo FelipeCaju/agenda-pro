@@ -4,10 +4,13 @@ import { ClientForm } from "@/components/clients/client-form";
 import { MobilePageHeader } from "@/components/layout/mobile-page-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { FloatingActionButton } from "@/components/ui/floating-action-button";
 import { InlineStateCard } from "@/components/ui/inline-state-card";
 import { useClientMutations } from "@/hooks/use-client-mutations";
 import { useClientQuery } from "@/hooks/use-client-query";
 import type { ClientInput } from "@/services/clientService";
+
+const FORM_ID = "client-form";
 
 export function ClientFormPage() {
   const navigate = useNavigate();
@@ -70,7 +73,7 @@ export function ClientFormPage() {
   }
 
   return (
-    <section className="space-y-4">
+    <section className="space-y-4 pb-24">
       <MobilePageHeader
         leading={
           <Link className="inline-flex" to="/clientes">
@@ -95,11 +98,20 @@ export function ClientFormPage() {
             : "Cadastre um novo cliente vinculado automaticamente a organizacao do usuario logado."
         }
         errorMessage={createError?.message ?? updateError?.message ?? null}
+        formId={FORM_ID}
         initialValues={initialValues}
         isSubmitting={isCreating || isUpdating}
         onSubmit={handleSubmit}
+        showInlineSubmit={false}
         submitLabel={isEditing ? "Salvar alteracoes" : "Cadastrar cliente"}
         title={isEditing ? "Editar cliente" : "Novo cliente"}
+      />
+
+      <FloatingActionButton
+        disabled={isCreating || isUpdating}
+        form={FORM_ID}
+        label={isCreating || isUpdating ? "Salvando..." : isEditing ? "Salvar" : "Cadastrar"}
+        type="submit"
       />
     </section>
   );

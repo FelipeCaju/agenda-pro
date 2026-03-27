@@ -1,77 +1,146 @@
 # AgendaPro
 
-Base inicial da nova arquitetura do AgendaPro, preparada para remover dependencias do Base44 sem misturar regra de negocio com componentes.
+AgendaPro e uma plataforma SaaS de agenda e gestao operacional para negocios de atendimento, com frontend web/mobile em React + Capacitor e backend Node.js + Express com persistencia em MySQL.
 
-## Estrutura
+## Visao Geral
 
-- `frontend/`: React 18 + Vite + React Router + Tailwind + React Query + Context API
-- `backend/`: Node.js + Express
-- `backend/db/migrations/001_init_multitenant_mysql.sql`: schema MySQL padrao para XAMPP/phpMyAdmin
+- multiempresa com isolamento por `organization_id`
+- autenticacao de clientes e acesso administrativo de plataforma
+- agenda, clientes, servicos, funcionarios, bloqueios e lembretes
+- controle de assinatura, cobranca, Pix e bloqueio por inadimplencia
+- app Android via Capacitor consumindo a mesma API do ambiente web
 
-## Principios
+## Stack
 
-- componentes nao acessam banco
-- integracoes passam por `services`
-- autenticacao sai de `base44.auth` e vai para `AuthContext` + `auth.service`
-- multiempresa sai de entidades acopladas e vai para `TenantContext` + `organizations.service`
-- o layout mobile-first continua como prioridade
+- `frontend/`: React 18, Vite, React Router, React Query, Tailwind CSS, Capacitor
+- `backend/`: Node.js, Express
+- `database`: MySQL
+- `deploy`: Render para API e Android Studio para app mobile
 
-## Estado atual
+## Estrutura do Repositorio
 
-- frontend separado por `pages`, `components`, `hooks`, `context` e `services`
-- backend Express com `controllers`, `services` e `lib`
-- persistencia MySQL ativa no backend com seed inicial para contas demo
-- isolamento multiempresa por `organization_id` em todas as consultas operacionais
+```text
+agenda-pro/
+  backend/
+    db/
+      migrations/
+    docs/
+    src/
+      controllers/
+      lib/
+      routes/
+      services/
+  frontend/
+    android/
+    src/
+      components/
+      context/
+      hooks/
+      pages/
+      routes/
+      services/
+  docs/
+```
 
-## Banco local
+## Ambientes
 
-O projeto passa a usar MySQL como padrao.
+### Backend
 
-1. Abra o phpMyAdmin do XAMPP
-2. Cole o SQL de `backend/db/migrations/001_init_multitenant_mysql.sql`
-3. O projeto ja inclui um `backend/.env` local com os valores padrao do XAMPP
-4. Se precisar, ajuste esse arquivo com base em `backend/.env.example`
+Arquivo base: `backend/.env.example`
 
-Valores locais recomendados:
+Variaveis mais importantes:
 
-- `DB_CLIENT=mysql`
-- `DB_HOST=127.0.0.1`
-- `DB_PORT=3306`
-- `DB_NAME=agendapro`
-- `DB_USER=root`
-- `DB_PASSWORD=`
-- `PORT=3333`
+- `PORT`
+- `DB_CLIENT`
+- `DB_HOST`
+- `DB_PORT`
+- `DB_NAME`
+- `DB_USER`
+- `DB_PASSWORD`
+- `PLATFORM_ADMIN_EMAILS`
+- `PLATFORM_ADMIN_PASSWORD`
 
-## Layout responsivo
+### Frontend
 
-- celular: navegacao inferior fixa e cabecalhos compactos
-- tablet: layout ainda prioriza toque, mas com mais respiro
-- desktop: sidebar lateral + topo proprio para aproveitar melhor a largura
+Arquivo base: `frontend/.env.example`
 
-## Preparacao para app mobile
+Variavel principal:
 
-O frontend ja ficou preparado para Capacitor.
+- `VITE_API_URL`
 
-Arquivos principais:
+Exemplos:
 
-- `frontend/capacitor.config.ts`
-- `frontend/package.json`
-- `frontend/.env.example`
+- web local: `http://127.0.0.1:3333/api`
+- emulador Android: `http://10.0.2.2:3333/api`
+- celular na rede local: `http://SEU_IP:3333/api`
+- producao: `https://SEU_BACKEND/api`
 
-Quando voce quiser conectar Android e iOS:
+## Execucao Local
 
-1. rode `npm install` na raiz
-2. crie `frontend/.env` com `VITE_API_URL`
-3. se a API estiver no seu computador, use algo como `http://192.168.11.4:3333/api`
-4. se a API estiver online, use a URL publica dela
-5. rode `npm run build --workspace frontend`
-6. rode `npm run cap:add:android --workspace frontend`
-7. rode `npm run cap:add:ios --workspace frontend`
-8. rode `npm run cap:sync --workspace frontend`
+Na raiz do projeto:
 
-Observacoes:
+```powershell
+npm install
+```
 
-- Android pode ser gerado no Windows com Android Studio
-- iOS exige Xcode e Mac para build final
-- o backend continua separado; o app mobile consome a mesma API
-- se a API estiver local no computador, celular e PC precisam estar na mesma rede
+Subir backend:
+
+```powershell
+npm.cmd run start --workspace backend
+```
+
+Subir frontend web:
+
+```powershell
+npm.cmd run dev --workspace frontend
+```
+
+Build do frontend:
+
+```powershell
+npm.cmd run build --workspace frontend
+```
+
+## Android
+
+Gerar e sincronizar assets:
+
+```powershell
+npm.cmd run build --workspace frontend
+npm.cmd run cap:sync --workspace frontend
+```
+
+Abrir no Android Studio:
+
+```powershell
+npm.cmd run cap:open:android --workspace frontend
+```
+
+Abra a pasta `frontend/android` no Android Studio.
+
+## Deploy
+
+### Backend no Render
+
+Configuracao recomendada:
+
+- `Root Directory`: `backend`
+- `Build Command`: `npm install`
+- `Start Command`: `npm run start`
+
+Depois do deploy, atualize o frontend para apontar `VITE_API_URL` para a URL publica da API.
+
+## Documentacao
+
+- [Documentacao do Sistema](/c:/Users/leole/Documents/projetos-pessoais/agenda-pro/agenda-pro/docs/SYSTEM_DOCUMENTATION.md)
+- [Arquitetura](/c:/Users/leole/Documents/projetos-pessoais/agenda-pro/agenda-pro/ARCHITECTURE.md)
+- [Modelo de Dados Multi-tenant](/c:/Users/leole/Documents/projetos-pessoais/agenda-pro/agenda-pro/backend/docs/multi-tenant-data-model.md)
+
+## Status Atual
+
+- multi-tenant ativo no MySQL
+- autenticacao e onboarding em producao
+- modulo administrativo de plataforma
+- cobranca com Pix, aviso de pagamento e bloqueio por assinatura
+- frontend otimizado com cache de queries, filtros reais no painel e lazy loading de rotas
+

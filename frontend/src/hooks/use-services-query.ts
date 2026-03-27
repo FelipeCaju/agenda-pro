@@ -13,5 +13,8 @@ export function useServicesQuery(search = "") {
   return useQuery({
     queryKey: serviceKeys.list(search),
     queryFn: () => serviceService.list({ search }),
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    placeholderData: (previousData) => previousData,
   });
 }

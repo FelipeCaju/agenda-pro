@@ -177,6 +177,10 @@ export const dashboardService = {
   async getSummary(filters: {
     period: DashboardPeriod;
     status: DashboardStatusFilter;
+    startDate?: string;
+    endDate?: string;
+    clientId?: string;
+    serviceId?: string;
   }) {
     return executeServiceCall(
       async () => {
@@ -184,6 +188,10 @@ export const dashboardService = {
           query: {
             period: filters.period,
             status: filters.status,
+            startDate: filters.startDate,
+            endDate: filters.endDate,
+            clientId: filters.clientId,
+            serviceId: filters.serviceId,
           },
         });
 

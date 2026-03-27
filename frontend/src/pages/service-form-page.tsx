@@ -4,10 +4,13 @@ import { MobilePageHeader } from "@/components/layout/mobile-page-header";
 import { ServiceForm } from "@/components/services/service-form";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { FloatingActionButton } from "@/components/ui/floating-action-button";
 import { InlineStateCard } from "@/components/ui/inline-state-card";
 import { useServiceMutations } from "@/hooks/use-service-mutations";
 import { useServiceQuery } from "@/hooks/use-service-query";
 import type { BusinessServiceInput } from "@/services/serviceService";
+
+const FORM_ID = "service-form";
 
 export function ServiceFormPage() {
   const navigate = useNavigate();
@@ -73,7 +76,7 @@ export function ServiceFormPage() {
   }
 
   return (
-    <section className="space-y-4">
+    <section className="space-y-4 pb-24">
       <MobilePageHeader
         leading={
           <Link className="inline-flex" to="/servicos">
@@ -98,11 +101,20 @@ export function ServiceFormPage() {
             : "Cadastre um novo servico vinculado automaticamente a organizacao do usuario logado."
         }
         errorMessage={createError?.message ?? updateError?.message ?? null}
+        formId={FORM_ID}
         initialValues={initialValues}
         isSubmitting={isCreating || isUpdating}
         onSubmit={handleSubmit}
+        showInlineSubmit={false}
         submitLabel={isEditing ? "Salvar alteracoes" : "Cadastrar servico"}
         title={isEditing ? "Editar servico" : "Novo servico"}
+      />
+
+      <FloatingActionButton
+        disabled={isCreating || isUpdating}
+        form={FORM_ID}
+        label={isCreating || isUpdating ? "Salvando..." : isEditing ? "Salvar" : "Cadastrar"}
+        type="submit"
       />
     </section>
   );

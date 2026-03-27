@@ -13,4 +13,5 @@ frontend/.capacitor
 frontend/android/local.properties
 frontend/android/.idea/
 frontend/ios/App/App/public
+frontend/tsconfig.tsbuildinfo
 .codex-*.log

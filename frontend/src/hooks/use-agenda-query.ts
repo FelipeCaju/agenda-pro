@@ -26,5 +26,8 @@ export function useAgendaQuery({
   return useQuery({
     queryKey: agendaKeys.list(date, view, professionalId),
     queryFn: () => appointmentService.list({ date, view, professionalId }),
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+    placeholderData: (previousData) => previousData,
   });
 }

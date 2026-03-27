@@ -4,6 +4,7 @@ import {
   getClientByIdForOrganization,
   getOrganizationById,
   listAllAppointmentsByOrganization,
+  listClientsByOrganization,
   listOrganizations,
   updateAppointmentForOrganization,
 } from "../lib/data.js";
@@ -160,17 +161,19 @@ function isReminderDue({ appointment, settings, now }) {
 }
 
 export async function listOrganizationReminders({ organizationId }) {
-  const settings = await getOrganizationSettings(organizationId);
-  const appointments = await getAppointmentsForOrganization(organizationId);
+  const [settings, appointments, clients] = await Promise.all([
+    getOrganizationSettings(organizationId),
+    getAppointmentsForOrganization(organizationId),
+    listClientsByOrganization(organizationId),
+  ]);
+  const clientsById = new Map(clients.map((client) => [client.id, client]));
 
-  return Promise.all(
-    appointments.map(async (appointment) =>
-      buildReminder({
-        appointment,
-        client: await getClientByIdForOrganization(organizationId, appointment.cliente_id),
-        settings,
-      }),
-    ),
+  return appointments.map((appointment) =>
+    buildReminder({
+      appointment,
+      client: clientsById.get(appointment.cliente_id) ?? null,
+      settings,
+    }),
   );
 }
 
@@ -214,20 +217,23 @@ export async function processAutomaticReminders() {
   const now = new Date();
 
   for (const organization of organizations) {
-    const settings = await getOrganizationSettings(organization.id);
+    const [settings, appointments, clients] = await Promise.all([
+      getOrganizationSettings(organization.id),
+      getAppointmentsForOrganization(organization.id),
+      listClientsByOrganization(organization.id),
+    ]);
+    const clientsById = new Map(clients.map((client) => [client.id, client]));
 
     if (!settings.lembretes_ativos || !settings.whatsapp_ativo) {
       continue;
     }
-
-    const appointments = await getAppointmentsForOrganization(organization.id);
 
     for (const appointment of appointments) {
       if (!isReminderDue({ appointment, settings, now })) {
         continue;
       }
 
-      const client = await getAppointmentClient(organization.id, appointment);
+      const client = clientsById.get(appointment.cliente_id);
 
       if (!client.telefone?.trim()) {
         continue;
@@ -326,15 +332,18 @@ async function findAppointmentByIncomingReply({ phone }) {
   let matched = null;
 
   for (const organization of organizations) {
-    const appointments = await listAllAppointmentsByOrganization(organization.id);
+    const [appointments, clients] = await Promise.all([
+      listAllAppointmentsByOrganization(organization.id),
+      listClientsByOrganization(organization.id),
+    ]);
+    const clientsById = new Map(clients.map((client) => [client.id, client]));
 
     for (const appointment of appointments) {
       if (!appointment.lembrete_enviado || appointment.status === "cancelado") {
         continue;
       }
 
-      const client = await getClientByIdForOrganization(organization.id, appointment.cliente_id);
-      const clientPhone = normalizePhone(client?.telefone);
+      const clientPhone = normalizePhone(clientsById.get(appointment.cliente_id)?.telefone);
 
       if (!clientPhone || clientPhone !== normalizedPhone) {
         continue;

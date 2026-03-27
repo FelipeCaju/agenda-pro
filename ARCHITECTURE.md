@@ -1,52 +1,124 @@
-# Nova arquitetura proposta
+# AgendaPro - Arquitetura
 
-## Frontend
+## 1. Visao Arquitetural
 
-```text
-frontend/
-  src/
-    components/
-      ui/
-      layout/
-      agenda/
-      clients/
-      services/
-      reminders/
-      whatsapp/
-    pages/
-    hooks/
-    services/
-      api/
-    context/
-    utils/
-    lib/
-    routes/
-```
-
-### Substituicoes do Base44
-
-- `base44.entities` -> `services/*` + rotas REST do backend
-- `base44.auth` -> `context/auth-context.tsx` + `services/auth.service.ts`
-- integracoes acopladas -> `services/api/client.ts`
-- estado espalhado em componentes -> `context/*` e hooks com React Query
-
-## Backend
+AgendaPro segue uma arquitetura em camadas, separando interface, regras de negocio e persistencia.
 
 ```text
-backend/
-  src/
-    routes/
-    controllers/
-    services/
-    lib/
+Cliente Web / Android
+        |
+        v
+Frontend React + Capacitor
+        |
+        v
+API REST Node.js + Express
+        |
+        v
+MySQL
 ```
 
-## Banco
+## 2. Principios
 
-MySQL passa a ser o banco padrao do projeto, pensando em uso com XAMPP/MariaDB no ambiente local.
+- interface nao acessa banco diretamente
+- regras de negocio ficam no backend
+- acesso ao banco concentrado na camada `lib/data`
+- autenticacao e autorizacao centralizadas
+- multi-tenancy aplicado em todas as operacoes de negocio
+- frontend orientado a mobile first
 
-- migration principal: `backend/db/migrations/001_init_multitenant_mysql.sql`
-- configuracao-base do backend: `backend/src/lib/database.js`
-- variaveis de ambiente: `backend/.env.example`
+## 3. Frontend
 
-A camada de acesso ao banco deve ficar no backend, nunca em componentes React.
+Estrutura principal:
+
+```text
+frontend/src/
+  components/
+  context/
+  hooks/
+  pages/
+  routes/
+  services/
+  utils/
+```
+
+Camadas:
+
+- `pages`: composicao das telas
+- `components`: blocos reutilizaveis de UI
+- `hooks`: acesso e cache de dados
+- `services`: comunicacao com a API
+- `context`: sessao/autenticacao
+- `routes`: protecao e organizacao de navegacao
+
+## 4. Backend
+
+Estrutura principal:
+
+```text
+backend/src/
+  controllers/
+  lib/
+  routes/
+  services/
+```
+
+Camadas:
+
+- `routes`: declaracao de endpoints
+- `controllers`: traducao HTTP para caso de uso
+- `services`: regras de negocio
+- `lib`: acesso a dados, autenticacao por request, utilitarios e conexao com banco
+
+## 5. Multi-tenancy
+
+Modelo adotado:
+
+- banco compartilhado
+- segregacao logica por `organization_id`
+
+Fluxo:
+
+1. o usuario autentica
+2. o backend resolve sua organizacao
+3. as operacoes passam a usar esse contexto
+4. consultas e mutacoes sao filtradas pela empresa
+
+## 6. Modulos Principais
+
+- autenticacao e onboarding
+- agenda
+- clientes
+- servicos
+- funcionarios
+- bloqueios de horario
+- configuracoes
+- lembretes
+- administracao de plataforma
+- assinatura e pagamentos
+
+## 7. Mobile
+
+O app Android usa Capacitor:
+
+- frontend buildado em `dist`
+- assets sincronizados em `frontend/android`
+- mesma API do ambiente web
+
+## 8. Performance
+
+Diretrizes aplicadas:
+
+- queries com filtro no backend
+- reducao de consultas repetidas
+- indices no MySQL
+- cache via React Query
+- lazy loading das rotas
+
+## 9. Deploy
+
+Deploy recomendado:
+
+- backend: Render
+- banco: MySQL remoto
+- Android: Android Studio / build mobile
+

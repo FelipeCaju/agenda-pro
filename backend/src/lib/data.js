@@ -733,6 +733,32 @@ async function hasColumn(tableName, columnName) {
   return rows.length > 0;
 }
 
+async function hasIndex(tableName, indexName) {
+  const rows = await query(
+    `SELECT INDEX_NAME
+      FROM INFORMATION_SCHEMA.STATISTICS
+      WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = ?
+        AND INDEX_NAME = ?
+      LIMIT 1`,
+    [tableName, indexName],
+  );
+
+  return rows.length > 0;
+}
+
+async function ensureIndex(tableName, indexName, createSql) {
+  if (!(await hasTable(tableName))) {
+    return;
+  }
+
+  if (await hasIndex(tableName, indexName)) {
+    return;
+  }
+
+  await execute(createSql);
+}
+
 async function ensurePlatformSettingsInfrastructure() {
   if (!(await hasColumn("organizations", "monthly_amount"))) {
     await execute(
@@ -794,6 +820,57 @@ async function ensurePlatformSettingsInfrastructure() {
       );
     }
   }
+}
+
+async function ensurePerformanceIndexes() {
+  await ensureIndex(
+    "appointments",
+    "idx_appointments_org_date",
+    `CREATE INDEX idx_appointments_org_date
+      ON appointments (organization_id, data, horario_inicial)`,
+  );
+
+  await ensureIndex(
+    "appointments",
+    "idx_appointments_org_date_status",
+    `CREATE INDEX idx_appointments_org_date_status
+      ON appointments (organization_id, data, status)`,
+  );
+
+  await ensureIndex(
+    "appointments",
+    "idx_appointments_org_cliente_data",
+    `CREATE INDEX idx_appointments_org_cliente_data
+      ON appointments (organization_id, cliente_id, data)`,
+  );
+
+  await ensureIndex(
+    "appointments",
+    "idx_appointments_org_servico_data",
+    `CREATE INDEX idx_appointments_org_servico_data
+      ON appointments (organization_id, servico_id, data)`,
+  );
+
+  await ensureIndex(
+    "clients",
+    "idx_clients_org_nome",
+    `CREATE INDEX idx_clients_org_nome
+      ON clients (organization_id, nome)`,
+  );
+
+  await ensureIndex(
+    "services",
+    "idx_services_org_nome",
+    `CREATE INDEX idx_services_org_nome
+      ON services (organization_id, nome)`,
+  );
+
+  await ensureIndex(
+    "organization_payments",
+    "idx_org_payments_org_status_due",
+    `CREATE INDEX idx_org_payments_org_status_due
+      ON organization_payments (organization_id, status, due_date)`,
+  );
 }
 
 async function ensureProfessionalsTablesExist() {
@@ -1071,6 +1148,7 @@ async function ensureInitialized() {
   await ensureTablesExist();
   await ensureSeedData();
   await ensurePlatformSettingsInfrastructure();
+  await ensurePerformanceIndexes();
   initialized = true;
 }
 
@@ -1801,6 +1879,46 @@ export async function listAllAppointmentsByOrganization(organizationId) {
       WHERE organization_id = ?
       ORDER BY data ASC, horario_inicial ASC`,
     [organizationId],
+  );
+
+  return rows.map(mapAppointment);
+}
+
+export async function listDashboardAppointmentsByOrganization(
+  organizationId,
+  {
+    startDate,
+    endDate,
+    status,
+    clientId,
+    serviceId,
+  } = {},
+) {
+  await ensureInitialized();
+
+  const conditions = ["organization_id = ?", "data >= ?", "data <= ?"];
+  const params = [organizationId, startDate, endDate];
+
+  if (status && status !== "all") {
+    conditions.push("status = ?");
+    params.push(status);
+  }
+
+  if (clientId && clientId !== "all") {
+    conditions.push("cliente_id = ?");
+    params.push(clientId);
+  }
+
+  if (serviceId && serviceId !== "all") {
+    conditions.push("servico_id = ?");
+    params.push(serviceId);
+  }
+
+  const rows = await query(
+    `SELECT * FROM appointments
+      WHERE ${conditions.join(" AND ")}
+      ORDER BY data ASC, horario_inicial ASC`,
+    params,
   );
 
   return rows.map(mapAppointment);

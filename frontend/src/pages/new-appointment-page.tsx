@@ -2,6 +2,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { NewAppointment } from "@/components/agenda/new-appointment";
 import { MobilePageHeader } from "@/components/layout/mobile-page-header";
 import { Card } from "@/components/ui/card";
+import { FloatingActionButton } from "@/components/ui/floating-action-button";
 import { ChevronLeftIcon } from "@/components/ui/icons";
 import { useAppointmentMutations } from "@/hooks/use-appointment-mutations";
 import { useClientsQuery } from "@/hooks/use-clients-query";
@@ -80,18 +81,8 @@ export function NewAppointmentPage() {
   }
 
   return (
-    <section className="space-y-4">
+    <section className="space-y-4 pb-24">
       <MobilePageHeader
-        action={
-          <button
-            className="rounded-xl bg-brand-500 px-3 py-2 text-xs font-semibold text-white shadow-soft md:rounded-[16px] md:px-4 md:py-2.5 md:text-sm"
-            disabled={isCreating}
-            form={FORM_ID}
-            type="submit"
-          >
-            {isCreating ? "Salvando..." : "Salvar"}
-          </button>
-        }
         leading={
           <button className="text-slate-500" onClick={() => navigate("/agenda")} type="button">
             <ChevronLeftIcon className="h-5 w-5" />
@@ -113,6 +104,13 @@ export function NewAppointmentPage() {
         showInlineSubmit={false}
         submitLabel="Salvar agendamento"
         title=""
+      />
+
+      <FloatingActionButton
+        disabled={isCreating}
+        form={FORM_ID}
+        label={isCreating ? "Salvando..." : "Salvar"}
+        type="submit"
       />
     </section>
   );

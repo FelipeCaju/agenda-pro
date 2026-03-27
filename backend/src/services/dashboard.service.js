@@ -1,5 +1,5 @@
 import {
-  listAllAppointmentsByOrganization,
+  listDashboardAppointmentsByOrganization,
   listClientsByOrganization,
   listServicesByOrganization,
 } from "../lib/data.js";
@@ -27,6 +27,10 @@ function getRangeEnd(today, period) {
   return today;
 }
 
+function isValidDate(value) {
+  return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
 function createTimelineRange(start, end) {
   const items = [];
   let cursor = start;
@@ -39,21 +43,30 @@ function createTimelineRange(start, end) {
   return items;
 }
 
-async function filterAppointmentsForDashboard({ organizationId, period, status }) {
+async function filterAppointmentsForDashboard({
+  organizationId,
+  period,
+  status,
+  startDate,
+  endDate,
+  clientId,
+  serviceId,
+}) {
   const normalizedPeriod = ["today", "7d", "30d"].includes(period) ? period : "today";
   const normalizedStatus = ["all", "pendente", "confirmado", "concluido", "cancelado"].includes(status)
     ? status
     : "all";
-  const start = getTodayDate();
-  const end = getRangeEnd(start, normalizedPeriod);
-  const appointments = await listAllAppointmentsByOrganization(organizationId);
-
-  const filtered = appointments
-    .filter((appointment) => appointment.data >= start && appointment.data <= end)
-    .filter((appointment) => normalizedStatus === "all" || appointment.status === normalizedStatus)
-    .sort((left, right) =>
-      `${left.data} ${left.horario_inicial}`.localeCompare(`${right.data} ${right.horario_inicial}`),
-    );
+  const fallbackStart = getTodayDate();
+  const fallbackEnd = getRangeEnd(fallbackStart, normalizedPeriod);
+  const start = isValidDate(startDate) ? startDate : fallbackStart;
+  const end = isValidDate(endDate) ? endDate : fallbackEnd;
+  const filtered = await listDashboardAppointmentsByOrganization(organizationId, {
+    startDate: start,
+    endDate: end,
+    status: normalizedStatus,
+    clientId,
+    serviceId,
+  });
 
   return { filtered, start, end, normalizedPeriod, normalizedStatus };
 }
@@ -72,16 +85,29 @@ export async function getDashboardSummary({
   organizationId,
   period = "today",
   status = "all",
+  startDate = null,
+  endDate = null,
+  clientId = null,
+  serviceId = null,
 }) {
-  const { filtered, start, end, normalizedPeriod, normalizedStatus } = await filterAppointmentsForDashboard({
-    organizationId,
-    period,
-    status,
-  });
+  const { filtered, start, end, normalizedPeriod, normalizedStatus } =
+    await filterAppointmentsForDashboard({
+      organizationId,
+      period,
+      status,
+      startDate,
+      endDate,
+      clientId,
+      serviceId,
+    });
 
-  const activeClients = (await listClientsByOrganization(organizationId)).filter((client) => client.ativo);
-  const activeServices = (await listServicesByOrganization(organizationId)).filter((service) => service.ativo);
-  const reminders = await listOrganizationReminders({ organizationId });
+  const [allClients, allServices, reminders] = await Promise.all([
+    listClientsByOrganization(organizationId),
+    listServicesByOrganization(organizationId),
+    listOrganizationReminders({ organizationId }),
+  ]);
+  const activeClients = allClients.filter((client) => client.ativo);
+  const activeServices = allServices.filter((service) => service.ativo);
   const revenue = sumRevenue(filtered);
   const nonCanceledAppointments = filtered.filter((item) => item.status !== "cancelado");
   const upcomingAppointments = filtered.slice(0, 5);

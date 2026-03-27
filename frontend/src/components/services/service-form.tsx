@@ -20,6 +20,8 @@ type ServiceFormProps = {
   title: string;
   description: string;
   errorMessage?: string | null;
+  formId?: string;
+  showInlineSubmit?: boolean;
 };
 
 const EMPTY_VALUES: ServiceFormValues = {
@@ -45,6 +47,8 @@ export function ServiceForm({
   title,
   description,
   errorMessage,
+  formId = "service-form",
+  showInlineSubmit = true,
 }: ServiceFormProps) {
   const [values, setValues] = useState<ServiceFormValues>({
     ...EMPTY_VALUES,
@@ -136,7 +140,7 @@ export function ServiceForm({
       <h1 className="mt-2 text-2xl font-bold text-ink">{title}</h1>
       <p className="mt-2 text-sm leading-6 text-slate-500">{description}</p>
 
-      <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
+      <form className="mt-6 space-y-4" id={formId} onSubmit={handleSubmit}>
         <div className="space-y-2">
           <label className="text-sm font-medium text-ink" htmlFor="nome">
             Nome
@@ -250,9 +254,15 @@ export function ServiceForm({
         {formError ? <p className="text-sm text-rose-600">{formError}</p> : null}
         {errorMessage ? <p className="text-sm text-rose-600">{errorMessage}</p> : null}
 
-        <Button className="w-full" disabled={isSubmitting || Boolean(formError)} type="submit">
-          {isSubmitting ? "Salvando..." : submitLabel}
-        </Button>
+        {showInlineSubmit ? (
+          <Button className="w-full md:w-full" disabled={isSubmitting || Boolean(formError)} type="submit">
+            {isSubmitting ? "Salvando..." : submitLabel}
+          </Button>
+        ) : (
+          <button className="hidden" disabled={isSubmitting || Boolean(formError)} type="submit">
+            {submitLabel}
+          </button>
+        )}
       </form>
     </Card>
   );

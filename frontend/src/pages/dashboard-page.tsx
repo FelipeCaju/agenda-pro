@@ -104,6 +104,10 @@ export function DashboardPage() {
   const { data, error, isError, isLoading } = useDashboardSummary({
     period: "30d",
     status: "all",
+    startDate,
+    endDate,
+    clientId: clientId === "all" ? undefined : clientId,
+    serviceId: serviceId === "all" ? undefined : serviceId,
   });
   const { data: clients = [] } = useClientsQuery();
   const { data: services = [] } = useServicesQuery();
@@ -139,7 +143,7 @@ export function DashboardPage() {
   }, [data?.lists.upcomingAppointments]);
 
   return (
-    <section className="space-y-4">
+    <section className="space-y-4 pb-24">
       <MobilePageHeader subtitle="Visao geral do negocio" title="Painel" />
 
       <Card className="rounded-[22px] border border-slate-200/70 bg-white px-4 py-4 shadow-[0_4px_16px_rgba(15,23,36,0.05)]">

@@ -1,29 +1,80 @@
+import { Suspense, lazy } from "react";
 import { AdminShell } from "@/components/layout/admin-shell";
+import { FullscreenState } from "@/components/ui/fullscreen-state";
 import { Outlet, createBrowserRouter } from "react-router-dom";
 import { AppShell } from "@/components/layout/app-shell";
-import { AgendaPage } from "@/pages/agenda-page";
-import { AppointmentDetailPage } from "@/pages/appointment-detail-page";
-import { BlockedSlotsPage } from "@/pages/blocked-slots-page";
-import { ClientFormPage } from "@/pages/client-form-page";
-import { ClientsPage } from "@/pages/clients-page";
-import { DashboardPage } from "@/pages/dashboard-page";
-import { LoginPage } from "@/pages/login-page";
-import { ManagementPage } from "@/pages/management-page";
-import { NotFoundPage } from "@/pages/not-found-page";
-import { NewAppointmentPage } from "@/pages/new-appointment-page";
-import { OnboardingPage } from "@/pages/onboarding-page";
-import { PlatformAdminPage } from "@/pages/platform-admin-page";
-import { PlatformOrganizationPage } from "@/pages/platform-organization-page";
-import { ProfessionalsPage } from "@/pages/professionals-page";
-import { RemindersPage } from "@/pages/reminders-page";
-import { SettingsPage } from "@/pages/settings-page";
-import { ServiceFormPage } from "@/pages/service-form-page";
-import { ServicesPage } from "@/pages/services-page";
-import { SubscriptionBlockedPage } from "@/pages/subscription-blocked-page";
 import { AdminProtectedRoute } from "@/routes/admin-protected-route";
 import { ProtectedRoute } from "@/routes/protected-route";
 import { PublicRoute } from "@/routes/public-route";
 import { RouteErrorPage } from "@/routes/route-error-page";
+
+const LoginPage = lazy(async () => ({ default: (await import("@/pages/login-page")).LoginPage }));
+const OnboardingPage = lazy(async () => ({
+  default: (await import("@/pages/onboarding-page")).OnboardingPage,
+}));
+const SubscriptionBlockedPage = lazy(async () => ({
+  default: (await import("@/pages/subscription-blocked-page")).SubscriptionBlockedPage,
+}));
+const PlatformAdminPage = lazy(async () => ({
+  default: (await import("@/pages/platform-admin-page")).PlatformAdminPage,
+}));
+const PlatformOrganizationPage = lazy(async () => ({
+  default: (await import("@/pages/platform-organization-page")).PlatformOrganizationPage,
+}));
+const DashboardPage = lazy(async () => ({
+  default: (await import("@/pages/dashboard-page")).DashboardPage,
+}));
+const ManagementPage = lazy(async () => ({
+  default: (await import("@/pages/management-page")).ManagementPage,
+}));
+const AgendaPage = lazy(async () => ({ default: (await import("@/pages/agenda-page")).AgendaPage }));
+const NewAppointmentPage = lazy(async () => ({
+  default: (await import("@/pages/new-appointment-page")).NewAppointmentPage,
+}));
+const AppointmentDetailPage = lazy(async () => ({
+  default: (await import("@/pages/appointment-detail-page")).AppointmentDetailPage,
+}));
+const BlockedSlotsPage = lazy(async () => ({
+  default: (await import("@/pages/blocked-slots-page")).BlockedSlotsPage,
+}));
+const ClientsPage = lazy(async () => ({ default: (await import("@/pages/clients-page")).ClientsPage }));
+const ClientFormPage = lazy(async () => ({
+  default: (await import("@/pages/client-form-page")).ClientFormPage,
+}));
+const ServicesPage = lazy(async () => ({
+  default: (await import("@/pages/services-page")).ServicesPage,
+}));
+const ServiceFormPage = lazy(async () => ({
+  default: (await import("@/pages/service-form-page")).ServiceFormPage,
+}));
+const SettingsPage = lazy(async () => ({
+  default: (await import("@/pages/settings-page")).SettingsPage,
+}));
+const ProfessionalsPage = lazy(async () => ({
+  default: (await import("@/pages/professionals-page")).ProfessionalsPage,
+}));
+const RemindersPage = lazy(async () => ({
+  default: (await import("@/pages/reminders-page")).RemindersPage,
+}));
+const NotFoundPage = lazy(async () => ({
+  default: (await import("@/pages/not-found-page")).NotFoundPage,
+}));
+
+function withRouteSuspense(element: JSX.Element) {
+  return (
+    <Suspense
+      fallback={
+        <FullscreenState
+          eyebrow="AgendaPro"
+          title="Abrindo tela"
+          description="Estamos carregando os dados da pagina sem travar a navegacao."
+        />
+      }
+    >
+      {element}
+    </Suspense>
+  );
+}
 
 export const router = createBrowserRouter([
   {
@@ -35,7 +86,7 @@ export const router = createBrowserRouter([
         children: [
           {
             path: "/login",
-            element: <LoginPage />,
+            element: withRouteSuspense(<LoginPage />),
           },
         ],
       },
@@ -44,7 +95,7 @@ export const router = createBrowserRouter([
         children: [
           {
             path: "/onboarding",
-            element: <OnboardingPage />,
+            element: withRouteSuspense(<OnboardingPage />),
           },
         ],
       },
@@ -53,7 +104,7 @@ export const router = createBrowserRouter([
         children: [
           {
             path: "/assinatura-bloqueada",
-            element: <SubscriptionBlockedPage />,
+            element: withRouteSuspense(<SubscriptionBlockedPage />),
           },
         ],
       },
@@ -63,10 +114,10 @@ export const router = createBrowserRouter([
           {
             element: <AdminShell />,
             children: [
-              { path: "/admin", element: <PlatformAdminPage /> },
+              { path: "/admin", element: withRouteSuspense(<PlatformAdminPage />) },
               {
                 path: "/admin/organizacoes/:organizationId",
-                element: <PlatformOrganizationPage />,
+                element: withRouteSuspense(<PlatformOrganizationPage />),
               },
             ],
           },
@@ -78,28 +129,37 @@ export const router = createBrowserRouter([
           {
             element: <AppShell />,
             children: [
-              { path: "/", element: <DashboardPage /> },
-              { path: "/gestao", element: <ManagementPage /> },
-              { path: "/agenda", element: <AgendaPage /> },
-              { path: "/agenda/novo", element: <NewAppointmentPage /> },
-              { path: "/agenda/:appointmentId", element: <AppointmentDetailPage /> },
-              { path: "/bloqueios", element: <BlockedSlotsPage /> },
-              { path: "/clientes", element: <ClientsPage /> },
-              { path: "/clientes/novo", element: <ClientFormPage /> },
-              { path: "/clientes/:clientId/editar", element: <ClientFormPage /> },
-              { path: "/servicos", element: <ServicesPage /> },
-              { path: "/servicos/novo", element: <ServiceFormPage /> },
-              { path: "/servicos/:serviceId/editar", element: <ServiceFormPage /> },
-              { path: "/configuracoes", element: <SettingsPage /> },
-              { path: "/funcionarios", element: <ProfessionalsPage /> },
-              { path: "/lembretes", element: <RemindersPage /> },
+              { path: "/", element: withRouteSuspense(<DashboardPage />) },
+              { path: "/gestao", element: withRouteSuspense(<ManagementPage />) },
+              { path: "/agenda", element: withRouteSuspense(<AgendaPage />) },
+              { path: "/agenda/novo", element: withRouteSuspense(<NewAppointmentPage />) },
+              {
+                path: "/agenda/:appointmentId",
+                element: withRouteSuspense(<AppointmentDetailPage />),
+              },
+              { path: "/bloqueios", element: withRouteSuspense(<BlockedSlotsPage />) },
+              { path: "/clientes", element: withRouteSuspense(<ClientsPage />) },
+              { path: "/clientes/novo", element: withRouteSuspense(<ClientFormPage />) },
+              {
+                path: "/clientes/:clientId/editar",
+                element: withRouteSuspense(<ClientFormPage />),
+              },
+              { path: "/servicos", element: withRouteSuspense(<ServicesPage />) },
+              { path: "/servicos/novo", element: withRouteSuspense(<ServiceFormPage />) },
+              {
+                path: "/servicos/:serviceId/editar",
+                element: withRouteSuspense(<ServiceFormPage />),
+              },
+              { path: "/configuracoes", element: withRouteSuspense(<SettingsPage />) },
+              { path: "/funcionarios", element: withRouteSuspense(<ProfessionalsPage />) },
+              { path: "/lembretes", element: withRouteSuspense(<RemindersPage />) },
             ],
           },
         ],
       },
       {
         path: "*",
-        element: <NotFoundPage />,
+        element: withRouteSuspense(<NotFoundPage />),
       },
     ],
   },
