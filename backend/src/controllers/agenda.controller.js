@@ -3,6 +3,7 @@ import {
   createAppointment,
   getAppointment,
   listAppointments,
+  listUpcomingAppointments,
   removeAppointment,
   updateAppointment,
   updateAppointmentPaymentStatus,
@@ -22,6 +23,26 @@ export async function listAgendaController(request, response) {
       organizationId: organization.id,
       date: request.query.date,
       view: request.query.view,
+      professionalId: request.query.professionalId ?? request.query.professional_id,
+    });
+
+    response.json({
+      data: appointments,
+      meta: {
+        total: appointments.length,
+      },
+    });
+  } catch (error) {
+    sendError(response, error);
+  }
+}
+
+export async function listUpcomingAgendaController(request, response) {
+  try {
+    const { organization } = await getRequestActiveAuthContext(request);
+    const appointments = await listUpcomingAppointments({
+      organizationId: organization.id,
+      daysAhead: request.query.daysAhead ?? request.query.days_ahead,
       professionalId: request.query.professionalId ?? request.query.professional_id,
     });
 

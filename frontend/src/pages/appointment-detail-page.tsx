@@ -66,6 +66,8 @@ export function AppointmentDetailPage() {
       status: appointment?.status ?? "confirmado",
       paymentStatus: appointment?.paymentStatus ?? "pendente",
       observacoes: appointment?.observacoes ?? "",
+      quoteId: appointment?.quoteId ?? "",
+      serviceOrderId: appointment?.serviceOrderId ?? "",
     }),
     [appointment],
   );

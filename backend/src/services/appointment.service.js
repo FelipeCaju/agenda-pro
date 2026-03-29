@@ -7,10 +7,12 @@ import {
   getServiceByIdForOrganization,
   listBlockedSlotsByOrganization,
   listAppointmentsByOrganization,
+  listUpcomingAppointmentsByOrganization,
   listProfessionalsByService,
   removeAppointmentForOrganization,
   updateAppointmentForOrganization,
 } from "../lib/data.js";
+import { linkQuoteToAppointment } from "./quote.service.js";
 
 function buildError(message, statusCode) {
   const error = new Error(message);
@@ -159,6 +161,8 @@ function buildPayload({ client, service, professional, input }) {
     lembrete_cancelado: input.lembrete_cancelado ?? false,
     data_envio_lembrete: input.data_envio_lembrete ?? null,
     resposta_whatsapp: input.resposta_whatsapp ?? null,
+    quote_id: input.quote_id ?? null,
+    service_order_id: input.service_order_id ?? null,
   };
 }
 
@@ -166,6 +170,8 @@ async function validateAppointmentInput({ organizationId, input, appointmentId }
   const clientId = normalizeString(input.cliente_id);
   const serviceId = normalizeString(input.servico_id);
   const professionalId = normalizeString(input.profissional_id ?? input.professional_id);
+  const quoteId = normalizeString(input.quote_id ?? input.quoteId);
+  const serviceOrderId = normalizeString(input.service_order_id ?? input.serviceOrderId);
   const data = normalizeString(input.data);
   const start = normalizeString(input.horario_inicial);
   const end = normalizeString(input.horario_final);
@@ -296,6 +302,8 @@ async function validateAppointmentInput({ organizationId, input, appointmentId }
         data,
         horario_inicial: start,
         horario_final: end,
+        quote_id: quoteId || null,
+        service_order_id: serviceOrderId || null,
       },
     }),
   };
@@ -303,6 +311,19 @@ async function validateAppointmentInput({ organizationId, input, appointmentId }
 
 export async function listAppointments({ organizationId, date, view, professionalId }) {
   return listAppointmentsByOrganization(organizationId, { date, view, professionalId });
+}
+
+export async function listUpcomingAppointments({ organizationId, daysAhead, professionalId }) {
+  const normalizedDaysAhead = Number(daysAhead ?? 45);
+
+  if (!Number.isFinite(normalizedDaysAhead) || normalizedDaysAhead < 1 || normalizedDaysAhead > 90) {
+    throw buildError("Janela de busca de lembretes invalida.", 400);
+  }
+
+  return listUpcomingAppointmentsByOrganization(organizationId, {
+    daysAhead: normalizedDaysAhead,
+    professionalId,
+  });
 }
 
 export async function getAppointment({ organizationId, appointmentId }) {
@@ -332,6 +353,13 @@ export async function createAppointment({ organizationId, input }) {
     };
     const { payload } = await validateAppointmentInput({ organizationId, input: occurrenceInput });
     const created = await createAppointmentForOrganization(organizationId, payload);
+    if (payload.quote_id) {
+      await linkQuoteToAppointment({
+        organizationId,
+        quoteId: payload.quote_id,
+        appointmentId: created.id,
+      });
+    }
     createdAppointments.push(created);
   }
 
@@ -380,6 +408,14 @@ export async function updateAppointment({ organizationId, appointmentId, input }
     appointmentId,
   });
   const updated = await updateAppointmentForOrganization(organizationId, appointmentId, payload);
+
+  if (payload.quote_id) {
+    await linkQuoteToAppointment({
+      organizationId,
+      quoteId: payload.quote_id,
+      appointmentId,
+    });
+  }
 
   if (!updated) {
     throw buildError("Agendamento nao encontrado.", 404);

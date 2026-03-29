@@ -12,6 +12,7 @@ import { cn } from "@/utils/cn";
 
 const links = [
   { to: "/agenda", label: "Agenda", icon: "calendar" },
+  { to: "/orcamentos", label: "Orcamentos", icon: "receipt" },
   { to: "/clientes", label: "Clientes", icon: "users" },
   { to: "/servicos", label: "Servicos", icon: "scissors" },
   { to: "/", label: "Painel", icon: "grid" },
@@ -25,6 +26,24 @@ function SidebarIcon({ icon }: { icon: (typeof links)[number]["icon"] }) {
 
   if (icon === "users") {
     return <UsersIcon className="h-5 w-5" />;
+  }
+
+  if (icon === "receipt") {
+    return (
+      <svg
+        className="h-5 w-5"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+        viewBox="0 0 24 24"
+      >
+        <path d="M7 4.5h10a1 1 0 0 1 1 1v14l-2-1.3-2 1.3-2-1.3-2 1.3-2-1.3-2 1.3v-14a1 1 0 0 1 1-1Z" />
+        <path d="M9 8.5h6" />
+        <path d="M9 12h6" />
+      </svg>
+    );
   }
 
   if (icon === "scissors") {

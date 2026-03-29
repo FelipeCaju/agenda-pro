@@ -50,6 +50,12 @@ const ServiceFormPage = lazy(async () => ({
 const SettingsPage = lazy(async () => ({
   default: (await import("@/pages/settings-page")).SettingsPage,
 }));
+const OrcamentosPage = lazy(async () => ({
+  default: (await import("@/pages/orcamentos-page")).OrcamentosPage,
+}));
+const OrcamentoFormPage = lazy(async () => ({
+  default: (await import("@/pages/orcamento-form-page")).OrcamentoFormPage,
+}));
 const ProfessionalsPage = lazy(async () => ({
   default: (await import("@/pages/professionals-page")).ProfessionalsPage,
 }));
@@ -149,6 +155,12 @@ export const router = createBrowserRouter([
               {
                 path: "/servicos/:serviceId/editar",
                 element: withRouteSuspense(<ServiceFormPage />),
+              },
+              { path: "/orcamentos", element: withRouteSuspense(<OrcamentosPage />) },
+              { path: "/orcamentos/novo", element: withRouteSuspense(<OrcamentoFormPage />) },
+              {
+                path: "/orcamentos/:quoteId",
+                element: withRouteSuspense(<OrcamentoFormPage />),
               },
               { path: "/configuracoes", element: withRouteSuspense(<SettingsPage />) },
               { path: "/funcionarios", element: withRouteSuspense(<ProfessionalsPage />) },

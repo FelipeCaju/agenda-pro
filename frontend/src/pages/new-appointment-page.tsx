@@ -13,6 +13,12 @@ import { getTodayDate } from "@/utils/agenda";
 
 type NewAppointmentLocationState = {
   selectedDate?: string;
+  prefillFromQuote?: {
+    quoteId: string;
+    clientId: string;
+    serviceId: string;
+    notes: string;
+  };
 };
 
 const FORM_ID = "new-appointment-form";
@@ -20,8 +26,9 @@ const FORM_ID = "new-appointment-form";
 export function NewAppointmentPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const selectedDate =
-    (location.state as NewAppointmentLocationState | null)?.selectedDate ?? getTodayDate();
+  const locationState = location.state as NewAppointmentLocationState | null;
+  const selectedDate = locationState?.selectedDate ?? getTodayDate();
+  const quoteDraft = locationState?.prefillFromQuote ?? null;
   const {
     data: clients = [],
     error: clientsError,
@@ -96,7 +103,13 @@ export function NewAppointmentPage() {
         description=""
         errorMessage={createError?.message ?? null}
         formId={FORM_ID}
-        initialValues={{ data: selectedDate }}
+        initialValues={{
+          data: selectedDate,
+          clienteId: quoteDraft?.clientId ?? "",
+          servicoId: quoteDraft?.serviceId ?? "",
+          observacoes: quoteDraft?.notes ?? "",
+          quoteId: quoteDraft?.quoteId ?? "",
+        }}
         isSubmitting={isCreating}
         onSubmit={handleSubmit}
         professionals={professionals}

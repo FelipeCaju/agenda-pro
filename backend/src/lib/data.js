@@ -584,6 +584,8 @@ function mapAppointment(row) {
     lembrete_cancelado: toBoolean(row.lembrete_cancelado),
     data_envio_lembrete: normalizeDateTime(row.data_envio_lembrete),
     resposta_whatsapp: row.resposta_whatsapp,
+    quote_id: row.quote_id ?? null,
+    service_order_id: row.service_order_id ?? null,
     created_at: normalizeDateTime(row.created_at),
     updated_at: normalizeDateTime(row.updated_at),
   };
@@ -819,6 +821,128 @@ async function ensurePlatformSettingsInfrastructure() {
           ADD COLUMN customer_payment_note TEXT NULL AFTER customer_notified_paid_at`,
       );
     }
+  }
+}
+
+async function ensureQuotesInfrastructure() {
+  await execute(
+    `CREATE TABLE IF NOT EXISTS quotes (
+      id CHAR(36) NOT NULL,
+      organization_id CHAR(36) NOT NULL,
+      cliente_id CHAR(36) NOT NULL,
+      cliente_nome VARCHAR(160) NOT NULL,
+      status ENUM('pendente', 'aprovado', 'recusado') NOT NULL DEFAULT 'pendente',
+      subtotal DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+      desconto DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+      valor_total DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+      observacoes TEXT NULL,
+      appointment_id CHAR(36) NULL,
+      service_order_id CHAR(36) NULL,
+      approved_at DATETIME NULL,
+      rejected_at DATETIME NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      KEY idx_quotes_org_status_created (organization_id, status, created_at),
+      KEY idx_quotes_org_cliente_created (organization_id, cliente_id, created_at),
+      CONSTRAINT fk_quotes_organization
+        FOREIGN KEY (organization_id)
+        REFERENCES organizations (id)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE,
+      CONSTRAINT fk_quotes_client_same_tenant
+        FOREIGN KEY (organization_id, cliente_id)
+        REFERENCES clients (organization_id, id)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+  );
+
+  await execute(
+    `CREATE TABLE IF NOT EXISTS quote_items (
+      id CHAR(36) NOT NULL,
+      organization_id CHAR(36) NOT NULL,
+      quote_id CHAR(36) NOT NULL,
+      servico_id CHAR(36) NULL,
+      servico_nome VARCHAR(160) NOT NULL,
+      descricao_livre VARCHAR(255) NULL,
+      quantidade DECIMAL(10,2) NOT NULL DEFAULT 1.00,
+      valor_unitario DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+      valor_total DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+      observacoes VARCHAR(255) NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      KEY idx_quote_items_quote (quote_id),
+      KEY idx_quote_items_org_quote (organization_id, quote_id),
+      CONSTRAINT fk_quote_items_quote
+        FOREIGN KEY (quote_id)
+        REFERENCES quotes (id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+  );
+
+  await execute(
+    `CREATE TABLE IF NOT EXISTS service_orders (
+      id CHAR(36) NOT NULL,
+      organization_id CHAR(36) NOT NULL,
+      quote_id CHAR(36) NULL,
+      cliente_id CHAR(36) NOT NULL,
+      cliente_nome VARCHAR(160) NOT NULL,
+      status ENUM('aberta', 'em_execucao', 'concluida', 'cancelada') NOT NULL DEFAULT 'aberta',
+      subtotal DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+      desconto DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+      valor_total DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+      observacoes TEXT NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      KEY idx_service_orders_org_status_created (organization_id, status, created_at),
+      CONSTRAINT fk_service_orders_organization
+        FOREIGN KEY (organization_id)
+        REFERENCES organizations (id)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+  );
+
+  await execute(
+    `CREATE TABLE IF NOT EXISTS service_order_items (
+      id CHAR(36) NOT NULL,
+      organization_id CHAR(36) NOT NULL,
+      service_order_id CHAR(36) NOT NULL,
+      servico_id CHAR(36) NULL,
+      servico_nome VARCHAR(160) NOT NULL,
+      descricao_livre VARCHAR(255) NULL,
+      quantidade DECIMAL(10,2) NOT NULL DEFAULT 1.00,
+      valor_unitario DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+      valor_total DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+      observacoes VARCHAR(255) NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      KEY idx_service_order_items_order (service_order_id),
+      CONSTRAINT fk_service_order_items_order
+        FOREIGN KEY (service_order_id)
+        REFERENCES service_orders (id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+  );
+
+  if (!(await hasColumn("appointments", "quote_id"))) {
+    await execute(
+      `ALTER TABLE appointments
+        ADD COLUMN quote_id CHAR(36) NULL AFTER resposta_whatsapp`,
+    );
+  }
+
+  if (!(await hasColumn("appointments", "service_order_id"))) {
+    await execute(
+      `ALTER TABLE appointments
+        ADD COLUMN service_order_id CHAR(36) NULL AFTER quote_id`,
+    );
   }
 }
 
@@ -1148,6 +1272,7 @@ async function ensureInitialized() {
   await ensureTablesExist();
   await ensureSeedData();
   await ensurePlatformSettingsInfrastructure();
+  await ensureQuotesInfrastructure();
   await ensurePerformanceIndexes();
   initialized = true;
 }
@@ -1954,6 +2079,43 @@ export async function listAppointmentsByOrganization(
   return rows.map(mapAppointment);
 }
 
+export async function listUpcomingAppointmentsByOrganization(
+  organizationId,
+  { daysAhead = 45, professionalId } = {},
+) {
+  await ensureInitialized();
+  const normalizedProfessionalId = normalizeOptionalString(professionalId);
+  const totalDays = Number.isFinite(Number(daysAhead)) ? Math.max(1, Math.min(90, Number(daysAhead))) : 45;
+  const startDate = new Date();
+  startDate.setHours(0, 0, 0, 0);
+  const endDate = new Date(startDate);
+  endDate.setDate(endDate.getDate() + totalDays);
+
+  const start = startDate.toISOString().slice(0, 10);
+  const end = endDate.toISOString().slice(0, 10);
+
+  const rows = normalizedProfessionalId
+    ? await query(
+        `SELECT * FROM appointments
+          WHERE organization_id = ?
+            AND data >= ?
+            AND data <= ?
+            AND profissional_id = ?
+          ORDER BY data ASC, horario_inicial ASC`,
+        [organizationId, start, end, normalizedProfessionalId],
+      )
+    : await query(
+        `SELECT * FROM appointments
+          WHERE organization_id = ?
+            AND data >= ?
+            AND data <= ?
+          ORDER BY data ASC, horario_inicial ASC`,
+        [organizationId, start, end],
+      );
+
+  return rows.map(mapAppointment);
+}
+
 export async function getAppointmentByIdForOrganization(organizationId, appointmentId) {
   await ensureInitialized();
   const rows = await query("SELECT * FROM appointments WHERE organization_id = ? AND id = ? LIMIT 1", [organizationId, appointmentId]);
@@ -1970,8 +2132,9 @@ export async function createAppointmentForOrganization(organizationId, input) {
       servico_id, servico_nome, servico_cor, profissional_id, profissional_nome,
       data, horario_inicial, horario_final,
       valor, status, payment_status, observacoes, confirmacao_cliente, lembrete_enviado,
-      lembrete_confirmado, lembrete_cancelado, data_envio_lembrete, resposta_whatsapp
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      lembrete_confirmado, lembrete_cancelado, data_envio_lembrete, resposta_whatsapp,
+      quote_id, service_order_id
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)` ,
     [
       id,
       organizationId,
@@ -1996,6 +2159,8 @@ export async function createAppointmentForOrganization(organizationId, input) {
       input.lembrete_cancelado ? 1 : 0,
       toMysqlDateTime(input.data_envio_lembrete),
       input.resposta_whatsapp || null,
+      input.quote_id || null,
+      input.service_order_id || null,
     ],
   );
 
@@ -2030,6 +2195,9 @@ export async function updateAppointmentForOrganization(organizationId, appointme
           ? undefined
           : toMysqlDateTime(input.data_envio_lembrete),
       resposta_whatsapp: input.resposta_whatsapp === undefined ? undefined : input.resposta_whatsapp || null,
+      quote_id: input.quote_id === undefined ? undefined : input.quote_id || null,
+      service_order_id:
+        input.service_order_id === undefined ? undefined : input.service_order_id || null,
     },
     [
       "cliente_id",
@@ -2053,6 +2221,8 @@ export async function updateAppointmentForOrganization(organizationId, appointme
       "lembrete_cancelado",
       "data_envio_lembrete",
       "resposta_whatsapp",
+      "quote_id",
+      "service_order_id",
     ],
   );
 

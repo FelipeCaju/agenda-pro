@@ -16,6 +16,9 @@ import { formatDateBR } from "@/utils/date";
 
 type AgendaLocationState = {
   successMessage?: string;
+  selectedDate?: string;
+  notificationSlotKey?: string;
+  notificationAppointmentIds?: string[];
 };
 
 const viewOptions: Array<{ value: AgendaView; label: string }> = [
@@ -55,11 +58,18 @@ function ArrowButton({
 export function AgendaPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [view, setView] = useState<AgendaView>("day");
-  const [selectedDate, setSelectedDate] = useState(getTodayDate());
+  const locationState = location.state as AgendaLocationState | null;
+  const [view, setView] = useState<AgendaView>(locationState?.selectedDate ? "day" : "day");
+  const [selectedDate, setSelectedDate] = useState(locationState?.selectedDate ?? getTodayDate());
   const [selectedProfessionalId, setSelectedProfessionalId] = useState("");
-  const [successMessage, setSuccessMessage] = useState(
-    (location.state as AgendaLocationState | null)?.successMessage ?? "",
+  const [successMessage, setSuccessMessage] = useState(locationState?.successMessage ?? "");
+  const [notificationMessage, setNotificationMessage] = useState(
+    locationState?.notificationAppointmentIds?.length
+      ? "Mostrando os atendimentos do lembrete recebido."
+      : "",
+  );
+  const [highlightedAppointmentIds, setHighlightedAppointmentIds] = useState<string[]>(
+    locationState?.notificationAppointmentIds ?? [],
   );
   const { data: professionals = [] } = useProfessionalsQuery();
   const { data = [], error, isLoading, isError, isFetching, refetch } = useAgendaQuery({
@@ -85,6 +95,49 @@ export function AgendaPage() {
 
     return () => window.clearTimeout(timeoutId);
   }, [location.pathname, navigate, successMessage]);
+
+  useEffect(() => {
+    if (!locationState?.selectedDate) {
+      return;
+    }
+
+    startTransition(() => {
+      setSelectedDate(locationState.selectedDate ?? getTodayDate());
+      setView("day");
+      setHighlightedAppointmentIds(locationState.notificationAppointmentIds ?? []);
+      setNotificationMessage(
+        locationState.notificationAppointmentIds?.length
+          ? "Mostrando os atendimentos do lembrete recebido."
+          : "",
+      );
+    });
+
+    navigate(location.pathname, {
+      replace: true,
+      state: {
+        successMessage: locationState.successMessage,
+      },
+    });
+  }, [
+    location.pathname,
+    locationState?.notificationAppointmentIds,
+    locationState?.selectedDate,
+    locationState?.successMessage,
+    navigate,
+  ]);
+
+  useEffect(() => {
+    if (!notificationMessage && !highlightedAppointmentIds.length) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setNotificationMessage("");
+      setHighlightedAppointmentIds([]);
+    }, 8000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [highlightedAppointmentIds, notificationMessage]);
 
   const heroDateLabel = useMemo(() => formatAgendaHeroDate(selectedDate), [selectedDate]);
   const isToday = selectedDate === getTodayDate();
@@ -171,6 +224,12 @@ export function AgendaPage() {
           </Card>
         ) : null}
 
+        {notificationMessage ? (
+          <Card className="border-brand-100 bg-brand-50/80">
+            <p className="text-sm font-medium text-brand-700">{notificationMessage}</p>
+          </Card>
+        ) : null}
+
         {blockedSlots.length ? (
           <Card>
             <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Bloqueios</p>
@@ -205,12 +264,14 @@ export function AgendaPage() {
           view === "day" ? (
             <DayView
               appointments={data}
+              highlightedAppointmentIds={highlightedAppointmentIds}
               onOpenAppointment={openAppointment}
               selectedDate={selectedDate}
             />
           ) : view === "week" ? (
             <WeekView
               appointments={data}
+              highlightedAppointmentIds={highlightedAppointmentIds}
               onOpenAppointment={openAppointment}
               onSelectDate={(date) => startTransition(() => setSelectedDate(date))}
               selectedDate={selectedDate}

@@ -8,6 +8,7 @@ import { cn } from "@/utils/cn";
 
 const links = [
   { to: "/agenda", label: "Agenda", icon: "calendar" },
+  { to: "/orcamentos", label: "Orcamentos", icon: "receipt" },
   { to: "/clientes", label: "Clientes", icon: "users" },
   { to: "/servicos", label: "Servicos", icon: "scissors" },
   { to: "/", label: "Painel", icon: "grid" },
@@ -43,6 +44,16 @@ function NavIcon({ icon }: { icon: (typeof links)[number]["icon"] }) {
         <path d="M4.5 18a4.5 4.5 0 0 1 9 0" />
         <path d="M16.5 11a2.5 2.5 0 1 0 0-5" />
         <path d="M19.5 18a3.5 3.5 0 0 0-2.7-3.4" />
+      </svg>
+    );
+  }
+
+  if (icon === "receipt") {
+    return (
+      <svg {...baseProps}>
+        <path d="M7 4.5h10a1 1 0 0 1 1 1v14l-2-1.3-2 1.3-2-1.3-2 1.3-2-1.3-2 1.3v-14a1 1 0 0 1 1-1Z" />
+        <path d="M9 8.5h6" />
+        <path d="M9 12h6" />
       </svg>
     );
   }
@@ -84,7 +95,7 @@ export function MobileNav() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-slate-200 bg-white px-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-2 xl:hidden">
-      <div className="mx-auto grid max-w-3xl grid-cols-5 gap-1.5 rounded-[24px] bg-white p-2">
+      <div className="mx-auto grid max-w-3xl grid-cols-6 gap-1.5 rounded-[24px] bg-white p-2">
         {links.map((link) => (
           <NavLink
             key={link.to}

@@ -23,6 +23,8 @@ type NewAppointmentValues = {
   status: AppointmentStatus;
   paymentStatus: AppointmentPaymentStatus;
   observacoes: string;
+  quoteId: string;
+  serviceOrderId: string;
   repetir: string;
 };
 
@@ -53,6 +55,8 @@ const EMPTY_VALUES: NewAppointmentValues = {
   status: "confirmado",
   paymentStatus: "pendente",
   observacoes: "",
+  quoteId: "",
+  serviceOrderId: "",
   repetir: "nao_repetir",
 };
 
@@ -259,6 +263,8 @@ export function NewAppointment({
       status: values.status,
       paymentStatus: values.paymentStatus,
       observacoes: values.observacoes,
+      quoteId: values.quoteId || null,
+      serviceOrderId: values.serviceOrderId || null,
       recurrence:
         values.repetir === "toda_semana"
           ? { type: "weekly", count: 4 }

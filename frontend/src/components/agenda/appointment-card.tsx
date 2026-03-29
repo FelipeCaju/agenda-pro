@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 type AppointmentCardProps = {
   appointment: Appointment;
   onOpen: (appointment: Appointment) => void;
+  isHighlighted?: boolean;
 };
 
 function PersonIcon() {
@@ -72,12 +73,20 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
-export function AppointmentCard({ appointment, onOpen }: AppointmentCardProps) {
+export function AppointmentCard({
+  appointment,
+  onOpen,
+  isHighlighted = false,
+}: AppointmentCardProps) {
   const status = getStatusPresentation(appointment);
 
   return (
     <button className="w-full text-left" onClick={() => onOpen(appointment)} type="button">
-      <Card className="relative overflow-hidden rounded-[22px] border border-slate-200/70 bg-white p-0 shadow-soft">
+      <Card
+        className={`relative overflow-hidden rounded-[22px] border bg-white p-0 shadow-soft ${
+          isHighlighted ? "border-brand-200 ring-2 ring-brand-100" : "border-slate-200/70"
+        }`}
+      >
         <span
           aria-hidden="true"
           className="absolute inset-y-4 left-0 w-1 rounded-full"

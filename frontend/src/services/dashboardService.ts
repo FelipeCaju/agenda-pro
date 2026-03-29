@@ -82,6 +82,8 @@ type AppointmentApiModel = {
   lembrete_cancelado: boolean;
   data_envio_lembrete: string | null;
   resposta_whatsapp: string | null;
+  quote_id?: string | null;
+  service_order_id?: string | null;
   created_at?: string;
   updated_at?: string;
 };
@@ -151,6 +153,8 @@ function mapAppointment(model: AppointmentApiModel): Appointment {
     lembreteCancelado: Boolean(model.lembrete_cancelado),
     dataEnvioLembrete: model.data_envio_lembrete ?? null,
     respostaWhatsapp: model.resposta_whatsapp ?? null,
+    quoteId: model.quote_id ?? null,
+    serviceOrderId: model.service_order_id ?? null,
     createdAt: model.created_at,
     updatedAt: model.updated_at,
   };

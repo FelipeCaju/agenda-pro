@@ -8,6 +8,7 @@ type WeekViewProps = {
   selectedDate: string;
   onOpenAppointment: (appointment: Appointment) => void;
   onSelectDate: (date: string) => void;
+  highlightedAppointmentIds?: string[];
 };
 
 export function WeekView({
@@ -15,9 +16,11 @@ export function WeekView({
   selectedDate,
   onOpenAppointment,
   onSelectDate,
+  highlightedAppointmentIds = [],
 }: WeekViewProps) {
   const dates = getWeekDates(selectedDate);
   const grouped = groupAppointmentsByDate(appointments);
+  const highlightedIds = new Set(highlightedAppointmentIds);
 
   return (
     <div className="space-y-3">
@@ -35,6 +38,7 @@ export function WeekView({
               (grouped[date] ?? []).map((appointment) => (
                 <AppointmentCard
                   appointment={appointment}
+                  isHighlighted={highlightedIds.has(appointment.id)}
                   key={appointment.id}
                   onOpen={onOpenAppointment}
                 />

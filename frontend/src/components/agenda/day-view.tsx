@@ -7,9 +7,17 @@ type DayViewProps = {
   appointments: Appointment[];
   selectedDate: string;
   onOpenAppointment: (appointment: Appointment) => void;
+  highlightedAppointmentIds?: string[];
 };
 
-export function DayView({ appointments, selectedDate, onOpenAppointment }: DayViewProps) {
+export function DayView({
+  appointments,
+  selectedDate,
+  onOpenAppointment,
+  highlightedAppointmentIds = [],
+}: DayViewProps) {
+  const highlightedIds = new Set(highlightedAppointmentIds);
+
   if (!appointments.length) {
     return (
       <Card className="bg-white/[0.82]">
@@ -34,7 +42,11 @@ export function DayView({ appointments, selectedDate, onOpenAppointment }: DayVi
             <div className="pt-3 text-sm font-medium text-slate-400">
               {getTimeLabel(appointment.horarioInicial)}
             </div>
-            <AppointmentCard appointment={appointment} onOpen={onOpenAppointment} />
+            <AppointmentCard
+              appointment={appointment}
+              isHighlighted={highlightedIds.has(appointment.id)}
+              onOpen={onOpenAppointment}
+            />
           </div>
         ))}
 

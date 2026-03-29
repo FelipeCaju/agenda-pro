@@ -27,6 +27,21 @@ export {
   type AppointmentStatus,
 } from "@/services/appointmentService";
 export {
+  localNotificationService,
+} from "@/services/localNotificationService";
+export {
+  notificationPreferencesService,
+  type NotificationPreferences,
+} from "@/services/notificationPreferencesService";
+export {
+  orcamentoService,
+  type Orcamento,
+  type OrcamentoInput,
+  type OrcamentoItem,
+  type OrcamentoStatus,
+  type OrcamentoAppointmentDraft,
+} from "@/services/orcamentoService";
+export {
   dashboardService,
   type DashboardPeriod,
   type DashboardStatusFilter,

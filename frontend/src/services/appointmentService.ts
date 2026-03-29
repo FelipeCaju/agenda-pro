@@ -29,6 +29,8 @@ export type Appointment = {
   lembreteCancelado: boolean;
   dataEnvioLembrete: string | null;
   respostaWhatsapp: string | null;
+  quoteId: string | null;
+  serviceOrderId: string | null;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -45,6 +47,8 @@ export type AppointmentInput = {
   paymentStatus?: AppointmentPaymentStatus;
   observacoes?: string;
   confirmacaoCliente?: string;
+  quoteId?: string | null;
+  serviceOrderId?: string | null;
   recurrence?: {
     type: "none" | "weekly" | "monthly";
     count: number;
@@ -54,6 +58,11 @@ export type AppointmentInput = {
 export type AppointmentFilters = {
   date: string;
   view: AgendaView;
+  professionalId?: string;
+};
+
+export type UpcomingAppointmentFilters = {
+  daysAhead?: number;
   professionalId?: string;
 };
 
@@ -86,6 +95,8 @@ type AppointmentApiModel = {
   lembrete_cancelado: boolean;
   data_envio_lembrete: string | null;
   resposta_whatsapp: string | null;
+  quote_id: string | null;
+  service_order_id: string | null;
   created_at?: string;
   updated_at?: string;
 };
@@ -115,6 +126,8 @@ function fromApi(model: AppointmentApiModel): Appointment {
     lembreteCancelado: Boolean(model.lembrete_cancelado),
     dataEnvioLembrete: model.data_envio_lembrete ?? null,
     respostaWhatsapp: model.resposta_whatsapp ?? null,
+    quoteId: model.quote_id ?? null,
+    serviceOrderId: model.service_order_id ?? null,
     createdAt: model.created_at,
     updatedAt: model.updated_at,
   };
@@ -133,6 +146,8 @@ function toApi(input: AppointmentInput) {
     payment_status: input.paymentStatus ?? "pendente",
     observacoes: input.observacoes ?? "",
     confirmacao_cliente: input.confirmacaoCliente ?? "pendente",
+    quote_id: input.quoteId ?? null,
+    service_order_id: input.serviceOrderId ?? null,
     recurrence:
       input.recurrence && input.recurrence.type !== "none"
         ? input.recurrence
@@ -167,6 +182,23 @@ export const appointmentService = {
       },
       {
         errorMessage: "Nao foi possivel carregar o agendamento.",
+      },
+    );
+  },
+  async listUpcoming(filters: UpcomingAppointmentFilters = {}) {
+    return executeServiceCall(
+      async () => {
+        const response = await apiClient.get<AppointmentApiModel[]>("/agenda/upcoming", {
+          query: {
+            daysAhead: filters.daysAhead ?? 45,
+            professionalId: filters.professionalId,
+          },
+        });
+
+        return (response.data ?? []).map(fromApi);
+      },
+      {
+        errorMessage: "Nao foi possivel carregar os proximos agendamentos.",
       },
     );
   },

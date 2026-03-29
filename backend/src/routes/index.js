@@ -12,6 +12,7 @@ import {
   deleteAppointmentController,
   getAppointmentController,
   listAgendaController,
+  listUpcomingAgendaController,
   updateAppointmentController,
   updateAppointmentPaymentStatusController,
   updateAppointmentStatusController,
@@ -47,6 +48,16 @@ import {
   registerReminderReplyController,
   sendManualReminderController,
 } from "../controllers/reminders.controller.js";
+import {
+  approveQuoteController,
+  convertQuoteToServiceOrderController,
+  createQuoteAppointmentDraftController,
+  createQuoteController,
+  getQuoteController,
+  listQuotesController,
+  rejectQuoteController,
+  updateQuoteController,
+} from "../controllers/quotes.controller.js";
 import {
   createServiceController,
   deleteServiceController,
@@ -122,6 +133,7 @@ router.get("/blocked-slots", listBlockedSlotsController);
 router.post("/blocked-slots", createBlockedSlotController);
 router.delete("/blocked-slots/:blockedSlotId", deleteBlockedSlotController);
 router.get("/agenda", listAgendaController);
+router.get("/agenda/upcoming", listUpcomingAgendaController);
 router.get("/agenda/:appointmentId", getAppointmentController);
 router.post("/agenda", createAppointmentController);
 router.put("/agenda/:appointmentId", updateAppointmentController);
@@ -140,6 +152,14 @@ router.post("/services", createServiceController);
 router.put("/services/:serviceId", updateServiceController);
 router.patch("/services/:serviceId/status", toggleServiceActiveController);
 router.delete("/services/:serviceId", deleteServiceController);
+router.get("/quotes", listQuotesController);
+router.get("/quotes/:quoteId", getQuoteController);
+router.post("/quotes", createQuoteController);
+router.put("/quotes/:quoteId", updateQuoteController);
+router.post("/quotes/:quoteId/approve", approveQuoteController);
+router.post("/quotes/:quoteId/reject", rejectQuoteController);
+router.post("/quotes/:quoteId/schedule-draft", createQuoteAppointmentDraftController);
+router.post("/quotes/:quoteId/service-order", convertQuoteToServiceOrderController);
 router.get("/reminders", listReminders);
 router.post("/reminders/manual-send", sendManualReminderController);
 router.patch("/reminders/:appointmentId/reply", registerReminderReplyController);

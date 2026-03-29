@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FullscreenState } from "@/components/ui/fullscreen-state";
 import { useAuth } from "@/hooks/use-auth";
+import { useNotificationPreferences } from "@/hooks/use-notification-preferences";
 import { useOrganizationMutations } from "@/hooks/use-organization-mutations";
 import {
   useOrganizationPaymentsQuery,
@@ -177,8 +178,17 @@ export function SettingsPage() {
   const [lembreteMensagem, setLembreteMensagem] = useState("");
   const [whatsappAtivo, setWhatsappAtivo] = useState(false);
   const [whatsappTempoLembreteMinutos, setWhatsappTempoLembreteMinutos] = useState("60");
+  const { preferences: notificationPreferences, savePreferences } = useNotificationPreferences();
+  const [appNotificationsEnabled, setAppNotificationsEnabled] = useState(notificationPreferences.enabled);
+  const [appNotificationSoundEnabled, setAppNotificationSoundEnabled] = useState(
+    notificationPreferences.soundEnabled,
+  );
+  const [appNotificationReminderMinutes, setAppNotificationReminderMinutes] = useState(
+    String(notificationPreferences.reminderMinutes),
+  );
   const [companyValidationError, setCompanyValidationError] = useState<string | null>(null);
   const [appValidationError, setAppValidationError] = useState<string | null>(null);
+  const [notificationPreferencesError, setNotificationPreferencesError] = useState<string | null>(null);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [successMessage, setSuccessMessage] = useState(
@@ -232,6 +242,12 @@ export function SettingsPage() {
     settings?.whatsappAtivo,
     settings?.whatsappTempoLembreteMinutos,
   ]);
+
+  useEffect(() => {
+    setAppNotificationsEnabled(notificationPreferences.enabled);
+    setAppNotificationSoundEnabled(notificationPreferences.soundEnabled);
+    setAppNotificationReminderMinutes(String(notificationPreferences.reminderMinutes));
+  }, [notificationPreferences]);
 
   const isLoading = isLoadingOrganization || isLoadingSettings;
   const isInitialLoading = isLoading && !organization && !settings;
@@ -372,6 +388,25 @@ export function SettingsPage() {
     } catch {
       return;
     }
+  }
+
+  function handleNotificationPreferencesSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setNotificationPreferencesError(null);
+
+    const normalizedReminderMinutes = Number(appNotificationReminderMinutes);
+
+    if (!Number.isFinite(normalizedReminderMinutes) || normalizedReminderMinutes < 0) {
+      setNotificationPreferencesError("A antecedencia do lembrete deve ser zero ou maior.");
+      return;
+    }
+
+    savePreferences({
+      enabled: appNotificationsEnabled,
+      soundEnabled: appNotificationSoundEnabled,
+      reminderMinutes: normalizedReminderMinutes,
+    });
+    setSuccessMessage("Preferencias de notificacao do app atualizadas com sucesso.");
   }
 
   if (isInitialLoading) {
@@ -808,6 +843,74 @@ export function SettingsPage() {
             <p className="text-sm text-slate-500">Nenhum pagamento registrado para esta organizacao.</p>
           )}
         </div>
+      </Card>
+
+      <Card>
+        <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Notificacoes</p>
+        <h3 className="mt-1 text-lg font-semibold text-ink">Lembretes do app Android</h3>
+        <p className="mt-2 text-sm text-slate-500">
+          Essas preferencias controlam os lembretes locais do app. Na web o comportamento continua seguro sem agendar notificacoes.
+        </p>
+
+        <form className="mt-4 space-y-4" onSubmit={handleNotificationPreferencesSubmit}>
+          <label className="app-toggle-panel">
+            <input
+              checked={appNotificationsEnabled}
+              className="app-checkbox"
+              onChange={(event) => setAppNotificationsEnabled(event.target.checked)}
+              type="checkbox"
+            />
+            <span>
+              <span className="block text-sm font-medium text-ink">Ativar lembretes locais</span>
+              <span className="block text-sm text-slate-500">
+                Agenda notificacoes antes do atendimento e reage a alteracoes da agenda.
+              </span>
+            </span>
+          </label>
+
+          <label className="app-toggle-panel">
+            <input
+              checked={appNotificationSoundEnabled}
+              className="app-checkbox"
+              disabled={!appNotificationsEnabled}
+              onChange={(event) => setAppNotificationSoundEnabled(event.target.checked)}
+              type="checkbox"
+            />
+            <span>
+              <span className="block text-sm font-medium text-ink">Tocar som no lembrete</span>
+              <span className="block text-sm text-slate-500">
+                Quando desligado, o app usa canal silencioso no Android.
+              </span>
+            </span>
+          </label>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-ink" htmlFor="app-reminder-minutes">
+              Antecedencia do lembrete
+            </label>
+            <input
+              className="app-input"
+              disabled={!appNotificationsEnabled}
+              id="app-reminder-minutes"
+              min="0"
+              onChange={(event) => setAppNotificationReminderMinutes(event.target.value)}
+              step="1"
+              type="number"
+              value={appNotificationReminderMinutes}
+            />
+            <p className="text-sm text-slate-500">
+              Exemplo: `10` para avisar 10 minutos antes do atendimento.
+            </p>
+          </div>
+
+          {notificationPreferencesError ? (
+            <p className="text-sm text-rose-600">{notificationPreferencesError}</p>
+          ) : null}
+
+          <Button className="w-full sm:w-auto" type="submit">
+            Salvar preferencias de notificacao
+          </Button>
+        </form>
       </Card>
 
       <Card>

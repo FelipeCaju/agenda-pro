@@ -1,8 +1,11 @@
 import { DesktopSidebar } from "@/components/layout/desktop-sidebar";
+import { useLocalNotificationSync } from "@/hooks/use-local-notification-sync";
 import { Outlet } from "react-router-dom";
 import { MobileNav } from "@/components/layout/mobile-nav";
 
 export function AppShell() {
+  useLocalNotificationSync();
+
   return (
     <div className="min-h-screen bg-transparent pb-28 xl:grid xl:grid-cols-[320px_minmax(0,1fr)] xl:gap-6 xl:px-6 xl:pb-0 2xl:px-8">
       <DesktopSidebar />
