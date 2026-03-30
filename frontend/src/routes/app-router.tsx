@@ -50,6 +50,12 @@ const ServiceFormPage = lazy(async () => ({
 const SettingsPage = lazy(async () => ({
   default: (await import("@/pages/settings-page")).SettingsPage,
 }));
+const WhatsappSettingsPage = lazy(async () => ({
+  default: (await import("@/pages/whatsapp-settings-page")).WhatsappSettingsPage,
+}));
+const OrcamentosSettingsPage = lazy(async () => ({
+  default: (await import("@/pages/orcamentos-settings-page")).OrcamentosSettingsPage,
+}));
 const OrcamentosPage = lazy(async () => ({
   default: (await import("@/pages/orcamentos-page")).OrcamentosPage,
 }));
@@ -163,6 +169,14 @@ export const router = createBrowserRouter([
                 element: withRouteSuspense(<OrcamentoFormPage />),
               },
               { path: "/configuracoes", element: withRouteSuspense(<SettingsPage />) },
+              {
+                path: "/configuracoes/whatsapp",
+                element: withRouteSuspense(<WhatsappSettingsPage />),
+              },
+              {
+                path: "/configuracoes/orcamentos",
+                element: withRouteSuspense(<OrcamentosSettingsPage />),
+              },
               { path: "/funcionarios", element: withRouteSuspense(<ProfessionalsPage />) },
               { path: "/lembretes", element: withRouteSuspense(<RemindersPage />) },
             ],

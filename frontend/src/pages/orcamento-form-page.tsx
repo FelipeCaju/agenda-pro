@@ -5,11 +5,17 @@ import { MobilePageHeader } from "@/components/layout/mobile-page-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { InlineStateCard } from "@/components/ui/inline-state-card";
+import { useClientQuery } from "@/hooks/use-client-query";
 import { useClientsQuery } from "@/hooks/use-clients-query";
 import { useOrcamentoMutations } from "@/hooks/use-orcamento-mutations";
 import { useOrcamentoQuery } from "@/hooks/use-orcamento-query";
+import { useOrganizationQuery } from "@/hooks/use-organization-query";
 import { useServicesQuery } from "@/hooks/use-services-query";
 import { orcamentoService, type OrcamentoInput } from "@/services/orcamentoService";
+import {
+  buildQuoteWhatsappMessageFromQuote,
+  openWhatsappConversation,
+} from "@/utils/whatsapp";
 
 function getStatusLabel(status?: string) {
   if (status === "aprovado") return "Aprovado";
@@ -27,6 +33,8 @@ export function OrcamentoFormPage() {
     ((location.state as { successMessage?: string } | null)?.successMessage ?? ""),
   );
   const { data: quote, error, isError, isLoading } = useOrcamentoQuery(quoteId);
+  const { data: client } = useClientQuery(quote?.clientId);
+  const { data: organization } = useOrganizationQuery();
   const { data: clients = [], isLoading: isLoadingClients, isError: isClientsError, error: clientsError } = useClientsQuery();
   const { data: services = [], isLoading: isLoadingServices, isError: isServicesError, error: servicesError } = useServicesQuery();
   const {
@@ -139,6 +147,33 @@ export function OrcamentoFormPage() {
     }
   }
 
+  function handleSendToWhatsapp() {
+    if (!quote) {
+      return;
+    }
+
+    setActionError(null);
+
+    try {
+      const message = buildQuoteWhatsappMessageFromQuote(
+        quote,
+        settingsOrganizationName(),
+        client?.nome ?? quote.clientName,
+      );
+      openWhatsappConversation(client?.telefone ?? "", message);
+    } catch (sendError) {
+      setActionError(
+        sendError instanceof Error
+          ? sendError.message
+          : "Nao foi possivel abrir o WhatsApp para este orcamento.",
+      );
+    }
+  }
+
+  function settingsOrganizationName() {
+    return organization?.nomeEmpresa ?? "AgendaPro";
+  }
+
   if (isLoading || isLoadingClients || isLoadingServices) {
     return <InlineStateCard message="Carregando orcamento..." />;
   }
@@ -211,7 +246,13 @@ export function OrcamentoFormPage() {
             >
               {isConvertingToOS ? "Convertendo..." : "Transformar em OS"}
             </Button>
+            <Button onClick={() => handleSendToWhatsapp()} type="button" variant="secondary">
+              Enviar no WhatsApp
+            </Button>
           </div>
+          <p className="text-sm text-slate-500">
+            O WhatsApp abre com uma mensagem pronta contendo cliente, itens e total do orcamento.
+          </p>
           {quote.appointmentId ? (
             <p className="text-sm text-slate-500">Ja vinculado ao agendamento {quote.appointmentId}.</p>
           ) : null}
