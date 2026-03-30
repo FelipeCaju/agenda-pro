@@ -13,8 +13,8 @@ function readToken(request) {
 
 export async function login(request, response) {
   try {
-    const { email = "contato@agendapro.app", password = "", provider = "email" } = request.body ?? {};
-    response.json(await startLogin({ email, password, provider }));
+    const { email = "contato@agendapro.app", password = "", provider = "email", idToken = "" } = request.body ?? {};
+    response.json(await startLogin({ email, password, provider, idToken }));
   } catch (error) {
     response.status(error.statusCode ?? 500).json({ message: error.message });
   }

@@ -9,6 +9,7 @@ import { getPostAuthRedirect } from "@/utils/auth";
 export function OnboardingPage() {
   const navigate = useNavigate();
   const { completeOnboarding, error, user } = useAuth();
+  const isSocialOnboarding = user?.authProvider === "google" || user?.authProvider === "apple";
   const [nome, setNome] = useState(user?.nome === "Novo usuario" ? "" : user?.nome ?? "");
   const [nomeEmpresa, setNomeEmpresa] = useState("");
   const [telefone, setTelefone] = useState("");
@@ -21,12 +22,12 @@ export function OnboardingPage() {
     event.preventDefault();
     setLocalError(null);
 
-    if (senha.trim().length < 8) {
+    if (!isSocialOnboarding && senha.trim().length < 8) {
       setLocalError("A senha precisa ter pelo menos 8 caracteres.");
       return;
     }
 
-    if (senha !== confirmacaoSenha) {
+    if (!isSocialOnboarding && senha !== confirmacaoSenha) {
       setLocalError("A confirmacao da senha precisa ser igual.");
       return;
     }
@@ -47,7 +48,9 @@ export function OnboardingPage() {
         <p className="text-xs uppercase tracking-[0.24em] text-brand-600">Primeiro acesso</p>
         <h1 className="mt-2 text-2xl font-bold text-ink">Finalize sua conta</h1>
         <p className="mt-2 text-sm text-slate-500">
-          Vamos criar sua empresa e deixar o acesso seguro com email e senha.
+          {isSocialOnboarding
+            ? "Vamos criar sua empresa e concluir o acesso com sua conta social."
+            : "Vamos criar sua empresa e deixar o acesso seguro com email e senha."}
         </p>
         <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
           <input
@@ -68,18 +71,26 @@ export function OnboardingPage() {
             placeholder="Telefone"
             value={telefone}
           />
-          <PasswordField
-            inputClassName="w-full rounded-2xl border border-slate-200 px-4 py-3 pr-14 text-sm"
-            onChange={(event) => setSenha(event.target.value)}
-            placeholder="Crie uma senha"
-            value={senha}
-          />
-          <PasswordField
-            inputClassName="w-full rounded-2xl border border-slate-200 px-4 py-3 pr-14 text-sm"
-            onChange={(event) => setConfirmacaoSenha(event.target.value)}
-            placeholder="Confirme a senha"
-            value={confirmacaoSenha}
-          />
+          {!isSocialOnboarding ? (
+            <>
+              <PasswordField
+                inputClassName="w-full rounded-2xl border border-slate-200 px-4 py-3 pr-14 text-sm"
+                onChange={(event) => setSenha(event.target.value)}
+                placeholder="Crie uma senha"
+                value={senha}
+              />
+              <PasswordField
+                inputClassName="w-full rounded-2xl border border-slate-200 px-4 py-3 pr-14 text-sm"
+                onChange={(event) => setConfirmacaoSenha(event.target.value)}
+                placeholder="Confirme a senha"
+                value={confirmacaoSenha}
+              />
+            </>
+          ) : (
+            <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+              Sua senha sera gerenciada pelo provedor social. Depois, se quiser, podemos adicionar uma senha local.
+            </div>
+          )}
           {localError ? <p className="text-sm text-rose-600">{localError}</p> : null}
           {error ? <p className="text-sm text-rose-600">{error}</p> : null}
           <Button className="w-full" disabled={isSubmitting} type="submit">

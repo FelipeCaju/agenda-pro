@@ -1,10 +1,16 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { PasswordField } from "@/components/ui/password-field";
 import { useAuth } from "@/hooks/use-auth";
 import { ApiError } from "@/services/apiClient";
+import {
+  ensureGoogleAuthLoaded,
+  getAppleClientId,
+  getGoogleClientId,
+  signInWithApple,
+} from "@/services/socialAuthService";
 import { getPostAuthRedirect } from "@/utils/auth";
 
 export function LoginPage() {
@@ -15,9 +21,32 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isStartingTrial, setIsStartingTrial] = useState(false);
+  const [isSigningWithApple, setIsSigningWithApple] = useState(false);
+  const [isPreparingGoogle, setIsPreparingGoogle] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const redirectTo = (location.state as { from?: string } | null)?.from ?? "/";
   const successMessage = (location.state as { successMessage?: string } | null)?.successMessage ?? "";
+  const googleButtonRef = useRef<HTMLDivElement | null>(null);
+  const googleClientId = getGoogleClientId();
+  const appleClientId = getAppleClientId();
+
+  async function finishSignIn(provider: "email" | "google" | "apple", payload?: { idToken?: string; email?: string }) {
+    const session = await signIn({
+      email: payload?.email ?? email,
+      password,
+      provider,
+      idToken: payload?.idToken,
+    });
+    const nextPath = session.access.needsOnboarding
+      ? "/onboarding"
+      : session.access.isBlocked
+        ? "/assinatura-bloqueada"
+        : redirectTo === "/login"
+          ? getPostAuthRedirect(session)
+          : redirectTo;
+
+    navigate(nextPath, { replace: true });
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -25,16 +54,7 @@ export function LoginPage() {
     setLocalError(null);
 
     try {
-      const session = await signIn({ email, password, provider: "email" });
-      const nextPath = session.access.needsOnboarding
-        ? "/onboarding"
-        : session.access.isBlocked
-          ? "/assinatura-bloqueada"
-          : redirectTo === "/login"
-            ? getPostAuthRedirect(session)
-            : redirectTo;
-
-      navigate(nextPath, { replace: true });
+      await finishSignIn("email");
     } finally {
       setIsSubmitting(false);
     }
@@ -77,14 +97,119 @@ export function LoginPage() {
     }
   }
 
+  useEffect(() => {
+    if (!googleClientId || !googleButtonRef.current) {
+      return;
+    }
+
+    let isMounted = true;
+    setIsPreparingGoogle(true);
+
+    void ensureGoogleAuthLoaded()
+      .then(() => {
+        if (!isMounted || !googleButtonRef.current || !window.google?.accounts.id) {
+          return;
+        }
+
+        googleButtonRef.current.innerHTML = "";
+        window.google.accounts.id.initialize({
+          client_id: googleClientId,
+          callback: async ({ credential }) => {
+            setLocalError(null);
+
+            try {
+              await finishSignIn("google", { idToken: credential });
+            } catch (signInError) {
+              if (signInError instanceof Error) {
+                setLocalError(signInError.message);
+              } else {
+                setLocalError("Nao foi possivel entrar com Google.");
+              }
+            }
+          },
+          ux_mode: "popup",
+          cancel_on_tap_outside: true,
+        });
+        window.google.accounts.id.renderButton(googleButtonRef.current, {
+          theme: "outline",
+          size: "large",
+          shape: "pill",
+          text: "signin_with",
+          width: 360,
+          logo_alignment: "left",
+        });
+      })
+      .catch(() => {
+        if (isMounted) {
+          setLocalError("Nao foi possivel preparar o login com Google.");
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsPreparingGoogle(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [googleClientId]);
+
+  async function handleAppleSignIn() {
+    setLocalError(null);
+    setIsSigningWithApple(true);
+
+    try {
+      const idToken = await signInWithApple();
+      await finishSignIn("apple", { idToken });
+    } catch (signInError) {
+      if (signInError instanceof Error) {
+        setLocalError(signInError.message);
+      } else {
+        setLocalError("Nao foi possivel entrar com Apple.");
+      }
+    } finally {
+      setIsSigningWithApple(false);
+    }
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-10">
       <Card className="w-full max-w-lg border-white/90 bg-white/[0.88] p-6 shadow-float">
         <span className="app-pill">AgendaPro</span>
         <h1 className="mt-4 text-3xl font-bold tracking-[-0.04em] text-ink">Entrar</h1>
         <p className="mt-3 text-sm leading-7 text-slate-500">
-          Acesso seguro por email e senha, com criacao de conta e trial direto pela tela inicial.
+          Entre com email, Google ou Apple, com criacao de conta e trial direto pela tela inicial.
         </p>
+        <div className="mt-6 space-y-3">
+          {googleClientId ? (
+            <div
+              className="flex min-h-11 items-center justify-center rounded-[18px] border border-slate-200 bg-white"
+              ref={googleButtonRef}
+            />
+          ) : (
+            <button
+              className="flex w-full items-center justify-center rounded-[18px] border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-400"
+              disabled
+              type="button"
+            >
+              Entrar com Google
+            </button>
+          )}
+          <button
+            className="flex w-full items-center justify-center rounded-[18px] bg-black px-4 py-3 text-sm font-semibold text-white shadow-soft disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isSigningWithApple || !appleClientId}
+            onClick={() => void handleAppleSignIn()}
+            type="button"
+          >
+            {isSigningWithApple ? "Conectando com Apple..." : "Entrar com Apple"}
+          </button>
+          <p className="text-center text-xs text-slate-400">
+            {isPreparingGoogle
+              ? "Preparando login com Google..."
+              : "Ou, se preferir, use seu email e senha abaixo."}
+          </p>
+        </div>
         <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
           <input
             className="app-input"

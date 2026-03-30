@@ -45,6 +45,7 @@ type TrackedNotificationEntry = {
 };
 
 let isInitialized = false;
+let hasPromptedExactAlarmPermission = false;
 let navigateHandler: ((target: NotificationNavigateTarget) => void) | null = null;
 
 function isBrowser() {
@@ -226,7 +227,7 @@ async function ensureChannels(soundEnabled: boolean) {
       id: SOUND_CHANNEL_ID,
       name: "Lembretes com som",
       description: "Lembretes de atendimentos com alerta sonoro.",
-      importance: 4 as const,
+      importance: 5 as const,
       vibration: true,
     },
     {
@@ -265,6 +266,26 @@ async function cancelTrackedNotifications(organizationId: string) {
   }
 
   setTrackedIdsForOrganization(organizationId, []);
+}
+
+async function ensureExactAlarmPermission() {
+  if (Capacitor.getPlatform() !== "android") {
+    return true;
+  }
+
+  const permissionStatus = await LocalNotifications.checkExactNotificationSetting();
+
+  if (permissionStatus.exact_alarm === "granted") {
+    hasPromptedExactAlarmPermission = false;
+    return true;
+  }
+
+  if (!hasPromptedExactAlarmPermission) {
+    hasPromptedExactAlarmPermission = true;
+    await LocalNotifications.changeExactNotificationSetting();
+  }
+
+  return false;
 }
 
 export const localNotificationService = {
@@ -344,6 +365,12 @@ export const localNotificationService = {
       return { scheduledCount: 0, skipped: "permission" as const };
     }
 
+    const exactAlarmGranted = await ensureExactAlarmPermission();
+
+    if (!exactAlarmGranted) {
+      return { scheduledCount: 0, skipped: "exact-alarm" as const };
+    }
+
     await ensureChannels(currentPreferences.soundEnabled);
 
     const notifications = buildNotificationPayloads(
@@ -371,8 +398,9 @@ export const localNotificationService = {
           allowWhileIdle: true,
         },
         actionTypeId: ACTION_TYPE_ID,
-        autoCancel: true,
+        autoCancel: false,
         channelId: getChannelId(currentPreferences),
+        ongoing: false,
         extra: notification.extra,
       })),
     });

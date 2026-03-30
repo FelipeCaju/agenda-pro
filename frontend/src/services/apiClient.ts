@@ -6,7 +6,26 @@ function getDefaultApiUrl() {
   }
 
   const hostname = window.location.hostname || "localhost";
-  return `http://${hostname}:3333/api`;
+  const userAgent = window.navigator.userAgent || "";
+  const isAndroid = /android/i.test(userAgent);
+  const isIos = /iphone|ipad|ipod/i.test(userAgent);
+
+  // Android emulator loopback to the host machine
+  if (hostname === "localhost" && isAndroid) {
+    return "http://10.0.2.2:3333/api";
+  }
+
+  // iOS simulator also loops back to host machine on 127.0.0.1
+  if (hostname === "localhost" && isIos) {
+    return "http://127.0.0.1:3333/api";
+  }
+
+  // Local browser development (default), or deployed app with reverse proxy (/api)
+  if (hostname === "localhost") {
+    return "http://localhost:3333/api";
+  }
+
+  return `${window.location.origin}/api`;
 }
 
 const API_URL = import.meta.env.VITE_API_URL ?? getDefaultApiUrl();

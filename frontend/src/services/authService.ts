@@ -4,8 +4,9 @@ import { apiClient } from "@/services/apiClient";
 export type UserRole = "owner" | "admin" | "manager" | "staff" | "viewer";
 
 export type SignInInput = {
-  email: string;
-  password: string;
+  email?: string;
+  password?: string;
+  idToken?: string;
   provider?: "google" | "apple" | "email";
 };
 
@@ -13,7 +14,7 @@ export type CompleteOnboardingInput = {
   nome: string;
   nomeEmpresa: string;
   telefone?: string;
-  senha: string;
+  senha?: string;
 };
 
 export type SessionUser = {
@@ -22,6 +23,7 @@ export type SessionUser = {
   email: string;
   role: UserRole | null;
   organizationId: string | null;
+  authProvider?: "google" | "apple" | "email";
 };
 
 export type SessionOrganization = {

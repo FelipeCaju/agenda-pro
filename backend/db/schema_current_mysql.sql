@@ -143,6 +143,16 @@ CREATE TABLE IF NOT EXISTS app_settings (
     ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS platform_settings (
+  id VARCHAR(64) NOT NULL,
+  pix_key TEXT NULL,
+  payment_grace_days INT NOT NULL DEFAULT 5,
+  payment_alert_days INT NOT NULL DEFAULT 5,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS appointments (
   id CHAR(36) NOT NULL,
   organization_id CHAR(36) NOT NULL,
@@ -361,6 +371,8 @@ CREATE TABLE IF NOT EXISTS organization_payments (
   due_date DATE NULL,
   payment_method VARCHAR(60) NULL,
   notes TEXT NULL,
+  customer_notified_paid_at DATETIME NULL,
+  customer_payment_note TEXT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
@@ -448,6 +460,14 @@ BEGIN
   SET NEW.updated_at = CURRENT_TIMESTAMP;
 END$$
 
+DROP TRIGGER IF EXISTS trg_platform_settings_updated_at$$
+CREATE TRIGGER trg_platform_settings_updated_at
+BEFORE UPDATE ON platform_settings
+FOR EACH ROW
+BEGIN
+  SET NEW.updated_at = CURRENT_TIMESTAMP;
+END$$
+
 DROP TRIGGER IF EXISTS trg_organization_payments_updated_at$$
 CREATE TRIGGER trg_organization_payments_updated_at
 BEFORE UPDATE ON organization_payments
@@ -457,3 +477,15 @@ BEGIN
 END$$
 
 DELIMITER ;
+
+INSERT IGNORE INTO platform_settings (
+  id,
+  pix_key,
+  payment_grace_days,
+  payment_alert_days
+) VALUES (
+  'default',
+  '',
+  5,
+  5
+);

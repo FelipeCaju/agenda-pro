@@ -1650,6 +1650,39 @@ export async function getUserByEmail(email) {
   return mapUserForAuth(rows[0]);
 }
 
+export async function getUserByGoogleId(googleId) {
+  await ensureInitialized();
+  const rows = await query("SELECT * FROM users WHERE google_id = ? LIMIT 1", [googleId]);
+  return mapUserForAuth(rows[0]);
+}
+
+export async function getUserByAppleId(appleId) {
+  await ensureInitialized();
+  const rows = await query("SELECT * FROM users WHERE apple_id = ? LIMIT 1", [appleId]);
+  return mapUserForAuth(rows[0]);
+}
+
+export async function updateUserSocialIdentityById(
+  userId,
+  { googleId = undefined, appleId = undefined, authProvider = undefined },
+) {
+  await ensureInitialized();
+  const statement = buildUpdateStatement(
+    {
+      google_id: googleId,
+      apple_id: appleId,
+      auth_provider: authProvider,
+    },
+    ["google_id", "apple_id", "auth_provider"],
+  );
+
+  if (statement) {
+    await execute(`UPDATE users SET ${statement.sql} WHERE id = ?`, [...statement.params, userId]);
+  }
+
+  return getUserById(userId);
+}
+
 export async function updateUserPasswordById(userId, passwordHash) {
   await ensureInitialized();
   await execute(

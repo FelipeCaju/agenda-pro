@@ -3,16 +3,22 @@ import {
   createUser,
   deactivateUserById,
   getLatestOrganizationPayment,
+  getUserByAppleId,
   getOrganizationById,
   getPlatformSettings,
+  getUserByGoogleId,
   getUserByEmail,
+  updateUserSocialIdentityById,
   updateUserPasswordById,
 } from "../lib/data.js";
+import { createRemoteJWKSet, jwtVerify } from "jose";
 import { hashPassword, isValidPassword, verifyPassword } from "../lib/password.js";
 import { evaluateSubscriptionAccess } from "../lib/subscription.js";
 
 const LEGACY_DEMO_PASSWORD = "Agenda123!";
 const LEGACY_DEMO_EMAILS = new Set(["contato@agendapro.app", "bloqueado@agendapro.app"]);
+const GOOGLE_JWKS = createRemoteJWKSet(new URL("https://www.googleapis.com/oauth2/v3/certs"));
+const APPLE_JWKS = createRemoteJWKSet(new URL("https://appleid.apple.com/auth/keys"));
 
 function normalizeEmail(email) {
   return typeof email === "string" ? email.trim().toLowerCase() : "";
@@ -34,6 +40,19 @@ function buildNewUserToken(email) {
   return `new:${normalizeEmail(email)}`;
 }
 
+function buildPendingUserToken({ email, provider = "email", name = "", googleId = null, appleId = null }) {
+  return `pending:${Buffer.from(
+    JSON.stringify({
+      email: normalizeEmail(email),
+      provider,
+      name: typeof name === "string" ? name.trim() : "",
+      googleId,
+      appleId,
+    }),
+    "utf8",
+  ).toString("base64url")}`;
+}
+
 function buildPlatformAdminToken(email) {
   return `platform:${normalizeEmail(email)}`;
 }
@@ -41,6 +60,26 @@ function buildPlatformAdminToken(email) {
 function readEmailFromToken(token) {
   const [, rawEmail] = token.split(":");
   return rawEmail ? normalizeEmail(rawEmail) : null;
+}
+
+function readPendingToken(token) {
+  if (!token?.startsWith("pending:")) {
+    return null;
+  }
+
+  try {
+    const payload = JSON.parse(Buffer.from(token.slice("pending:".length), "base64url").toString("utf8"));
+
+    return {
+      email: normalizeEmail(payload.email),
+      provider: payload.provider === "google" || payload.provider === "apple" ? payload.provider : "email",
+      name: typeof payload.name === "string" ? payload.name.trim() : "",
+      googleId: typeof payload.googleId === "string" ? payload.googleId : null,
+      appleId: typeof payload.appleId === "string" ? payload.appleId : null,
+    };
+  } catch {
+    return null;
+  }
 }
 
 function getPlatformAdminEmails() {
@@ -74,6 +113,8 @@ function buildPlatformAdminProfile(email) {
 }
 
 async function createSessionPayload({ token, user, organization, needsOnboarding }) {
+  const pendingUser = readPendingToken(token);
+
   if (token?.startsWith("platform:")) {
     const email = readEmailFromToken(token);
     const adminProfile = buildPlatformAdminProfile(email ?? "admin@agendapro.app");
@@ -117,10 +158,11 @@ async function createSessionPayload({ token, user, organization, needsOnboarding
     scope: "organization",
     user: {
       id: user?.id ?? null,
-      nome: user?.nome ?? "Novo usuario",
-      email: user?.email ?? readEmailFromToken(token),
+      nome: user?.nome ?? pendingUser?.name ?? "Novo usuario",
+      email: user?.email ?? pendingUser?.email ?? readEmailFromToken(token),
       role: user?.role ?? "owner",
       organizationId: organization?.id ?? null,
+      authProvider: user?.auth_provider ?? pendingUser?.provider ?? "email",
     },
     organization: organization
       ? {
@@ -186,6 +228,113 @@ export async function requireAuthenticatedContext(token) {
   };
 }
 
+function normalizeProvider(value) {
+  return value === "google" || value === "apple" ? value : "email";
+}
+
+function getRequiredEnv(name) {
+  const value = String(process.env[name] ?? "").trim();
+
+  if (!value) {
+    const error = new Error(`A configuracao ${name} nao foi encontrada no servidor.`);
+    error.statusCode = 500;
+    throw error;
+  }
+
+  return value;
+}
+
+function normalizeSocialName(name, email) {
+  const normalizedName = typeof name === "string" ? name.trim() : "";
+
+  if (normalizedName) {
+    return normalizedName;
+  }
+
+  const localPart = normalizeEmail(email).split("@")[0] ?? "Usuario";
+  return (
+    localPart
+      .split(/[._-]+/)
+      .filter(Boolean)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(" ") || "Novo usuario"
+  );
+}
+
+async function verifyGoogleIdentityToken(idToken) {
+  const audience = getRequiredEnv("GOOGLE_CLIENT_ID");
+  const { payload } = await jwtVerify(idToken, GOOGLE_JWKS, {
+    issuer: ["https://accounts.google.com", "accounts.google.com"],
+    audience,
+  });
+
+  const email = normalizeEmail(payload.email);
+  const emailVerified = payload.email_verified === true || payload.email_verified === "true";
+
+  if (!email || !emailVerified) {
+    const error = new Error("Nao foi possivel validar o email da conta Google.");
+    error.statusCode = 401;
+    throw error;
+  }
+
+  return {
+    provider: "google",
+    providerUserId: String(payload.sub ?? ""),
+    email,
+    name: normalizeSocialName(payload.name, email),
+  };
+}
+
+async function verifyAppleIdentityToken(idToken) {
+  const audience = getRequiredEnv("APPLE_CLIENT_ID");
+  const { payload } = await jwtVerify(idToken, APPLE_JWKS, {
+    issuer: "https://appleid.apple.com",
+    audience,
+  });
+
+  const email = normalizeEmail(payload.email);
+  const emailVerified = payload.email_verified === true || payload.email_verified === "true";
+
+  if (!email || !emailVerified) {
+    const error = new Error("Nao foi possivel validar o email da conta Apple.");
+    error.statusCode = 401;
+    throw error;
+  }
+
+  return {
+    provider: "apple",
+    providerUserId: String(payload.sub ?? ""),
+    email,
+    name: normalizeSocialName(payload.name, email),
+  };
+}
+
+async function verifySocialLogin({ provider, idToken }) {
+  if (!idToken) {
+    const error = new Error("Token de autenticacao social nao informado.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  try {
+    return provider === "google"
+      ? await verifyGoogleIdentityToken(idToken)
+      : await verifyAppleIdentityToken(idToken);
+  } catch (verificationError) {
+    if (verificationError && typeof verificationError === "object" && "statusCode" in verificationError) {
+      throw verificationError;
+    }
+
+    const error = new Error(
+      provider === "google"
+        ? "Nao foi possivel validar o login com Google."
+        : "Nao foi possivel validar o login com Apple.",
+    );
+    error.statusCode = 401;
+    throw error;
+  }
+}
+
 export async function requireActiveAuthenticatedContext(token) {
   const context = await requireAuthenticatedContext(token);
   const latestPayment = await getLatestOrganizationPayment(context.organization.id);
@@ -229,26 +378,55 @@ export async function requirePlatformAdminContext(token) {
   };
 }
 
-export async function startLogin({ email, password, provider = "email" }) {
+export async function startLogin({ email, password, provider = "email", idToken = "" }) {
+  const normalizedProvider = normalizeProvider(provider);
   const normalizedEmail = normalizeEmail(email);
   const normalizedPassword = normalizePassword(password);
 
-  if (!normalizedEmail || !isValidEmail(normalizedEmail)) {
+  if (normalizedProvider === "email" && (!normalizedEmail || !isValidEmail(normalizedEmail))) {
     const error = new Error("Informe um email valido.");
     error.statusCode = 400;
     throw error;
   }
 
-  if (!normalizedPassword) {
+  if (normalizedProvider === "email" && !normalizedPassword) {
     const error = new Error("Informe sua senha para continuar.");
     error.statusCode = 400;
     throw error;
   }
 
-  if (provider !== "email") {
-    const error = new Error("Login com Google e Apple sera liberado em breve. Por enquanto, use email e senha.");
-    error.statusCode = 501;
-    throw error;
+  if (normalizedProvider !== "email") {
+    const identity = await verifySocialLogin({ provider: normalizedProvider, idToken });
+    const user =
+      (normalizedProvider === "google"
+        ? await getUserByGoogleId(identity.providerUserId)
+        : await getUserByAppleId(identity.providerUserId)) ?? (await getUserByEmail(identity.email));
+
+    if (!user) {
+      return {
+        token: buildPendingUserToken({
+          email: identity.email,
+          provider: identity.provider,
+          name: identity.name,
+          googleId: identity.provider === "google" ? identity.providerUserId : null,
+          appleId: identity.provider === "apple" ? identity.providerUserId : null,
+        }),
+      };
+    }
+
+    if (!user.ativo) {
+      const error = new Error("Esta conta esta inativa.");
+      error.statusCode = 403;
+      throw error;
+    }
+
+    await updateUserSocialIdentityById(user.id, {
+      googleId: identity.provider === "google" ? identity.providerUserId : undefined,
+      appleId: identity.provider === "apple" ? identity.providerUserId : undefined,
+      authProvider: identity.provider,
+    });
+
+    return { token: buildKnownToken(identity.email) };
   }
 
   if (isPlatformAdminEmail(normalizedEmail)) {
@@ -304,6 +482,15 @@ export async function getSessionByToken(token) {
     throw error;
   }
 
+  if (readPendingToken(token)) {
+    return createSessionPayload({
+      token,
+      user: null,
+      organization: null,
+      needsOnboarding: true,
+    });
+  }
+
   if (token.startsWith("new:")) {
     return createSessionPayload({
       token,
@@ -339,13 +526,16 @@ export async function getSessionByToken(token) {
 }
 
 export async function completeOnboarding({ token, nome, nomeEmpresa, telefone, senha }) {
-  if (!token?.startsWith("new:")) {
+  const pendingUser = readPendingToken(token);
+
+  if (!token?.startsWith("new:") && !pendingUser) {
     const error = new Error("Onboarding invalido");
     error.statusCode = 400;
     throw error;
   }
 
-  const email = readEmailFromToken(token);
+  const provider = pendingUser?.provider ?? "email";
+  const email = pendingUser?.email ?? readEmailFromToken(token);
 
   if (!email) {
     const error = new Error("Email do onboarding invalido");
@@ -359,7 +549,7 @@ export async function completeOnboarding({ token, nome, nomeEmpresa, telefone, s
     throw error;
   }
 
-  if (!isValidPassword(senha)) {
+  if (provider === "email" && !isValidPassword(senha)) {
     const error = new Error("A senha precisa ter pelo menos 8 caracteres.");
     error.statusCode = 400;
     throw error;
@@ -383,7 +573,10 @@ export async function completeOnboarding({ token, nome, nomeEmpresa, telefone, s
     email,
     nome: nome.trim(),
     organizationId: organization.id,
-    passwordHash: hashPassword(senha),
+    authProvider: provider,
+    passwordHash: provider === "email" ? hashPassword(senha) : null,
+    googleId: pendingUser?.googleId ?? null,
+    appleId: pendingUser?.appleId ?? null,
   });
 
   return getSessionByToken(buildKnownToken(user.email));

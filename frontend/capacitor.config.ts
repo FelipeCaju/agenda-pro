@@ -19,6 +19,7 @@ const config: CapacitorConfig = {
       backgroundColor: "#ffffff",
     },
     LocalNotifications: {
+      smallIcon: "ic_stat_agendapro",
       iconColor: "#1d8cf8",
     },
   },

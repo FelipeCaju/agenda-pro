@@ -9,14 +9,16 @@ type OrcamentoFormValues = {
   clientId: string;
   discount: string;
   notes: string;
-  items: Array<{
-    id: string;
-    serviceId: string;
-    description: string;
-    quantity: string;
-    unitPrice: string;
-    notes: string;
-  }>;
+  items: OrcamentoFormItemValues[];
+};
+
+type OrcamentoFormItemValues = {
+  id: string;
+  serviceId: string;
+  description: string;
+  quantity: string;
+  unitPrice: string;
+  notes: string;
 };
 
 type OrcamentoFormProps = {
@@ -44,7 +46,7 @@ const EMPTY_VALUES: OrcamentoFormValues = {
   clientId: "",
   discount: "0",
   notes: "",
-  items: [createEmptyItem()],
+  items: [],
 };
 
 function formatCurrency(value: number) {
@@ -66,16 +68,20 @@ export function OrcamentoForm({
   const [values, setValues] = useState<OrcamentoFormValues>({
     ...EMPTY_VALUES,
     ...initialValues,
-    items: initialValues?.items?.length ? initialValues.items : EMPTY_VALUES.items,
+    items: initialValues?.items?.length ? initialValues.items : [],
   });
+  const [draftItem, setDraftItem] = useState<OrcamentoFormItemValues>(createEmptyItem());
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [fieldError, setFieldError] = useState<string | null>(null);
 
   useEffect(() => {
     setValues({
       ...EMPTY_VALUES,
       ...initialValues,
-      items: initialValues?.items?.length ? initialValues.items : EMPTY_VALUES.items,
+      items: initialValues?.items?.length ? initialValues.items : [],
     });
+    setDraftItem(createEmptyItem());
+    setEditingItemId(null);
   }, [initialValues]);
 
   const totals = useMemo(() => {
@@ -93,51 +99,99 @@ export function OrcamentoForm({
     };
   }, [values.discount, values.items]);
 
-  function updateItem(
-    itemId: string,
-    field: keyof OrcamentoFormValues["items"][number],
-    nextValue: string,
-  ) {
-    setValues((current) => ({
-      ...current,
-      items: current.items.map((item) => {
-        if (item.id !== itemId) {
-          return item;
-        }
+  function updateDraftItem(field: keyof OrcamentoFormItemValues, nextValue: string) {
+    setDraftItem((current) => {
+      const updated = {
+        ...current,
+        [field]: nextValue,
+      };
 
-        const updated = {
-          ...item,
-          [field]: nextValue,
-        };
+      if (field === "serviceId") {
+        const selectedService = services.find((service) => service.id === nextValue);
 
-        if (field === "serviceId") {
-          const selectedService = services.find((service) => service.id === nextValue);
-          if (selectedService) {
-            updated.description = selectedService.nome;
-            if (!item.unitPrice || Number(item.unitPrice) === 0) {
-              updated.unitPrice = String(selectedService.valorPadrao);
-            }
+        if (selectedService) {
+          updated.description = selectedService.nome;
+          if (!current.unitPrice || Number(current.unitPrice) === 0) {
+            updated.unitPrice = String(selectedService.valorPadrao);
           }
+        } else {
+          updated.description = "";
         }
+      }
 
-        return updated;
-      }),
-    }));
+      return updated;
+    });
     setFieldError(null);
   }
 
-  function addItem() {
-    setValues((current) => ({
-      ...current,
-      items: [...current.items, createEmptyItem()],
-    }));
+  function resetDraftItem() {
+    setDraftItem(createEmptyItem());
+    setEditingItemId(null);
   }
 
   function removeItem(itemId: string) {
     setValues((current) => ({
       ...current,
-      items: current.items.length === 1 ? current.items : current.items.filter((item) => item.id !== itemId),
+      items: current.items.filter((item) => item.id !== itemId),
     }));
+
+    if (editingItemId === itemId) {
+      resetDraftItem();
+    }
+  }
+
+  function startEditingItem(itemId: string) {
+    const item = values.items.find((currentItem) => currentItem.id === itemId);
+
+    if (!item) {
+      return;
+    }
+
+    setDraftItem({ ...item });
+    setEditingItemId(itemId);
+    setFieldError(null);
+  }
+
+  function validateDraftItem(item: OrcamentoFormItemValues) {
+    const quantity = Number(item.quantity || 0);
+    const unitPrice = Number(item.unitPrice || 0);
+
+    if (!item.serviceId && !item.description.trim()) {
+      return "Informe um servico ou uma descricao para o item.";
+    }
+
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      return "A quantidade do item deve ser maior que zero.";
+    }
+
+    if (!Number.isFinite(unitPrice) || unitPrice < 0) {
+      return "O valor unitario do item e invalido.";
+    }
+
+    return null;
+  }
+
+  function saveDraftItem() {
+    const validationError = validateDraftItem(draftItem);
+
+    if (validationError) {
+      setFieldError(validationError);
+      return;
+    }
+
+    setValues((current) => {
+      const nextItems = editingItemId
+        ? current.items.map((item) => (item.id === editingItemId ? { ...draftItem } : item))
+        : [...current.items, { ...draftItem }];
+
+      return {
+        ...current,
+        items: nextItems,
+      };
+    });
+
+    resetDraftItem();
+    setFieldError(null);
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -152,6 +206,16 @@ export function OrcamentoForm({
 
     if (!Number.isFinite(parsedDiscount) || parsedDiscount < 0) {
       setFieldError("Desconto invalido.");
+      return;
+    }
+
+    if (editingItemId) {
+      setFieldError("Salve a edicao do item antes de salvar o orcamento.");
+      return;
+    }
+
+    if (values.items.length === 0) {
+      setFieldError("Adicione pelo menos um item ao orcamento.");
       return;
     }
 
@@ -212,40 +276,36 @@ export function OrcamentoForm({
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-sm font-medium text-ink">Itens do orcamento</p>
-            <p className="text-sm text-slate-500">Adicione um ou mais servicos.</p>
+            <p className="text-sm text-slate-500">Preencha o item abaixo e monte a tabela sem abrir outro formulario.</p>
           </div>
-          <button
-            className="rounded-full bg-brand-50 px-3 py-1.5 text-sm font-semibold text-brand-700"
-            disabled={isLocked}
-            onClick={addItem}
-            type="button"
-          >
-            Adicionar item
-          </button>
         </div>
 
-        {values.items.map((item, index) => (
-          <Card className="space-y-3" key={item.id}>
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-semibold text-ink">Item {index + 1}</p>
+        <Card className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-ink">
+              {editingItemId ? "Editando item da tabela" : "Novo item"}
+            </p>
+            {editingItemId ? (
               <button
-                className="text-sm font-medium text-rose-600"
-                disabled={isLocked || values.items.length === 1}
-                onClick={() => removeItem(item.id)}
+                className="text-sm font-medium text-slate-500"
+                disabled={isLocked}
+                onClick={resetDraftItem}
                 type="button"
               >
-                Remover
+                Cancelar edicao
               </button>
-            </div>
+            ) : null}
+          </div>
 
+          <div className="grid gap-3 lg:grid-cols-[1.3fr_1.4fr_0.8fr_0.9fr]">
             <label className="block space-y-2">
               <span className="text-sm font-medium text-ink">Servico vinculado</span>
               <div className="relative">
                 <select
                   className="app-select appearance-none pr-10 text-base"
                   disabled={isLocked}
-                  onChange={(event) => updateItem(item.id, "serviceId", event.target.value)}
-                  value={item.serviceId}
+                  onChange={(event) => updateDraftItem("serviceId", event.target.value)}
+                  value={draftItem.serviceId}
                 >
                   <option value="">Descricao livre</option>
                   {services.map((service) => (
@@ -258,57 +318,134 @@ export function OrcamentoForm({
               </div>
             </label>
 
-            {!item.serviceId ? (
-              <label className="block space-y-2">
-                <span className="text-sm font-medium text-ink">Descricao do item</span>
-                <input
-                  className="app-input"
-                  disabled={isLocked}
-                  onChange={(event) => updateItem(item.id, "description", event.target.value)}
-                  value={item.description}
-                />
-              </label>
-            ) : null}
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="block space-y-2">
-                <span className="text-sm font-medium text-ink">Quantidade</span>
-                <input
-                  className="app-input"
-                  disabled={isLocked}
-                  min="0.01"
-                  onChange={(event) => updateItem(item.id, "quantity", event.target.value)}
-                  step="0.01"
-                  type="number"
-                  value={item.quantity}
-                />
-              </label>
-
-              <label className="block space-y-2">
-                <span className="text-sm font-medium text-ink">Valor unitario</span>
-                <input
-                  className="app-input"
-                  disabled={isLocked}
-                  min="0"
-                  onChange={(event) => updateItem(item.id, "unitPrice", event.target.value)}
-                  step="0.01"
-                  type="number"
-                  value={item.unitPrice}
-                />
-              </label>
-            </div>
+            <label className="block space-y-2">
+              <span className="text-sm font-medium text-ink">Descricao do item</span>
+              <input
+                className="app-input"
+                disabled={isLocked || Boolean(draftItem.serviceId)}
+                onChange={(event) => updateDraftItem("description", event.target.value)}
+                value={draftItem.description}
+              />
+            </label>
 
             <label className="block space-y-2">
-              <span className="text-sm font-medium text-ink">Observacoes do item</span>
+              <span className="text-sm font-medium text-ink">Quantidade</span>
               <input
                 className="app-input"
                 disabled={isLocked}
-                onChange={(event) => updateItem(item.id, "notes", event.target.value)}
-                value={item.notes}
+                min="0.01"
+                onChange={(event) => updateDraftItem("quantity", event.target.value)}
+                step="0.01"
+                type="number"
+                value={draftItem.quantity}
               />
             </label>
-          </Card>
-        ))}
+
+            <label className="block space-y-2">
+              <span className="text-sm font-medium text-ink">Valor unitario</span>
+              <input
+                className="app-input"
+                disabled={isLocked}
+                min="0"
+                onChange={(event) => updateDraftItem("unitPrice", event.target.value)}
+                step="0.01"
+                type="number"
+                value={draftItem.unitPrice}
+              />
+            </label>
+          </div>
+
+          <label className="block space-y-2">
+            <span className="text-sm font-medium text-ink">Observacoes do item</span>
+            <input
+              className="app-input"
+              disabled={isLocked}
+              onChange={(event) => updateDraftItem("notes", event.target.value)}
+              value={draftItem.notes}
+            />
+          </label>
+
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <button
+              className="rounded-full bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-700"
+              disabled={isLocked}
+              onClick={saveDraftItem}
+              type="button"
+            >
+              {editingItemId ? "Salvar edicao" : "Adicionar item"}
+            </button>
+            {!isLocked && values.items.length > 0 ? (
+              <span className="self-center text-sm text-slate-500">
+                {values.items.length} {values.items.length === 1 ? "item adicionado" : "itens adicionados"}
+              </span>
+            ) : null}
+          </div>
+        </Card>
+
+        <Card className="overflow-hidden p-0">
+          {values.items.length === 0 ? (
+            <div className="px-4 py-6 text-sm text-slate-500">Nenhum item adicionado ainda.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-slate-200">
+                <thead className="bg-slate-50">
+                  <tr className="text-left text-xs uppercase tracking-[0.16em] text-slate-500">
+                    <th className="px-4 py-3 font-medium">Item</th>
+                    <th className="px-4 py-3 font-medium">Qtd.</th>
+                    <th className="px-4 py-3 font-medium">Unitario</th>
+                    <th className="px-4 py-3 font-medium">Total</th>
+                    <th className="px-4 py-3 font-medium">Observacoes</th>
+                    <th className="px-4 py-3 font-medium text-right">Acoes</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 bg-white text-sm text-slate-600">
+                  {values.items.map((item) => {
+                    const quantity = Number(item.quantity || 0);
+                    const unitPrice = Number(item.unitPrice || 0);
+                    const totalPrice = quantity * unitPrice;
+
+                    return (
+                      <tr key={item.id}>
+                        <td className="px-4 py-3">
+                          <div className="font-medium text-ink">{item.description}</div>
+                          {item.serviceId ? (
+                            <div className="text-xs text-slate-500">Servico cadastrado</div>
+                          ) : (
+                            <div className="text-xs text-slate-500">Descricao livre</div>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">{quantity}</td>
+                        <td className="px-4 py-3">{formatCurrency(unitPrice)}</td>
+                        <td className="px-4 py-3 font-medium text-ink">{formatCurrency(totalPrice)}</td>
+                        <td className="px-4 py-3">{item.notes || "-"}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex justify-end gap-3">
+                            <button
+                              className="text-sm font-medium text-brand-700"
+                              disabled={isLocked}
+                              onClick={() => startEditingItem(item.id)}
+                              type="button"
+                            >
+                              Editar
+                            </button>
+                            <button
+                              className="text-sm font-medium text-rose-600"
+                              disabled={isLocked}
+                              onClick={() => removeItem(item.id)}
+                              type="button"
+                            >
+                              Remover
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
