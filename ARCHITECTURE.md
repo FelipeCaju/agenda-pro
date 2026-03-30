@@ -123,7 +123,7 @@ O sistema utiliza banco compartilhado com segregacao logica por `organization_id
 
 ### Login existente
 
-Usuarios cadastrados entram por email e senha. O backend devolve uma sessao com:
+Usuarios cadastrados entram por email e senha. O backend devolve uma sessao assinada com expiracao, usada para carregar:
 
 - usuario
 - organizacao

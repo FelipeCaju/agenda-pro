@@ -13,6 +13,7 @@ import {
 } from "../lib/data.js";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { hashPassword, isValidPassword, verifyPassword } from "../lib/password.js";
+import { createSessionToken, verifySessionToken } from "../lib/session-token.js";
 import { evaluateSubscriptionAccess } from "../lib/subscription.js";
 
 const LEGACY_DEMO_PASSWORD = "Agenda123!";
@@ -33,53 +34,55 @@ function isValidEmail(email) {
 }
 
 function buildKnownToken(email) {
-  return `known:${normalizeEmail(email)}`;
+  return createSessionToken({
+    type: "known",
+    email: normalizeEmail(email),
+  });
 }
 
 function buildNewUserToken(email) {
-  return `new:${normalizeEmail(email)}`;
+  return createSessionToken({
+    type: "new",
+    email: normalizeEmail(email),
+  });
 }
 
 function buildPendingUserToken({ email, provider = "email", name = "", googleId = null, appleId = null }) {
-  return `pending:${Buffer.from(
-    JSON.stringify({
-      email: normalizeEmail(email),
-      provider,
-      name: typeof name === "string" ? name.trim() : "",
-      googleId,
-      appleId,
-    }),
-    "utf8",
-  ).toString("base64url")}`;
+  return createSessionToken({
+    type: "pending",
+    email: normalizeEmail(email),
+    provider,
+    name: typeof name === "string" ? name.trim() : "",
+    googleId,
+    appleId,
+  });
 }
 
 function buildPlatformAdminToken(email) {
-  return `platform:${normalizeEmail(email)}`;
+  return createSessionToken({
+    type: "platform",
+    email: normalizeEmail(email),
+  });
 }
 
-function readEmailFromToken(token) {
-  const [, rawEmail] = token.split(":");
-  return rawEmail ? normalizeEmail(rawEmail) : null;
+function readTokenPayload(token) {
+  return verifySessionToken(token);
 }
 
 function readPendingToken(token) {
-  if (!token?.startsWith("pending:")) {
+  const payload = readTokenPayload(token);
+
+  if (payload.type !== "pending") {
     return null;
   }
 
-  try {
-    const payload = JSON.parse(Buffer.from(token.slice("pending:".length), "base64url").toString("utf8"));
-
-    return {
-      email: normalizeEmail(payload.email),
-      provider: payload.provider === "google" || payload.provider === "apple" ? payload.provider : "email",
-      name: typeof payload.name === "string" ? payload.name.trim() : "",
-      googleId: typeof payload.googleId === "string" ? payload.googleId : null,
-      appleId: typeof payload.appleId === "string" ? payload.appleId : null,
-    };
-  } catch {
-    return null;
-  }
+  return {
+    email: normalizeEmail(payload.email),
+    provider: payload.provider === "google" || payload.provider === "apple" ? payload.provider : "email",
+    name: typeof payload.name === "string" ? payload.name.trim() : "",
+    googleId: typeof payload.googleId === "string" ? payload.googleId : null,
+    appleId: typeof payload.appleId === "string" ? payload.appleId : null,
+  };
 }
 
 function getPlatformAdminEmails() {
@@ -113,10 +116,11 @@ function buildPlatformAdminProfile(email) {
 }
 
 async function createSessionPayload({ token, user, organization, needsOnboarding }) {
-  const pendingUser = readPendingToken(token);
+  const tokenPayload = readTokenPayload(token);
+  const pendingUser = tokenPayload.type === "pending" ? readPendingToken(token) : null;
 
-  if (token?.startsWith("platform:")) {
-    const email = readEmailFromToken(token);
+  if (tokenPayload.type === "platform") {
+    const email = normalizeEmail(tokenPayload.email ?? "");
     const adminProfile = buildPlatformAdminProfile(email ?? "admin@agendapro.app");
 
     return {
@@ -159,7 +163,7 @@ async function createSessionPayload({ token, user, organization, needsOnboarding
     user: {
       id: user?.id ?? null,
       nome: user?.nome ?? pendingUser?.name ?? "Novo usuario",
-      email: user?.email ?? pendingUser?.email ?? readEmailFromToken(token),
+      email: user?.email ?? pendingUser?.email ?? normalizeEmail(tokenPayload.email ?? ""),
       role: user?.role ?? "owner",
       organizationId: organization?.id ?? null,
       authProvider: user?.auth_provider ?? pendingUser?.provider ?? "email",
@@ -192,19 +196,21 @@ async function createSessionPayload({ token, user, organization, needsOnboarding
 }
 
 export async function requireAuthenticatedContext(token) {
-  if (!token || token.startsWith("new:")) {
+  const tokenPayload = readTokenPayload(token);
+
+  if (tokenPayload.type === "new") {
     const error = new Error("Autenticacao obrigatoria.");
     error.statusCode = 401;
     throw error;
   }
 
-  if (!token.startsWith("known:")) {
+  if (tokenPayload.type !== "known") {
     const error = new Error("Sessao invalida");
     error.statusCode = 401;
     throw error;
   }
 
-  const email = readEmailFromToken(token);
+  const email = normalizeEmail(tokenPayload.email ?? "");
   const user = email ? await getUserByEmail(email) : null;
 
   if (!user || !user.ativo) {
@@ -358,13 +364,15 @@ export async function requireActiveAuthenticatedContext(token) {
 }
 
 export async function requirePlatformAdminContext(token) {
-  if (!token?.startsWith("platform:")) {
+  const tokenPayload = readTokenPayload(token);
+
+  if (tokenPayload.type !== "platform") {
     const error = new Error("Acesso de Super Admin obrigatorio.");
     error.statusCode = 403;
     throw error;
   }
 
-  const email = readEmailFromToken(token);
+  const email = normalizeEmail(tokenPayload.email ?? "");
 
   if (!email || !isPlatformAdminEmail(email)) {
     const error = new Error("Super Admin nao autorizado.");
@@ -476,13 +484,9 @@ export async function startLogin({ email, password, provider = "email", idToken 
 }
 
 export async function getSessionByToken(token) {
-  if (!token) {
-    const error = new Error("Sessao nao encontrada");
-    error.statusCode = 401;
-    throw error;
-  }
+  const tokenPayload = readTokenPayload(token);
 
-  if (readPendingToken(token)) {
+  if (tokenPayload.type === "pending") {
     return createSessionPayload({
       token,
       user: null,
@@ -491,7 +495,7 @@ export async function getSessionByToken(token) {
     });
   }
 
-  if (token.startsWith("new:")) {
+  if (tokenPayload.type === "new") {
     return createSessionPayload({
       token,
       user: null,
@@ -500,7 +504,7 @@ export async function getSessionByToken(token) {
     });
   }
 
-  if (token.startsWith("platform:")) {
+  if (tokenPayload.type === "platform") {
     return createSessionPayload({
       token,
       user: null,
@@ -509,7 +513,7 @@ export async function getSessionByToken(token) {
     });
   }
 
-  if (!token.startsWith("known:")) {
+  if (tokenPayload.type !== "known") {
     const error = new Error("Sessao invalida");
     error.statusCode = 401;
     throw error;
@@ -526,16 +530,17 @@ export async function getSessionByToken(token) {
 }
 
 export async function completeOnboarding({ token, nome, nomeEmpresa, telefone, senha }) {
-  const pendingUser = readPendingToken(token);
+  const tokenPayload = readTokenPayload(token);
+  const pendingUser = tokenPayload.type === "pending" ? readPendingToken(token) : null;
 
-  if (!token?.startsWith("new:") && !pendingUser) {
+  if (tokenPayload.type !== "new" && !pendingUser) {
     const error = new Error("Onboarding invalido");
     error.statusCode = 400;
     throw error;
   }
 
   const provider = pendingUser?.provider ?? "email";
-  const email = pendingUser?.email ?? readEmailFromToken(token);
+  const email = pendingUser?.email ?? normalizeEmail(tokenPayload.email ?? "");
 
   if (!email) {
     const error = new Error("Email do onboarding invalido");
@@ -587,7 +592,9 @@ export function logout() {
 }
 
 export async function deleteAccount(token) {
-  if (token?.startsWith("platform:")) {
+  const tokenPayload = readTokenPayload(token);
+
+  if (tokenPayload.type === "platform") {
     return { success: true };
   }
 

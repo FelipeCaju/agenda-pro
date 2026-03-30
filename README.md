@@ -134,6 +134,16 @@ Variaveis principais:
 - `DB_USER`
 - `DB_PASSWORD`
 - `DB_CONNECTION_LIMIT`
+- `SESSION_SECRET`
+- `SESSION_TTL_HOURS`
+- `PENDING_SESSION_TTL_MINUTES`
+- `CORS_ALLOWED_ORIGINS`
+- `LOGIN_RATE_LIMIT_WINDOW_MS`
+- `LOGIN_RATE_LIMIT_MAX_REQUESTS`
+- `LOGIN_MAX_FAILURES`
+- `LOGIN_BLOCK_WINDOW_MS`
+- `SENSITIVE_RATE_LIMIT_WINDOW_MS`
+- `SENSITIVE_RATE_LIMIT_MAX_REQUESTS`
 - `PLATFORM_ADMIN_EMAILS`
 - `PLATFORM_ADMIN_PASSWORD`
 - `Z_API_BASE_URL`
@@ -240,3 +250,6 @@ Variavel obrigatoria:
 - [Arquitetura](/c:/Users/leole/Documents/projetos-pessoais/agenda-pro/agenda-pro/ARCHITECTURE.md)
 - [Documentacao do Sistema](/c:/Users/leole/Documents/projetos-pessoais/agenda-pro/agenda-pro/docs/SYSTEM_DOCUMENTATION.md)
 - [Modelo de Dados Multi-tenant](/c:/Users/leole/Documents/projetos-pessoais/agenda-pro/agenda-pro/backend/docs/multi-tenant-data-model.md)
+- [Runbook Operacional](/c:/Users/leole/Documents/projetos-pessoais/agenda-pro/agenda-pro/docs/RUNBOOK_OPERACIONAL.md)
+- [Procedimento de Backup e Restore](/c:/Users/leole/Documents/projetos-pessoais/agenda-pro/agenda-pro/docs/PROCEDIMENTO_BACKUP_RESTORE.md)
+- [Checklist de Deploy](/c:/Users/leole/Documents/projetos-pessoais/agenda-pro/agenda-pro/docs/CHECKLIST_DEPLOY_PRODUCAO.md)
