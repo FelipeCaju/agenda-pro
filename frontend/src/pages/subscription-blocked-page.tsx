@@ -39,6 +39,11 @@ export function SubscriptionBlockedPage() {
     }
   }
 
+  async function handleBackToLogin() {
+    await signOut();
+    navigate("/login", { replace: true });
+  }
+
   return (
     <FullscreenState
       eyebrow="Assinatura"
@@ -77,7 +82,7 @@ export function SubscriptionBlockedPage() {
                   : "Ja paguei, avisar administrador"}
             </Button>
           ) : null}
-          <Button className="w-full" onClick={() => void signOut()}>
+          <Button className="w-full" onClick={() => void handleBackToLogin()}>
             Voltar ao login
           </Button>
         </div>
