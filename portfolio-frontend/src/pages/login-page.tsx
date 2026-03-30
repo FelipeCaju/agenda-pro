@@ -10,8 +10,10 @@ export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { clearError, error, isLoading, isSessionExpired, signIn } = useAuth();
-  const [email, setEmail] = useState("contato@agendapro.app");
-  const [password, setPassword] = useState("Agenda123!");
+  const [email, setEmail] = useState(
+    ((location.state as { prefillEmail?: string } | null)?.prefillEmail ?? "").trim(),
+  );
+  const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const redirectTo = (location.state as { from?: string } | null)?.from ?? "/";
   const successMessage = (location.state as { successMessage?: string } | null)?.successMessage ?? "";
@@ -42,7 +44,7 @@ export function LoginPage() {
         <span className="app-pill">AgendaPro</span>
         <h1 className="mt-4 text-3xl font-bold tracking-[-0.04em] text-ink">Entrar</h1>
         <p className="mt-3 text-sm leading-7 text-slate-500">
-          Acesso seguro por email e senha, pronto para clientes no iPhone e no Android sem depender de um provedor externo.
+          Entre com seu email e senha. Se ainda nao tiver acesso, abra sua conta em uma tela separada.
         </p>
         <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
           <input
@@ -71,15 +73,14 @@ export function LoginPage() {
           <Button className="w-full" disabled={isSubmitting || isLoading} type="submit">
             {isSubmitting ? "Entrando..." : "Entrar com email e senha"}
           </Button>
-          <div className="rounded-[24px] border border-slate-200/70 bg-slate-50/[0.85] px-4 py-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-              Acessos para teste
-            </p>
-            <p className="mt-2 text-sm leading-6 text-slate-500">
-              Use `contato@agendapro.app` ou `bloqueado@agendapro.app` com a senha
-              `Agenda123!`. Qualquer email novo segue para o primeiro acesso.
-            </p>
-          </div>
+          <Button
+            className="w-full"
+            onClick={() => navigate("/criar-conta", { state: { prefillEmail: email.trim() } })}
+            type="button"
+            variant="secondary"
+          >
+            Criar conta
+          </Button>
         </form>
       </Card>
     </div>

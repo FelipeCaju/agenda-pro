@@ -8,7 +8,7 @@ import { getPostAuthRedirect } from "@/utils/auth";
 
 export function OnboardingPage() {
   const navigate = useNavigate();
-  const { completeOnboarding, error, user } = useAuth();
+  const { completeOnboarding, error, signOut, user } = useAuth();
   const [nome, setNome] = useState(user?.nome === "Novo usuario" ? "" : user?.nome ?? "");
   const [nomeEmpresa, setNomeEmpresa] = useState("");
   const [telefone, setTelefone] = useState("");
@@ -16,6 +16,7 @@ export function OnboardingPage() {
   const [confirmacaoSenha, setConfirmacaoSenha] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLeaving, setIsLeaving] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -38,6 +39,17 @@ export function OnboardingPage() {
       navigate(getPostAuthRedirect(session), { replace: true });
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function handleBackToLogin() {
+    setIsLeaving(true);
+
+    try {
+      await signOut();
+      navigate("/login", { replace: true });
+    } finally {
+      setIsLeaving(false);
     }
   }
 
@@ -84,6 +96,15 @@ export function OnboardingPage() {
           {error ? <p className="text-sm text-rose-600">{error}</p> : null}
           <Button className="w-full" disabled={isSubmitting} type="submit">
             {isSubmitting ? "Concluindo..." : "Concluir cadastro inicial"}
+          </Button>
+          <Button
+            className="w-full"
+            disabled={isLeaving || isSubmitting}
+            onClick={() => void handleBackToLogin()}
+            type="button"
+            variant="secondary"
+          >
+            {isLeaving ? "Voltando..." : "Voltar ao login"}
           </Button>
         </form>
       </Card>

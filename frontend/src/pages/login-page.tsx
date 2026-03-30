@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { PasswordField } from "@/components/ui/password-field";
 import { useAuth } from "@/hooks/use-auth";
-import { ApiError } from "@/services/apiClient";
 import {
   ensureGoogleAuthLoaded,
   getAppleClientId,
@@ -20,7 +19,6 @@ export function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isStartingTrial, setIsStartingTrial] = useState(false);
   const [isSigningWithApple, setIsSigningWithApple] = useState(false);
   const [isPreparingGoogle, setIsPreparingGoogle] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
@@ -60,42 +58,13 @@ export function LoginPage() {
     }
   }
 
-  async function handleStartTrial() {
-    const normalizedEmail = email.trim().toLowerCase();
-    setLocalError(null);
+  useEffect(() => {
+    const nextEmail = ((location.state as { prefillEmail?: string } | null)?.prefillEmail ?? "").trim();
 
-    if (!normalizedEmail) {
-      setLocalError("Informe seu email para criar a conta.");
-      return;
+    if (nextEmail) {
+      setEmail(nextEmail);
     }
-
-    setIsStartingTrial(true);
-
-    try {
-      const session = await signIn({
-        email: normalizedEmail,
-        password: "__start_onboarding__",
-        provider: "email",
-      });
-
-      if (session.access.needsOnboarding) {
-        navigate("/onboarding", { replace: true });
-        return;
-      }
-
-      navigate(getPostAuthRedirect(session), { replace: true });
-    } catch (signInError) {
-      if (signInError instanceof ApiError && [401, 403, 409].includes(signInError.status)) {
-        setLocalError("Esse email ja possui conta. Use sua senha para entrar.");
-      } else if (signInError instanceof Error) {
-        setLocalError(signInError.message);
-      } else {
-        setLocalError("Nao foi possivel iniciar o cadastro agora.");
-      }
-    } finally {
-      setIsStartingTrial(false);
-    }
-  }
+  }, [location.state]);
 
   useEffect(() => {
     if (!googleClientId || !googleButtonRef.current) {
@@ -179,7 +148,7 @@ export function LoginPage() {
         <span className="app-pill">AgendaPro</span>
         <h1 className="mt-4 text-3xl font-bold tracking-[-0.04em] text-ink">Entrar</h1>
         <p className="mt-3 text-sm leading-7 text-slate-500">
-          Entre com email, Google ou Apple, com criacao de conta e trial direto pela tela inicial.
+          Entre com email, Google ou Apple. Se ainda nao tiver acesso, abra sua conta em uma tela separada.
         </p>
         <div className="mt-6 space-y-3">
           {googleClientId ? (
@@ -240,12 +209,12 @@ export function LoginPage() {
           </Button>
           <Button
             className="w-full"
-            disabled={isSubmitting || isLoading || isStartingTrial}
-            onClick={handleStartTrial}
+            disabled={isSubmitting || isLoading}
+            onClick={() => navigate("/criar-conta", { state: { prefillEmail: email.trim() } })}
             type="button"
             variant="secondary"
           >
-            {isStartingTrial ? "Abrindo cadastro..." : "Criar conta"}
+            Criar conta
           </Button>
         </form>
       </Card>

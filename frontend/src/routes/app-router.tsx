@@ -9,6 +9,7 @@ import { PublicRoute } from "@/routes/public-route";
 import { RouteErrorPage } from "@/routes/route-error-page";
 
 const LoginPage = lazy(async () => ({ default: (await import("@/pages/login-page")).LoginPage }));
+const SignupPage = lazy(async () => ({ default: (await import("@/pages/signup-page")).SignupPage }));
 const OnboardingPage = lazy(async () => ({
   default: (await import("@/pages/onboarding-page")).OnboardingPage,
 }));
@@ -102,6 +103,10 @@ export const router = createBrowserRouter([
           {
             path: "/login",
             element: withRouteSuspense(<LoginPage />),
+          },
+          {
+            path: "/criar-conta",
+            element: withRouteSuspense(<SignupPage />),
           },
         ],
       },

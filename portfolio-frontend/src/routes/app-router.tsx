@@ -19,6 +19,7 @@ import { RemindersPage } from "@/pages/reminders-page";
 import { SettingsPage } from "@/pages/settings-page";
 import { ServiceFormPage } from "@/pages/service-form-page";
 import { ServicesPage } from "@/pages/services-page";
+import { SignupPage } from "@/pages/signup-page";
 import { SubscriptionBlockedPage } from "@/pages/subscription-blocked-page";
 import { AdminProtectedRoute } from "@/routes/admin-protected-route";
 import { ProtectedRoute } from "@/routes/protected-route";
@@ -36,6 +37,10 @@ export const router = createBrowserRouter([
           {
             path: "/login",
             element: <LoginPage />,
+          },
+          {
+            path: "/criar-conta",
+            element: <SignupPage />,
           },
         ],
       },
