@@ -71,12 +71,12 @@ export function useLocalNotificationSync() {
         }
 
         if (result.skipped === "empty") {
-          setLastSyncSummary("Nenhum lembrete futuro elegivel foi encontrado para agendar agora.");
+          setLastSyncSummary(null);
           return;
         }
 
         if (result.skipped === "disabled") {
-          setLastSyncSummary("Os lembretes locais do app estao desativados nas configuracoes.");
+          setLastSyncSummary(null);
           return;
         }
 

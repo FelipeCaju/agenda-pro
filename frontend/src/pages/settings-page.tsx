@@ -491,6 +491,14 @@ export function SettingsPage() {
         <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Cobranca</p>
         <h3 className="mt-1 text-lg font-semibold text-ink">Historico da organizacao</h3>
 
+        {organization?.pixKey ? (
+          <div className="mt-4">
+            <Button onClick={() => navigate("/pagamento")} type="button">
+              {organization.subscriptionStatus === "trial" ? "Comprar sistema" : "Abrir pagamento Pix"}
+            </Button>
+          </div>
+        ) : null}
+
         {organization?.paymentNoticeVisible ? (
           <div className="mt-4 space-y-3 rounded-2xl border border-amber-100 bg-amber-50/80 px-4 py-4">
             <p className="text-sm font-semibold text-amber-800">Pagamento disponivel</p>
@@ -498,10 +506,9 @@ export function SettingsPage() {
               A notificacao segue visivel ate a baixa do pagamento pela administracao.
             </p>
             {organization.pixKey ? (
-              <div className="rounded-2xl bg-white/80 px-3 py-3">
-                <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Chave Pix</p>
-                <p className="mt-2 break-all text-sm font-semibold text-ink">{organization.pixKey}</p>
-              </div>
+              <Button onClick={() => navigate("/pagamento")} type="button">
+                Abrir QR Code Pix
+              </Button>
             ) : null}
             <Button
               disabled={

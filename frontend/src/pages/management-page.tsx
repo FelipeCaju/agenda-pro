@@ -27,11 +27,18 @@ export function ManagementPage() {
   const navigate = useNavigate();
   const { data: organization, error: organizationError, isLoading: isLoadingOrganization } =
     useOrganizationQuery();
-  const { data: professionals = [], error: professionalsError, isLoading: isLoadingProfessionals } =
-    useProfessionalsQuery();
-  const { data: payments = [], error: paymentsError, isLoading: isLoadingPayments } =
-    useOrganizationPaymentsQuery();
-  const { isNotifyingPaymentPaid, notifyPaymentPaid, notifyPaymentPaidError } = useOrganizationMutations();
+  const {
+    data: professionals = [],
+    error: professionalsError,
+    isLoading: isLoadingProfessionals,
+  } = useProfessionalsQuery();
+  const {
+    data: payments = [],
+    error: paymentsError,
+    isLoading: isLoadingPayments,
+  } = useOrganizationPaymentsQuery();
+  const { isNotifyingPaymentPaid, notifyPaymentPaid, notifyPaymentPaidError } =
+    useOrganizationMutations();
   const billingAlert = useMemo(() => getBillingAlert(organization, payments), [organization, payments]);
   const latestPayment = payments[0] ?? null;
   const [paymentSignalMessage, setPaymentSignalMessage] = useState("");
@@ -46,7 +53,9 @@ export function ManagementPage() {
 
     try {
       await notifyPaymentPaid({ paymentId: organization.latestPaymentId });
-      setPaymentSignalMessage("Aviso enviado para o administrador. A mensagem segue visivel ate a baixa do pagamento.");
+      setPaymentSignalMessage(
+        "Aviso enviado para o administrador. A mensagem segue visivel ate a baixa do pagamento.",
+      );
     } catch {
       return;
     }
@@ -152,24 +161,36 @@ export function ManagementPage() {
                 <p>
                   Ultimo valor {latestPayment ? formatCurrency(latestPayment.amount) : "Nao informado"}
                 </p>
-                {organization.pixKey ? <p>Pix {organization.pixKey}</p> : null}
+                {organization.pixKey ? <p>Pix disponivel para pagamento por QR Code.</p> : null}
                 {latestPayment?.customerNotifiedPaidAt ? (
                   <p>Voce ja avisou o administrador sobre este pagamento.</p>
                 ) : null}
               </div>
+
+              {organization.pixKey ? (
+                <Button
+                  className="mt-4 w-full sm:w-auto"
+                  onClick={() => navigate("/pagamento")}
+                  type="button"
+                >
+                  {organization.subscriptionStatus === "trial"
+                    ? "Comprar sistema"
+                    : "Abrir pagamento Pix"}
+                </Button>
+              ) : null}
+
               {organization.paymentNoticeVisible && latestPayment?.status !== "paid" ? (
                 <div className="mt-4 space-y-3 rounded-2xl border border-amber-100 bg-amber-50/80 px-4 py-4">
                   <p className="text-sm font-semibold text-amber-800">
                     Pagamento disponivel para regularizacao
                   </p>
                   <p className="text-sm text-amber-700">
-                    Faça o pagamento via Pix e, se ja tiver pago, toque abaixo para avisar o administrador.
+                    Faca o pagamento via Pix e, se ja tiver pago, toque abaixo para avisar o administrador.
                   </p>
                   {organization.pixKey ? (
-                    <div className="rounded-2xl bg-white/80 px-3 py-3">
-                      <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Chave Pix</p>
-                      <p className="mt-2 break-all text-sm font-semibold text-ink">{organization.pixKey}</p>
-                    </div>
+                    <Button onClick={() => navigate("/pagamento")} type="button">
+                      Abrir QR Code Pix
+                    </Button>
                   ) : null}
                   <Button
                     disabled={

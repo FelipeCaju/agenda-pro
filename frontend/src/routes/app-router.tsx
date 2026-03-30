@@ -27,6 +27,9 @@ const DashboardPage = lazy(async () => ({
 const ManagementPage = lazy(async () => ({
   default: (await import("@/pages/management-page")).ManagementPage,
 }));
+const PaymentPage = lazy(async () => ({
+  default: (await import("@/pages/payment-page")).PaymentPage,
+}));
 const AgendaPage = lazy(async () => ({ default: (await import("@/pages/agenda-page")).AgendaPage }));
 const NewAppointmentPage = lazy(async () => ({
   default: (await import("@/pages/new-appointment-page")).NewAppointmentPage,
@@ -143,6 +146,7 @@ export const router = createBrowserRouter([
             children: [
               { path: "/", element: withRouteSuspense(<DashboardPage />) },
               { path: "/gestao", element: withRouteSuspense(<ManagementPage />) },
+              { path: "/pagamento", element: withRouteSuspense(<PaymentPage />) },
               { path: "/agenda", element: withRouteSuspense(<AgendaPage />) },
               { path: "/agenda/novo", element: withRouteSuspense(<NewAppointmentPage />) },
               {

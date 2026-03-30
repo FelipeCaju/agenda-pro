@@ -87,7 +87,6 @@ export function WhatsappSettingsPage() {
   const [lembretesAtivos, setLembretesAtivos] = useState(true);
   const [whatsappAtivo, setWhatsappAtivo] = useState(false);
   const [whatsappTempoLembreteMinutos, setWhatsappTempoLembreteMinutos] = useState("60");
-  const [lembreteMensagem, setLembreteMensagem] = useState(WHATSAPP_REMINDER_TEMPLATE);
   const [nomeNegocio, setNomeNegocio] = useState("AgendaPro");
   const [validationError, setValidationError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState("");
@@ -100,7 +99,6 @@ export function WhatsappSettingsPage() {
     setLembretesAtivos(Boolean(settings.lembretesAtivos));
     setWhatsappAtivo(Boolean(settings.whatsappAtivo));
     setWhatsappTempoLembreteMinutos(String(settings.whatsappTempoLembreteMinutos ?? 60));
-    setLembreteMensagem(normalizeReminderTemplate(settings.lembreteMensagem));
     setNomeNegocio(settings.nomeNegocio ?? "AgendaPro");
   }, [settings]);
 
@@ -113,8 +111,8 @@ export function WhatsappSettingsPage() {
     [whatsappEnabled],
   );
   const whatsappPreviewMessage = useMemo(
-    () => buildPreviewMessage(lembreteMensagem, nomeNegocio.trim()),
-    [lembreteMensagem, nomeNegocio],
+    () => buildPreviewMessage(normalizeReminderTemplate(settings?.lembreteMensagem), nomeNegocio.trim()),
+    [nomeNegocio, settings?.lembreteMensagem],
   );
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -132,7 +130,6 @@ export function WhatsappSettingsPage() {
       await updateSettings({
         lembretesAtivos,
         lembreteHorasAntes: Math.ceil(normalizedWhatsappMinutes / 60),
-        lembreteMensagem: normalizeReminderTemplate(lembreteMensagem),
         whatsappAtivo,
         whatsappTempoLembreteMinutos: normalizedWhatsappMinutes,
       });
@@ -276,18 +273,6 @@ export function WhatsappSettingsPage() {
           </Card>
 
           <Card className="space-y-3">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-ink" htmlFor="whatsapp-template">
-                Texto do lembrete
-              </label>
-              <textarea
-                className="app-textarea"
-                id="whatsapp-template"
-                onChange={(event) => setLembreteMensagem(event.target.value)}
-                value={lembreteMensagem}
-              />
-            </div>
-
             <div className="app-whatsapp-device">
               <div className="app-whatsapp-device-header">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-700">

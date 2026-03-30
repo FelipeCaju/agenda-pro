@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FullscreenState } from "@/components/ui/fullscreen-state";
@@ -7,6 +8,7 @@ import { useOrganizationPaymentsQuery, useOrganizationQuery } from "@/hooks/use-
 import { useOrganization } from "@/hooks/use-organization";
 
 export function SubscriptionBlockedPage() {
+  const navigate = useNavigate();
   const { signOut } = useAuth();
   const { organization: sessionOrganization, subscriptionBlockReason } = useOrganization();
   const { data: organization } = useOrganizationQuery();
@@ -52,6 +54,11 @@ export function SubscriptionBlockedPage() {
         .join(" ")}
       action={
         <div className="flex w-full flex-col gap-3">
+          {organization?.pixKey ? (
+            <Button className="w-full" onClick={() => navigate("/pagamento")}>
+              {organization.subscriptionStatus === "trial" ? "Comprar sistema" : "Abrir QR Code Pix"}
+            </Button>
+          ) : null}
           {organization?.paymentNoticeVisible && latestPayment?.status !== "paid" ? (
             <Button
               className="w-full"
