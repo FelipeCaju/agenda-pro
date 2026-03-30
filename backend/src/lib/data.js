@@ -230,6 +230,7 @@ const seedAppSettings = [
     duracao_padrao: 30,
     moeda: "BRL",
     timezone: "America/Sao_Paulo",
+    criar_orcamentos: true,
     permitir_conflito: false,
     lembretes_ativos: true,
     lembrete_horas_antes: 24,
@@ -255,6 +256,7 @@ const seedAppSettings = [
     duracao_padrao: 45,
     moeda: "BRL",
     timezone: "America/Sao_Paulo",
+    criar_orcamentos: true,
     permitir_conflito: true,
     lembretes_ativos: true,
     lembrete_horas_antes: 12,
@@ -608,6 +610,7 @@ function mapAppSettings(row) {
     duracao_padrao: Number(row.duracao_padrao),
     moeda: row.moeda,
     timezone: row.timezone,
+    criar_orcamentos: toBoolean(row.criar_orcamentos ?? 1),
     permitir_conflito: toBoolean(row.permitir_conflito),
     lembretes_ativos: toBoolean(row.lembretes_ativos),
     lembrete_horas_antes: Number(row.lembrete_horas_antes),
@@ -762,6 +765,15 @@ async function ensureIndex(tableName, indexName, createSql) {
 }
 
 async function ensurePlatformSettingsInfrastructure() {
+  if (await hasTable("app_settings")) {
+    if (!(await hasColumn("app_settings", "criar_orcamentos"))) {
+      await execute(
+        `ALTER TABLE app_settings
+          ADD COLUMN criar_orcamentos TINYINT(1) NOT NULL DEFAULT 1 AFTER timezone`,
+      );
+    }
+  }
+
   if (!(await hasColumn("organizations", "monthly_amount"))) {
     await execute(
       `ALTER TABLE organizations
@@ -1166,10 +1178,10 @@ async function ensureSeedData() {
         `INSERT INTO app_settings (
           id, organization_id, nome_negocio, subtitulo, logo, cor_primaria,
           hora_inicio_agenda, hora_fim_agenda, duracao_padrao, moeda, timezone,
-          permitir_conflito, lembretes_ativos, lembrete_horas_antes, lembrete_mensagem,
+          criar_orcamentos, permitir_conflito, lembretes_ativos, lembrete_horas_antes, lembrete_mensagem,
           whatsapp_ativo, whatsapp_api_provider, whatsapp_api_url, whatsapp_api_token,
           whatsapp_instance_id, whatsapp_tempo_lembrete_minutos, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           settings.id,
           settings.organization_id,
@@ -1182,6 +1194,7 @@ async function ensureSeedData() {
           settings.duracao_padrao,
           settings.moeda,
           settings.timezone,
+          settings.criar_orcamentos ? 1 : 0,
           settings.permitir_conflito ? 1 : 0,
           settings.lembretes_ativos ? 1 : 0,
           settings.lembrete_horas_antes,
@@ -1546,10 +1559,10 @@ export async function createOrganization({
       `INSERT INTO app_settings (
         id, organization_id, nome_negocio, subtitulo, logo, cor_primaria,
         hora_inicio_agenda, hora_fim_agenda, duracao_padrao, moeda, timezone,
-        permitir_conflito, lembretes_ativos, lembrete_horas_antes, lembrete_mensagem,
+        criar_orcamentos, permitir_conflito, lembretes_ativos, lembrete_horas_antes, lembrete_mensagem,
         whatsapp_ativo, whatsapp_api_provider, whatsapp_api_url, whatsapp_api_token,
         whatsapp_instance_id, whatsapp_tempo_lembrete_minutos
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         randomUUID(),
         organization.id,
@@ -1562,6 +1575,7 @@ export async function createOrganization({
         30,
         "BRL",
         "America/Sao_Paulo",
+        1,
         0,
         1,
         24,
@@ -2008,6 +2022,7 @@ export async function updateAppSettingsByOrganization(organizationId, input) {
     "duracao_padrao",
     "moeda",
     "timezone",
+    "criar_orcamentos",
     "permitir_conflito",
     "lembretes_ativos",
     "lembrete_horas_antes",

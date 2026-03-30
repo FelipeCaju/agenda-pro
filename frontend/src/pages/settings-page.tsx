@@ -173,6 +173,7 @@ export function SettingsPage() {
   const [duracaoPadrao, setDuracaoPadrao] = useState("30");
   const [moeda, setMoeda] = useState("BRL");
   const [timezone, setTimezone] = useState("America/Sao_Paulo");
+  const [criarOrcamentos, setCriarOrcamentos] = useState(true);
   const [permitirConflito, setPermitirConflito] = useState(false);
   const [lembretesAtivos, setLembretesAtivos] = useState(true);
   const [lembreteMensagem, setLembreteMensagem] = useState("");
@@ -222,6 +223,7 @@ export function SettingsPage() {
     setDuracaoPadrao(String(settings.duracaoPadrao ?? 30));
     setMoeda(settings.moeda ?? "BRL");
     setTimezone(settings.timezone ?? "America/Sao_Paulo");
+    setCriarOrcamentos(settings.criarOrcamentos !== false);
     setPermitirConflito(Boolean(settings.permitirConflito));
     setLembretesAtivos(Boolean(settings.lembretesAtivos));
     setLembreteMensagem(normalizeReminderTemplate(settings.lembreteMensagem));
@@ -231,6 +233,7 @@ export function SettingsPage() {
     settings?.duracaoPadrao,
     settings?.horaFimAgenda,
     settings?.horaInicioAgenda,
+    settings?.criarOrcamentos,
     settings?.id,
     settings?.lembreteMensagem,
     settings?.lembretesAtivos,
@@ -340,6 +343,7 @@ export function SettingsPage() {
         duracaoPadrao: normalizedDuration,
         moeda,
         timezone,
+        criarOrcamentos,
         permitirConflito,
         lembretesAtivos,
         lembreteHorasAntes: Math.ceil(normalizedWhatsappMinutes / 60),
@@ -348,7 +352,7 @@ export function SettingsPage() {
         whatsappTempoLembreteMinutos: normalizedWhatsappMinutes,
       });
 
-      setSuccessMessage("Configuracoes do WhatsApp atualizadas com sucesso.");
+      setSuccessMessage("Configuracoes do app atualizadas com sucesso.");
     } catch {
       return;
     }
@@ -528,7 +532,7 @@ export function SettingsPage() {
 
       <Card>
         <p className="text-xs uppercase tracking-[0.2em] text-slate-500">App</p>
-        <h3 className="mt-1 text-lg font-semibold text-ink">Agenda e WhatsApp</h3>
+        <h3 className="mt-1 text-lg font-semibold text-ink">Agenda, orcamentos e WhatsApp</h3>
         <form className="mt-4 space-y-4" onSubmit={handleSettingsSubmit}>
           <div className="space-y-2">
             <label className="text-sm font-medium text-ink" htmlFor="business-name">
@@ -635,6 +639,21 @@ export function SettingsPage() {
               ))}
             </select>
           </div>
+
+          <label className="app-toggle-panel">
+            <input
+              checked={criarOrcamentos}
+              className="app-checkbox"
+              onChange={(event) => setCriarOrcamentos(event.target.checked)}
+              type="checkbox"
+            />
+            <span>
+              <span className="block text-sm font-medium text-ink">Criar orcamentos</span>
+              <span className="block text-sm text-slate-500">
+                Quando desligado, o menu de Orcamentos some do app para esta empresa.
+              </span>
+            </span>
+          </label>
 
           <label className="app-toggle-panel">
             <input

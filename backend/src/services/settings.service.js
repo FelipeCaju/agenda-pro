@@ -62,6 +62,7 @@ function buildSettingsPayload(settings) {
     duracao_padrao: settings.duracao_padrao,
     moeda: settings.moeda,
     timezone: settings.timezone,
+    criar_orcamentos: Boolean(settings.criar_orcamentos),
     permitir_conflito: Boolean(settings.permitir_conflito),
     lembretes_ativos: Boolean(settings.lembretes_ativos),
     lembrete_horas_antes: settings.lembrete_horas_antes,
@@ -168,6 +169,10 @@ export async function updateSettings({ organizationId, input }) {
       duracaoPadrao !== undefined ? normalizeInteger(duracaoPadrao) : undefined,
     moeda: moeda !== undefined ? normalizeString(moeda).toUpperCase() : undefined,
     timezone: timezone !== undefined ? normalizeString(timezone) : undefined,
+    criar_orcamentos:
+      input.criar_orcamentos !== undefined || input.criarOrcamentos !== undefined
+        ? normalizeBoolean(input.criar_orcamentos ?? input.criarOrcamentos)
+        : undefined,
     permitir_conflito:
       input.permitir_conflito !== undefined || input.permitirConflito !== undefined
         ? normalizeBoolean(input.permitir_conflito ?? input.permitirConflito)

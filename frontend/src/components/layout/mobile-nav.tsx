@@ -3,6 +3,7 @@ import {
   useOrganizationPaymentsQuery,
   useOrganizationQuery,
 } from "@/hooks/use-organization-query";
+import { useSettingsQuery } from "@/hooks/use-settings-query";
 import { getBillingAlert } from "@/utils/billing";
 import { cn } from "@/utils/cn";
 
@@ -91,12 +92,21 @@ function NavIcon({ icon }: { icon: (typeof links)[number]["icon"] }) {
 export function MobileNav() {
   const { data: organization } = useOrganizationQuery();
   const { data: payments = [] } = useOrganizationPaymentsQuery();
+  const { data: settings } = useSettingsQuery();
   const billingAlert = getBillingAlert(organization, payments);
+  const visibleLinks = links.filter(
+    (link) => link.to !== "/orcamentos" || settings?.criarOrcamentos !== false,
+  );
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-slate-200 bg-white px-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-2 xl:hidden">
-      <div className="mx-auto grid max-w-3xl grid-cols-6 gap-1.5 rounded-[24px] bg-white p-2">
-        {links.map((link) => (
+      <div
+        className={cn(
+          "mx-auto max-w-3xl gap-1.5 rounded-[24px] bg-white p-2",
+          visibleLinks.length <= 5 ? "grid grid-cols-5" : "grid grid-cols-6",
+        )}
+      >
+        {visibleLinks.map((link) => (
           <NavLink
             key={link.to}
             to={link.to}

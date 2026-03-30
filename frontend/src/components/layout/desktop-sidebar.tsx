@@ -7,6 +7,7 @@ import {
   useOrganizationQuery,
 } from "@/hooks/use-organization-query";
 import { useOrganization } from "@/hooks/use-organization";
+import { useSettingsQuery } from "@/hooks/use-settings-query";
 import { getBillingAlert } from "@/utils/billing";
 import { cn } from "@/utils/cn";
 
@@ -90,7 +91,11 @@ export function DesktopSidebar() {
   const { organization, role, isSubscriptionBlocked } = useOrganization();
   const { data: currentOrganization } = useOrganizationQuery();
   const { data: payments = [] } = useOrganizationPaymentsQuery();
+  const { data: settings } = useSettingsQuery();
   const billingAlert = getBillingAlert(currentOrganization, payments);
+  const visibleLinks = links.filter(
+    (link) => link.to !== "/orcamentos" || settings?.criarOrcamentos !== false,
+  );
 
   const subscriptionLabel =
     organization?.subscriptionStatus === "active"
@@ -144,7 +149,7 @@ export function DesktopSidebar() {
 
       <nav className="rounded-[28px] border border-slate-200 bg-white p-3 shadow-soft">
         <div className="space-y-1.5">
-          {links.map((link) => (
+          {visibleLinks.map((link) => (
             <NavLink
               key={link.to}
               to={link.to}

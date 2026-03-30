@@ -154,6 +154,7 @@ export const schemaDefinitions = {
       duracao_padrao: "integer",
       moeda: "varchar(10)",
       timezone: "varchar(60)",
+      criar_orcamentos: "boolean",
       permitir_conflito: "boolean",
       lembretes_ativos: "boolean",
       lembrete_horas_antes: "integer",

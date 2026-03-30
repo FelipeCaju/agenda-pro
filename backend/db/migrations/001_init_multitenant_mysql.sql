@@ -150,6 +150,7 @@ CREATE TABLE IF NOT EXISTS app_settings (
   duracao_padrao INT NOT NULL DEFAULT 30,
   moeda VARCHAR(10) NOT NULL DEFAULT 'BRL',
   timezone VARCHAR(60) NOT NULL DEFAULT 'America/Sao_Paulo',
+  criar_orcamentos TINYINT(1) NOT NULL DEFAULT 1,
   permitir_conflito TINYINT(1) NOT NULL DEFAULT 0,
   lembretes_ativos TINYINT(1) NOT NULL DEFAULT 1,
   lembrete_horas_antes INT NOT NULL DEFAULT 24,

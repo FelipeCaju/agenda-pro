@@ -13,6 +13,7 @@ export type AppSettings = {
   duracaoPadrao: number;
   moeda: string;
   timezone: string;
+  criarOrcamentos: boolean;
   permitirConflito: boolean;
   lembretesAtivos: boolean;
   lembreteHorasAntes: number;
@@ -37,6 +38,7 @@ type AppSettingsApiModel = {
   duracao_padrao: number;
   moeda: string;
   timezone: string;
+  criar_orcamentos: boolean;
   permitir_conflito: boolean;
   lembretes_ativos: boolean;
   lembrete_horas_antes: number;
@@ -62,6 +64,7 @@ function mapSettings(model: AppSettingsApiModel): AppSettings {
     duracaoPadrao: Number(model.duracao_padrao ?? 30),
     moeda: model.moeda,
     timezone: model.timezone,
+    criarOrcamentos: model.criar_orcamentos !== false,
     permitirConflito: Boolean(model.permitir_conflito),
     lembretesAtivos: Boolean(model.lembretes_ativos),
     lembreteHorasAntes: Number(model.lembrete_horas_antes ?? 24),
