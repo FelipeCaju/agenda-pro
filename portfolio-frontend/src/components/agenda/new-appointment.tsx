@@ -60,6 +60,30 @@ function formatSummaryDate(date: string) {
   return date ? formatDateBR(date) : "--";
 }
 
+function formatCurrencyInput(value: string) {
+  const digits = value.replace(/\D/g, "");
+
+  if (!digits) {
+    return "";
+  }
+
+  const amount = Number(digits) / 100;
+  return amount.toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+function parseCurrencyInput(value: string) {
+  if (!value.trim()) {
+    return undefined;
+  }
+
+  const normalized = value.replace(/\./g, "").replace(",", ".");
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : NaN;
+}
+
 export function NewAppointment({
   clients,
   professionals,
@@ -112,7 +136,7 @@ export function NewAppointment({
 
       return {
         ...current,
-        valor: String(selectedService.valorPadrao),
+        valor: formatCurrencyInput(String(selectedService.valorPadrao)),
       };
     });
   }, [selectedService]);
@@ -202,7 +226,7 @@ export function NewAppointment({
       return;
     }
 
-    const parsedValue = values.valor ? Number(values.valor) : undefined;
+    const parsedValue = parseCurrencyInput(values.valor);
 
     if (parsedValue !== undefined && (!Number.isFinite(parsedValue) || parsedValue < 0)) {
       setFieldError("Valor invalido.");
@@ -327,10 +351,10 @@ export function NewAppointment({
           <span className="text-sm font-medium text-ink">Valor (R$)</span>
           <input
             className="app-input text-base"
-            min="0"
-            onChange={(event) => updateField("valor", event.target.value)}
-            step="0.01"
-            type="number"
+            inputMode="numeric"
+            onChange={(event) => updateField("valor", formatCurrencyInput(event.target.value))}
+            placeholder="0,00"
+            type="text"
             value={values.valor}
           />
         </label>
@@ -442,7 +466,7 @@ export function NewAppointment({
             </p>
           ) : null}
           <p>Horario: {values.horarioInicial || "--"} - {values.horarioFinal || "--"}</p>
-          <p>Valor: R$ {Number(values.valor || 0).toFixed(2)}</p>
+          <p>Valor: R$ {(parseCurrencyInput(values.valor) ?? 0).toFixed(2)}</p>
         </div>
       </Card>
 
