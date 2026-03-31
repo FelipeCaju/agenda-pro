@@ -353,7 +353,7 @@ export function NewAppointment({
         </label>
       ) : null}
 
-      <div className="grid grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)_minmax(0,1fr)] gap-2 sm:gap-3">
+      <div className="grid grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] gap-2 sm:gap-3">
         <label className="block min-w-0 space-y-2">
           <span className="text-sm font-medium text-ink">Data</span>
           <div className="relative">
@@ -368,6 +368,20 @@ export function NewAppointment({
           </div>
         </label>
 
+        <label className="block min-w-0 space-y-2">
+          <span className="text-sm font-medium text-ink">Valor (R$)</span>
+          <input
+            className="app-input text-base"
+            min="0"
+            onChange={(event) => updateField("valor", event.target.value)}
+            step="0.01"
+            type="number"
+            value={values.valor}
+          />
+        </label>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 sm:gap-3">
         <label className="block min-w-0 space-y-2">
           <span className="text-sm font-medium text-ink">Inicio</span>
           <div className="relative">
@@ -394,18 +408,6 @@ export function NewAppointment({
           </div>
         </label>
       </div>
-
-      <label className="block space-y-2">
-        <span className="text-sm font-medium text-ink">Valor (R$)</span>
-        <input
-          className="app-input text-base"
-          min="0"
-          onChange={(event) => updateField("valor", event.target.value)}
-          step="0.01"
-          type="number"
-          value={values.valor}
-        />
-      </label>
 
       <label className="block space-y-2">
         <span className="text-sm font-medium text-ink">Status de pagamento</span>
