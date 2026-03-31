@@ -29,6 +29,30 @@ function getPlanoLabel(plan: string) {
   return plan === "trial" ? "Trial" : "Pro";
 }
 
+function formatCurrencyInput(value: string) {
+  const digits = value.replace(/\D/g, "");
+
+  if (!digits) {
+    return "";
+  }
+
+  const amount = Number(digits) / 100;
+  return amount.toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+function parseCurrencyInput(value: string) {
+  if (!value.trim()) {
+    return undefined;
+  }
+
+  const normalized = value.replace(/\./g, "").replace(",", ".");
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : NaN;
+}
+
 export function PlatformOrganizationPage() {
   const { organizationId } = useParams();
   const { data, error, isLoading, isError } = useAdminOrganizationQuery(organizationId);
@@ -45,11 +69,13 @@ export function PlatformOrganizationPage() {
   const normalizedPlan = organization?.subscriptionPlan === "trial" ? "trial" : "pro";
   const [subscriptionStatus, setSubscriptionStatus] = useState(organization?.subscriptionStatus ?? "active");
   const [subscriptionPlan, setSubscriptionPlan] = useState<"trial" | "pro">(normalizedPlan);
-  const [monthlyAmount, setMonthlyAmount] = useState(String(organization?.monthlyAmount ?? 0));
+  const [monthlyAmount, setMonthlyAmount] = useState(
+    formatCurrencyInput(String(organization?.monthlyAmount ?? 0)),
+  );
   const [dueDate, setDueDate] = useState(organization?.dueDate ?? "");
   const [trialEnd, setTrialEnd] = useState(organization?.trialEnd ?? "");
   const [referenceMonth, setReferenceMonth] = useState(new Date().toISOString().slice(0, 7));
-  const [amount, setAmount] = useState("0");
+  const [amount, setAmount] = useState("0,00");
   const [paymentStatus, setPaymentStatus] = useState<"pending" | "paid" | "overdue" | "canceled">("paid");
   const [paymentMethod, setPaymentMethod] = useState("pix");
   const [paymentNotes, setPaymentNotes] = useState("");
@@ -63,7 +89,7 @@ export function PlatformOrganizationPage() {
 
     setSubscriptionStatus(organization.subscriptionStatus);
     setSubscriptionPlan(organization.subscriptionPlan === "trial" ? "trial" : "pro");
-    setMonthlyAmount(String(organization.monthlyAmount ?? 0));
+    setMonthlyAmount(formatCurrencyInput(String(organization.monthlyAmount ?? 0)));
     setDueDate(organization.dueDate ?? "");
     setTrialEnd(organization.trialEnd ?? "");
   }, [organization]);
@@ -75,7 +101,7 @@ export function PlatformOrganizationPage() {
       await updateSubscription({
         subscriptionStatus,
         subscriptionPlan,
-        monthlyAmount: Number(monthlyAmount),
+        monthlyAmount: parseCurrencyInput(monthlyAmount) ?? 0,
         dueDate: dueDate || null,
         trialEnd: trialEnd || null,
       });
@@ -91,7 +117,7 @@ export function PlatformOrganizationPage() {
     try {
       await createPayment({
         referenceMonth,
-        amount: Number(amount),
+        amount: parseCurrencyInput(amount) ?? 0,
         status: paymentStatus,
         paymentMethod,
         notes: paymentNotes,
@@ -186,10 +212,10 @@ export function PlatformOrganizationPage() {
                 <label className="text-sm font-medium text-ink">Mensalidade</label>
                 <input
                   className="app-input"
-                  min="0"
-                  onChange={(event) => setMonthlyAmount(event.target.value)}
-                  step="0.01"
-                  type="number"
+                  inputMode="numeric"
+                  onChange={(event) => setMonthlyAmount(formatCurrencyInput(event.target.value))}
+                  placeholder="0,00"
+                  type="text"
                   value={monthlyAmount}
                 />
               </div>
@@ -268,10 +294,10 @@ export function PlatformOrganizationPage() {
                   <label className="text-sm font-medium text-ink">Valor</label>
                   <input
                     className="app-input"
-                    min="0"
-                    onChange={(event) => setAmount(event.target.value)}
-                    step="0.01"
-                    type="number"
+                    inputMode="numeric"
+                    onChange={(event) => setAmount(formatCurrencyInput(event.target.value))}
+                    placeholder="0,00"
+                    type="text"
                     value={amount}
                   />
                 </div>

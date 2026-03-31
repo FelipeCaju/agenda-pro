@@ -35,6 +35,30 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
+function formatCurrencyInput(value: string) {
+  const digits = value.replace(/\D/g, "");
+
+  if (!digits) {
+    return "";
+  }
+
+  const amount = Number(digits) / 100;
+  return amount.toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+function parseCurrencyInput(value: string) {
+  if (!value.trim()) {
+    return undefined;
+  }
+
+  const normalized = value.replace(/\./g, "").replace(",", ".");
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : NaN;
+}
+
 export function PlatformAdminPage() {
   const navigate = useNavigate();
   const { data = [], error, isLoading, isError } = useAdminOrganizationsQuery();
@@ -44,7 +68,7 @@ export function PlatformAdminPage() {
   const [emailResponsavel, setEmailResponsavel] = useState("");
   const [initialPassword, setInitialPassword] = useState("");
   const [telefone, setTelefone] = useState("");
-  const [monthlyAmount, setMonthlyAmount] = useState("149.90");
+  const [monthlyAmount, setMonthlyAmount] = useState("149,90");
   const [subscriptionPlan, setSubscriptionPlan] = useState<"trial" | "pro">("trial");
   const [trialDays, setTrialDays] = useState("5");
   const [successMessage, setSuccessMessage] = useState("");
@@ -59,7 +83,7 @@ export function PlatformAdminPage() {
         emailResponsavel,
         initialPassword,
         telefone,
-        monthlyAmount: Number(monthlyAmount),
+        monthlyAmount: parseCurrencyInput(monthlyAmount) ?? 0,
         subscriptionPlan,
         trialDays: Number(trialDays),
       });
@@ -70,7 +94,7 @@ export function PlatformAdminPage() {
       setEmailResponsavel("");
       setInitialPassword("");
       setTelefone("");
-      setMonthlyAmount("149.90");
+      setMonthlyAmount("149,90");
       setSubscriptionPlan("trial");
       setTrialDays("5");
       navigate(`/admin/organizacoes/${created.organization.id}`);
@@ -128,10 +152,10 @@ export function PlatformAdminPage() {
               <label className="text-sm font-medium text-ink">Mensalidade</label>
               <input
                 className="app-input"
-                min="0"
-                onChange={(event) => setMonthlyAmount(event.target.value)}
-                step="0.01"
-                type="number"
+                inputMode="numeric"
+                onChange={(event) => setMonthlyAmount(formatCurrencyInput(event.target.value))}
+                placeholder="0,00"
+                type="text"
                 value={monthlyAmount}
               />
             </div>
