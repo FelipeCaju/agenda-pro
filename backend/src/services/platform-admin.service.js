@@ -237,6 +237,7 @@ export async function updateOrganizationSubscriptionForPlatformAdmin(organizatio
   const subscriptionPlan = input.subscription_plan ?? input.subscriptionPlan;
   const dueDate = input.due_date ?? input.dueDate;
   const trialEnd = input.trial_end ?? input.trialEnd;
+  const monthlyAmount = input.monthly_amount ?? input.monthlyAmount;
 
   if (subscriptionStatus !== undefined && !isValidSubscriptionStatus(subscriptionStatus)) {
     const error = new Error("Status de assinatura invalido.");
@@ -266,9 +267,20 @@ export async function updateOrganizationSubscriptionForPlatformAdmin(organizatio
     throw error;
   }
 
+  if (monthlyAmount !== undefined) {
+    const normalizedMonthlyAmount = Number(monthlyAmount);
+
+    if (!Number.isFinite(normalizedMonthlyAmount) || normalizedMonthlyAmount < 0) {
+      const error = new Error("Mensalidade invalida.");
+      error.statusCode = 400;
+      throw error;
+    }
+  }
+
   const organization = await updateOrganizationById(organizationId, {
     subscription_status: subscriptionStatus,
     subscription_plan: subscriptionPlan !== undefined ? normalizeString(subscriptionPlan) : undefined,
+    monthly_amount: monthlyAmount !== undefined ? Number(monthlyAmount) : undefined,
     due_date: dueDate !== undefined ? normalizeString(dueDate) || null : undefined,
     trial_end: trialEnd !== undefined ? normalizeString(trialEnd) || null : undefined,
   });
