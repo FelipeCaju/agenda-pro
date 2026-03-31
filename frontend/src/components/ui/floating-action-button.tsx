@@ -15,7 +15,7 @@ export function FloatingActionButton({
   return (
     <button
       className={cn(
-        "fixed bottom-[calc(env(safe-area-inset-bottom)+5.9rem+10px)] right-4 z-[60] inline-flex items-center gap-2 rounded-full bg-brand-500 px-4 py-3 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(29,140,248,0.28)] transition hover:bg-brand-600 xl:hidden",
+        "fixed bottom-[calc(env(safe-area-inset-bottom)+5.9rem+10px)] right-4 z-[60] inline-flex items-center gap-2 rounded-full bg-brand-500 px-4 py-3 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(29,140,248,0.28)] transition hover:bg-brand-600",
         className,
       )}
       type={type}
