@@ -39,6 +39,41 @@ function isValidColor(color: string) {
   return /^#([0-9a-fA-F]{6})$/.test(color);
 }
 
+function formatCurrencyInput(value: string) {
+  const digits = value.replace(/\D/g, "");
+
+  if (!digits) {
+    return "";
+  }
+
+  const amount = Number(digits) / 100;
+  return amount.toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+function parseCurrencyInput(value: string) {
+  if (!value.trim()) {
+    return undefined;
+  }
+
+  const normalized = value.replace(/\./g, "").replace(",", ".");
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : NaN;
+}
+
+function getInitialValues(initialValues?: Partial<ServiceFormValues>): ServiceFormValues {
+  return {
+    ...EMPTY_VALUES,
+    ...initialValues,
+    valorPadrao:
+      initialValues?.valorPadrao !== undefined
+        ? formatCurrencyInput(String(initialValues.valorPadrao))
+        : EMPTY_VALUES.valorPadrao,
+  };
+}
+
 export function ServiceForm({
   initialValues,
   isSubmitting = false,
@@ -50,19 +85,13 @@ export function ServiceForm({
   formId = "service-form",
   showInlineSubmit = true,
 }: ServiceFormProps) {
-  const [values, setValues] = useState<ServiceFormValues>({
-    ...EMPTY_VALUES,
-    ...initialValues,
-  });
+  const [values, setValues] = useState<ServiceFormValues>(getInitialValues(initialValues));
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof ServiceFormValues, string>>>(
     {},
   );
 
   useEffect(() => {
-    setValues({
-      ...EMPTY_VALUES,
-      ...initialValues,
-    });
+    setValues(getInitialValues(initialValues));
   }, [initialValues]);
 
   const formError = useMemo(() => {
@@ -74,7 +103,13 @@ export function ServiceForm({
       return "Duracao deve ser um numero valido.";
     }
 
-    if (!Number.isFinite(Number(values.valorPadrao)) || Number(values.valorPadrao) < 0) {
+    const parsedDefaultValue = parseCurrencyInput(values.valorPadrao);
+
+    if (
+      parsedDefaultValue === undefined ||
+      !Number.isFinite(parsedDefaultValue) ||
+      parsedDefaultValue < 0
+    ) {
       return "Valor deve ser um numero valido.";
     }
 
@@ -110,7 +145,13 @@ export function ServiceForm({
       nextErrors.duracaoMinutos = "Informe uma duracao valida em minutos.";
     }
 
-    if (!Number.isFinite(Number(values.valorPadrao)) || Number(values.valorPadrao) < 0) {
+    const parsedDefaultValue = parseCurrencyInput(values.valorPadrao);
+
+    if (
+      parsedDefaultValue === undefined ||
+      !Number.isFinite(parsedDefaultValue) ||
+      parsedDefaultValue < 0
+    ) {
       nextErrors.valorPadrao = "Informe um valor valido.";
     }
 
@@ -128,7 +169,7 @@ export function ServiceForm({
       nome: values.nome,
       descricao: values.descricao,
       duracaoMinutos: Number(values.duracaoMinutos),
-      valorPadrao: Number(values.valorPadrao),
+      valorPadrao: parseCurrencyInput(values.valorPadrao) ?? 0,
       cor: values.cor,
       ativo: values.ativo,
     });
@@ -194,10 +235,10 @@ export function ServiceForm({
             <input
               className="app-input"
               id="valor"
-              min="0"
-              onChange={(event) => updateField("valorPadrao", event.target.value)}
-              step="0.01"
-              type="number"
+              inputMode="numeric"
+              onChange={(event) => updateField("valorPadrao", formatCurrencyInput(event.target.value))}
+              placeholder="0,00"
+              type="text"
               value={values.valorPadrao}
             />
             {fieldErrors.valorPadrao ? (
