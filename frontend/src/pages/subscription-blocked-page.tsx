@@ -11,11 +11,51 @@ export function SubscriptionBlockedPage() {
   const navigate = useNavigate();
   const { signOut } = useAuth();
   const { organization: sessionOrganization, subscriptionBlockReason } = useOrganization();
-  const { data: organization } = useOrganizationQuery();
-  const { data: payments = [] } = useOrganizationPaymentsQuery();
+  const {
+    data: organization,
+    error: organizationError,
+    isError: isOrganizationError,
+    isLoading: isLoadingOrganization,
+  } = useOrganizationQuery();
+  const {
+    data: payments = [],
+    error: paymentsError,
+    isError: isPaymentsError,
+    isLoading: isLoadingPayments,
+  } = useOrganizationPaymentsQuery();
   const { notifyPaymentPaid, isNotifyingPaymentPaid, notifyPaymentPaidError } = useOrganizationMutations();
   const [successMessage, setSuccessMessage] = useState("");
   const latestPayment = payments[0] ?? null;
+  const isLoadingBillingState = isLoadingOrganization || isLoadingPayments;
+
+  if (isLoadingBillingState && !organization) {
+    return (
+      <FullscreenState
+        eyebrow="Assinatura"
+        title="Carregando cobranca"
+        description="Estamos buscando os dados da assinatura e do pagamento para abrir a tela correta."
+      />
+    );
+  }
+
+  if ((isOrganizationError && !organization) || isPaymentsError) {
+    return (
+      <FullscreenState
+        eyebrow="Assinatura"
+        title="Nao foi possivel carregar a cobranca"
+        description={
+          organizationError?.message ??
+          paymentsError?.message ??
+          "Nao conseguimos validar os dados da assinatura agora."
+        }
+        action={
+          <Button className="w-full" onClick={() => void handleBackToLogin()}>
+            Voltar ao login
+          </Button>
+        }
+      />
+    );
+  }
 
   const description =
     subscriptionBlockReason === "payment_overdue"
