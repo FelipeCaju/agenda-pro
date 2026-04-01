@@ -20,6 +20,20 @@ function getEnvironmentConfig() {
   };
 }
 
+function getPlatformProviderConfig() {
+  const envConfig = getEnvironmentConfig();
+
+  return {
+    provider: envConfig.baseUrl && envConfig.instanceId && envConfig.token && envConfig.clientToken
+      ? "z-api"
+      : "manual",
+    instanceId: envConfig.instanceId,
+    token: envConfig.token,
+    baseUrl: envConfig.baseUrl,
+    clientToken: envConfig.clientToken,
+  };
+}
+
 function normalizePhone(phone) {
   const digits = String(phone ?? "").replace(/\D/g, "");
 
@@ -166,6 +180,37 @@ export async function sendWhatsappMessage({ organizationId, phone, message }) {
       "Provider de WhatsApp nao configurado para envio real.",
       400,
     );
+  }
+
+  const providerResponse = await sendViaZApi({
+    providerConfig,
+    phone: normalizedPhone,
+    message: message.trim(),
+  });
+
+  return {
+    success: true,
+    provider: providerConfig.provider,
+    instanceId: providerConfig.instanceId ?? null,
+    sentAt: new Date().toISOString(),
+    providerResponse,
+  };
+}
+
+export async function sendPlatformWhatsappMessage({ phone, message }) {
+  const providerConfig = getPlatformProviderConfig();
+  const normalizedPhone = normalizePhone(phone);
+
+  if (!normalizedPhone) {
+    throw buildError("Telefone do administrador nao configurado para receber avisos.", 400);
+  }
+
+  if (!message?.trim()) {
+    throw buildError("Mensagem obrigatoria para envio via WhatsApp.", 400);
+  }
+
+  if (providerConfig.provider !== "z-api") {
+    throw buildError("Provider da plataforma nao configurado para envio real no WhatsApp.", 400);
   }
 
   const providerResponse = await sendViaZApi({

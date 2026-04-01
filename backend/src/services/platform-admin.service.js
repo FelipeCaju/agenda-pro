@@ -359,6 +359,9 @@ export async function getPlatformSettingsForAdmin() {
 
 export async function updatePlatformSettingsForAdmin(input) {
   const pixKey = normalizeString(input.pix_key ?? input.pixKey);
+  const adminWhatsappNumber = normalizeString(
+    input.admin_whatsapp_number ?? input.adminWhatsappNumber,
+  );
   const paymentGraceDays = Number(input.payment_grace_days ?? input.paymentGraceDays ?? 5);
   const paymentAlertDays = Number(input.payment_alert_days ?? input.paymentAlertDays ?? 5);
 
@@ -376,6 +379,7 @@ export async function updatePlatformSettingsForAdmin(input) {
 
   return updatePlatformSettings({
     pix_key: pixKey,
+    admin_whatsapp_number: adminWhatsappNumber,
     payment_grace_days: paymentGraceDays,
     payment_alert_days: paymentAlertDays,
   });

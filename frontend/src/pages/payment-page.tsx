@@ -25,6 +25,18 @@ function getTitle(status?: string | null) {
   return "Pagamento do sistema";
 }
 
+function formatReferenceMonth(value?: string | null) {
+  if (!value || !/^\d{4}-\d{2}$/.test(value)) {
+    return "Mes atual";
+  }
+
+  const [year, month] = value.split("-");
+  return new Intl.DateTimeFormat("pt-BR", {
+    month: "long",
+    year: "numeric",
+  }).format(new Date(Number(year), Number(month) - 1, 1));
+}
+
 export function PaymentPage() {
   const navigate = useNavigate();
   const {
@@ -39,6 +51,8 @@ export function PaymentPage() {
   const [copyMessage, setCopyMessage] = useState("");
   const [paymentSignalMessage, setPaymentSignalMessage] = useState("");
   const latestPayment = payments[0] ?? null;
+  const billingAmount = latestPayment?.amount ?? organization?.latestPaymentAmount ?? 0;
+  const billingReferenceMonth = latestPayment?.referenceMonth ?? organization?.latestReferenceMonth ?? null;
 
   const qrCodeUrl = useMemo(() => buildPixQrUrl(organization?.pixKey ?? ""), [organization?.pixKey]);
 
@@ -54,14 +68,10 @@ export function PaymentPage() {
   }
 
   async function handleNotifyPaymentPaid() {
-    if (!organization?.latestPaymentId) {
-      return;
-    }
-
     try {
-      await notifyPaymentPaid({ paymentId: organization.latestPaymentId });
+      await notifyPaymentPaid({ paymentId: organization?.latestPaymentId ?? null });
       setPaymentSignalMessage(
-        "Aviso enviado ao administrador. A mensagem segue visivel ate a confirmacao do pagamento.",
+        "Pagamento informado com sucesso. Aguarde enquanto processamos e validamos a liberacao do seu acesso.",
       );
     } catch {
       return;
@@ -113,6 +123,12 @@ export function PaymentPage() {
               Empresa: <strong className="text-ink">{organization.nomeEmpresa}</strong>
             </p>
             <p>
+              Valor da mensalidade: <strong className="text-ink">{formatCurrency(billingAmount)}</strong>
+            </p>
+            <p>
+              Referente a: <strong className="text-ink">{formatReferenceMonth(billingReferenceMonth)}</strong>
+            </p>
+            <p>
               Status atual: <strong className="text-ink">{organization.subscriptionStatus}</strong>
             </p>
             {organization.trialEnd ? (
@@ -125,9 +141,9 @@ export function PaymentPage() {
                 Vencimento: <strong className="text-ink">{formatDateBR(organization.dueDate)}</strong>
               </p>
             ) : null}
-            {latestPayment ? (
+            {billingAmount > 0 ? (
               <p>
-                Ultima cobranca: <strong className="text-ink">{formatCurrency(latestPayment.amount)}</strong>
+                Cobranca atual: <strong className="text-ink">{formatCurrency(billingAmount)}</strong>
               </p>
             ) : null}
           </div>
@@ -135,7 +151,7 @@ export function PaymentPage() {
           <div className="rounded-[24px] border border-slate-200 bg-slate-50/80 p-4">
             <p className="text-sm font-semibold text-ink">Como pagar</p>
             <p className="mt-2 text-sm text-slate-500">
-              Escaneie o QR Code no app do banco ou copie a chave Pix para colar manualmente.
+              Escaneie o QR Code no app do banco ou copie o codigo Pix para colar manualmente no seu banco.
             </p>
           </div>
         </Card>
@@ -164,13 +180,12 @@ export function PaymentPage() {
 
             <div className="flex w-full flex-col gap-3 sm:flex-row">
               <Button className="w-full" onClick={() => void handleCopyPixKey()} type="button">
-                Copiar chave Pix
+                Copiar codigo Pix
               </Button>
               <Button
                 className="w-full"
                 disabled={
                   isNotifyingPaymentPaid ||
-                  !organization.latestPaymentId ||
                   Boolean(latestPayment?.customerNotifiedPaidAt)
                 }
                 onClick={() => void handleNotifyPaymentPaid()}
@@ -180,8 +195,8 @@ export function PaymentPage() {
                 {latestPayment?.customerNotifiedPaidAt
                   ? "Administrador ja avisado"
                   : isNotifyingPaymentPaid
-                    ? "Enviando aviso..."
-                    : "Ja paguei, avisar administrador"}
+                    ? "Processando aviso..."
+                    : "Confirmar que paguei"}
               </Button>
             </div>
 

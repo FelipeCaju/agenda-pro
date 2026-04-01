@@ -1,4 +1,5 @@
 import {
+  createOrganizationPayment,
   getLatestOrganizationPayment,
   getOrganizationById,
   getPlatformSettings,
@@ -11,6 +12,7 @@ import {
   evaluateSubscriptionAccess,
   isValidSubscriptionStatus,
 } from "../lib/subscription.js";
+import { sendPlatformWhatsappMessage } from "./whatsapp.service.js";
 
 function normalizeString(value) {
   return typeof value === "string" ? value.trim() : "";
@@ -20,10 +22,67 @@ function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+function getTodayDate() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function getReferenceMonth(date) {
+  return String(date ?? "").slice(0, 7);
+}
+
+function formatCurrency(value) {
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(Number(value ?? 0));
+}
+
+async function ensureActionablePayment({ organization, latestPayment, access }) {
+  const shouldEnsurePayment = ["trial_expired", "payment_overdue"].includes(access.blockReason);
+
+  if (!shouldEnsurePayment) {
+    return latestPayment;
+  }
+
+  if (latestPayment && latestPayment.status !== "paid" && latestPayment.status !== "canceled") {
+    return latestPayment;
+  }
+
+  const dueDate = organization.due_date ?? getTodayDate();
+  const referenceMonth = getReferenceMonth(dueDate) || getReferenceMonth(getTodayDate());
+
+  return createOrganizationPayment(organization.id, {
+    reference_month: referenceMonth,
+    amount: Number(organization.monthly_amount ?? 0),
+    status: "pending",
+    due_date: dueDate,
+    payment_method: "pix",
+    notes: "Cobranca criada automaticamente para regularizacao manual da assinatura.",
+  });
+}
+
+function buildAdminPaymentWhatsappMessage({ organization, payment }) {
+  return [
+    "AgendaPro - solicitacao de liberacao apos pagamento",
+    "",
+    `Cliente: ${organization.nome_empresa}`,
+    `Email: ${organization.email_responsavel}`,
+    `Telefone: ${organization.telefone || "Nao informado"}`,
+    `Valor: ${formatCurrency(payment.amount)}`,
+    `Referencia: ${payment.reference_month}`,
+    `Vencimento: ${payment.due_date || "Nao informado"}`,
+    "",
+    "O cliente informou que realizou o pagamento e aguarda a liberacao do acesso.",
+  ].join("\n");
+}
+
 async function buildOrganizationPayload(organization) {
-  const latestPayment = await getLatestOrganizationPayment(organization.id);
   const platformSettings = await getPlatformSettings();
-  const access = evaluateSubscriptionAccess(organization, latestPayment, platformSettings);
+  let latestPayment = await getLatestOrganizationPayment(organization.id);
+  let access = evaluateSubscriptionAccess(organization, latestPayment, platformSettings);
+
+  latestPayment = await ensureActionablePayment({ organization, latestPayment, access });
+  access = evaluateSubscriptionAccess(organization, latestPayment, platformSettings);
 
   return {
     id: organization.id,
@@ -45,6 +104,8 @@ async function buildOrganizationPayload(organization) {
     grace_until: access.graceUntil,
     latest_payment_id: latestPayment?.id ?? null,
     latest_payment_status: latestPayment?.status ?? null,
+    latest_reference_month: latestPayment?.reference_month ?? null,
+    latest_payment_amount: latestPayment?.amount ?? Number(organization.monthly_amount ?? 0),
     payment_notice_visible: access.shouldShowPaymentNotice,
   };
 }
@@ -160,13 +221,48 @@ export async function updateCurrentOrganization({ organizationId, input }) {
 }
 
 export async function markCurrentOrganizationPaymentAsPaid({ organizationId, paymentId, note }) {
-  const payment = await notifyOrganizationPaymentPaid(organizationId, paymentId, note);
+  const organization = await getOrganizationById(organizationId);
+
+  if (!organization) {
+    const error = new Error("Organizacao nao encontrada.");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const platformSettings = await getPlatformSettings();
+  let resolvedPaymentId =
+    paymentId && paymentId !== "current" ? paymentId : null;
+
+  if (!resolvedPaymentId) {
+    const latestPayment = await getLatestOrganizationPayment(organizationId);
+    const access = evaluateSubscriptionAccess(organization, latestPayment, platformSettings);
+    const actionablePayment = await ensureActionablePayment({
+      organization,
+      latestPayment,
+      access,
+    });
+
+    resolvedPaymentId = actionablePayment?.id ?? null;
+  }
+
+  if (!resolvedPaymentId) {
+    const error = new Error("Nao foi possivel identificar a cobranca para este pagamento.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const payment = await notifyOrganizationPaymentPaid(organizationId, resolvedPaymentId, note);
 
   if (!payment) {
     const error = new Error("Pagamento nao encontrado.");
     error.statusCode = 404;
     throw error;
   }
+
+  await sendPlatformWhatsappMessage({
+    phone: platformSettings.admin_whatsapp_number,
+    message: buildAdminPaymentWhatsappMessage({ organization, payment }),
+  });
 
   return payment;
 }

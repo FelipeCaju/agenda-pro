@@ -82,6 +82,7 @@ export function PlatformAdminPage() {
   const [trialDays, setTrialDays] = useState("5");
   const [successMessage, setSuccessMessage] = useState("");
   const [pixKey, setPixKey] = useState("");
+  const [adminWhatsappNumber, setAdminWhatsappNumber] = useState("");
   const [paymentGraceDays, setPaymentGraceDays] = useState("5");
   const [paymentAlertDays, setPaymentAlertDays] = useState("5");
 
@@ -91,6 +92,7 @@ export function PlatformAdminPage() {
     }
 
     setPixKey(platformSettings.pixKey ?? "");
+    setAdminWhatsappNumber(platformSettings.adminWhatsappNumber ?? "");
     setPaymentGraceDays(String(platformSettings.paymentGraceDays ?? 5));
     setPaymentAlertDays(String(platformSettings.paymentAlertDays ?? 5));
   }, [platformSettings]);
@@ -101,6 +103,7 @@ export function PlatformAdminPage() {
     try {
       await updatePlatformSettings({
         pixKey,
+        adminWhatsappNumber,
         paymentGraceDays: Number(paymentGraceDays),
         paymentAlertDays: Number(paymentAlertDays),
       });
@@ -154,6 +157,16 @@ export function PlatformAdminPage() {
             <input className="app-input" onChange={(event) => setPixKey(event.target.value)} value={pixKey} />
           </div>
 
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-ink">WhatsApp do admin</label>
+            <input
+              className="app-input"
+              onChange={(event) => setAdminWhatsappNumber(event.target.value)}
+              placeholder="5511999999999"
+              value={adminWhatsappNumber}
+            />
+          </div>
+
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <label className="text-sm font-medium text-ink">Dias de folga apos o vencimento</label>
@@ -183,6 +196,10 @@ export function PlatformAdminPage() {
             <p>
               Exemplo: vencimento no dia <strong>5</strong> com folga de <strong>{paymentGraceDays || "0"}</strong>{" "}
               dia(s) bloqueia somente depois do dia <strong>{5 + Number(paymentGraceDays || 0)}</strong>.
+            </p>
+            <p className="mt-2">
+              Quando o cliente confirmar o pagamento, este WhatsApp recebe o aviso para voce validar e liberar o
+              acesso manualmente.
             </p>
           </div>
 

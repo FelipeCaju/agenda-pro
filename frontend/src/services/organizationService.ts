@@ -36,6 +36,8 @@ export type OrganizationProfile = SessionOrganization & {
   graceUntil: string | null;
   latestPaymentId: string | null;
   latestPaymentStatus: OrganizationPayment["status"] | null;
+  latestReferenceMonth: string | null;
+  latestPaymentAmount: number;
   paymentNoticeVisible: boolean;
 };
 
@@ -59,6 +61,8 @@ type OrganizationApiModel = {
   grace_until: string | null;
   latest_payment_id: string | null;
   latest_payment_status: OrganizationPayment["status"] | null;
+  latest_reference_month: string | null;
+  latest_payment_amount: number | null;
   payment_notice_visible: boolean;
 };
 
@@ -96,6 +100,8 @@ function mapOrganization(model: OrganizationApiModel): OrganizationProfile {
     graceUntil: model.grace_until ?? null,
     latestPaymentId: model.latest_payment_id ?? null,
     latestPaymentStatus: model.latest_payment_status ?? null,
+    latestReferenceMonth: model.latest_reference_month ?? null,
+    latestPaymentAmount: Number(model.latest_payment_amount ?? model.monthly_amount ?? 0),
     paymentNoticeVisible: Boolean(model.payment_notice_visible),
   };
 }
@@ -165,11 +171,11 @@ export const organizationService = {
       },
     );
   },
-  async notifyPaymentPaid(paymentId: string, note?: string) {
+  async notifyPaymentPaid(paymentId?: string | null, note?: string) {
     return executeServiceCall(
       async () => {
         const response = await apiClient.post<OrganizationPaymentApiModel>(
-          `/organizations/current/payments/${paymentId}/notify-paid`,
+          `/organizations/current/payments/${paymentId ?? "current"}/notify-paid`,
           {
             note: note?.trim() || null,
           },

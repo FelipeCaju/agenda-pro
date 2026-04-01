@@ -126,6 +126,10 @@ export const router = createBrowserRouter([
             path: "/assinatura-bloqueada",
             element: withRouteSuspense(<SubscriptionBlockedPage />),
           },
+          {
+            path: "/pagamento",
+            element: withRouteSuspense(<PaymentPage />),
+          },
         ],
       },
       {
@@ -151,7 +155,6 @@ export const router = createBrowserRouter([
             children: [
               { path: "/", element: withRouteSuspense(<DashboardPage />) },
               { path: "/gestao", element: withRouteSuspense(<ManagementPage />) },
-              { path: "/pagamento", element: withRouteSuspense(<PaymentPage />) },
               { path: "/agenda", element: withRouteSuspense(<AgendaPage />) },
               { path: "/agenda/novo", element: withRouteSuspense(<NewAppointmentPage />) },
               {

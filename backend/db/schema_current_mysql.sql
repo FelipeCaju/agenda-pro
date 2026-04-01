@@ -147,6 +147,7 @@ CREATE TABLE IF NOT EXISTS app_settings (
 CREATE TABLE IF NOT EXISTS platform_settings (
   id VARCHAR(64) NOT NULL,
   pix_key TEXT NULL,
+  admin_whatsapp_number VARCHAR(32) NULL,
   payment_grace_days INT NOT NULL DEFAULT 5,
   payment_alert_days INT NOT NULL DEFAULT 5,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -482,10 +483,12 @@ DELIMITER ;
 INSERT IGNORE INTO platform_settings (
   id,
   pix_key,
+  admin_whatsapp_number,
   payment_grace_days,
   payment_alert_days
 ) VALUES (
   'default',
+  '',
   '',
   5,
   5

@@ -34,6 +34,7 @@ export type AdminOrganizationPayment = {
 
 export type PlatformSettings = {
   pixKey: string;
+  adminWhatsappNumber: string;
   paymentGraceDays: number;
   paymentAlertDays: number;
 };
@@ -256,6 +257,7 @@ export const adminService = {
     const response = await apiClient.get<any>("/admin/platform-settings");
     return {
       pixKey: response.data.pix_key ?? "",
+      adminWhatsappNumber: response.data.admin_whatsapp_number ?? "",
       paymentGraceDays: Number(response.data.payment_grace_days ?? 5),
       paymentAlertDays: Number(response.data.payment_alert_days ?? 5),
     } satisfies PlatformSettings;
@@ -263,11 +265,13 @@ export const adminService = {
   async updatePlatformSettings(input: PlatformSettings) {
     const response = await apiClient.patch<any>("/admin/platform-settings", {
       pix_key: input.pixKey,
+      admin_whatsapp_number: input.adminWhatsappNumber,
       payment_grace_days: input.paymentGraceDays,
       payment_alert_days: input.paymentAlertDays,
     });
     return {
       pixKey: response.data.pix_key ?? "",
+      adminWhatsappNumber: response.data.admin_whatsapp_number ?? "",
       paymentGraceDays: Number(response.data.payment_grace_days ?? 5),
       paymentAlertDays: Number(response.data.payment_alert_days ?? 5),
     } satisfies PlatformSettings;

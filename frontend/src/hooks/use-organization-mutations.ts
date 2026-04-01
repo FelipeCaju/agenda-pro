@@ -19,7 +19,7 @@ export function useOrganizationMutations() {
   });
 
   const notifyPaymentPaidMutation = useMutation({
-    mutationFn: ({ paymentId, note }: { paymentId: string; note?: string }) =>
+    mutationFn: ({ paymentId, note }: { paymentId?: string | null; note?: string }) =>
       organizationService.notifyPaymentPaid(paymentId, note),
     onSuccess: async () => {
       await Promise.all([

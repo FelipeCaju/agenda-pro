@@ -27,13 +27,11 @@ export function SubscriptionBlockedPage() {
           : `A empresa ${organization?.nomeEmpresa ?? sessionOrganization?.nomeEmpresa ?? "vinculada a esta conta"} esta com a assinatura em restricao. Seus dados continuam preservados enquanto o acesso fica bloqueado.`;
 
   async function handleNotifyPaymentPaid() {
-    if (!organization?.latestPaymentId) {
-      return;
-    }
-
     try {
-      await notifyPaymentPaid({ paymentId: organization.latestPaymentId });
-      setSuccessMessage("Aviso enviado ao administrador. A mensagem permanece ate a confirmacao do pagamento.");
+      await notifyPaymentPaid({ paymentId: organization?.latestPaymentId ?? null });
+      setSuccessMessage(
+        "Pagamento informado com sucesso. Aguarde enquanto processamos e validamos a liberacao do seu acesso.",
+      );
     } catch {
       return;
     }
@@ -61,7 +59,7 @@ export function SubscriptionBlockedPage() {
         <div className="flex w-full flex-col gap-3">
           {organization?.pixKey ? (
             <Button className="w-full" onClick={() => navigate("/pagamento")}>
-              {organization.subscriptionStatus === "trial" ? "Comprar sistema" : "Abrir QR Code Pix"}
+              Realizar pagamento
             </Button>
           ) : null}
           {organization?.paymentNoticeVisible && latestPayment?.status !== "paid" ? (
@@ -69,7 +67,6 @@ export function SubscriptionBlockedPage() {
               className="w-full"
               disabled={
                 isNotifyingPaymentPaid ||
-                !organization.latestPaymentId ||
                 Boolean(latestPayment?.customerNotifiedPaidAt)
               }
               onClick={() => void handleNotifyPaymentPaid()}
@@ -79,7 +76,7 @@ export function SubscriptionBlockedPage() {
                 ? "Administrador ja avisado"
                 : isNotifyingPaymentPaid
                   ? "Enviando aviso..."
-                  : "Ja paguei, avisar administrador"}
+                  : "Confirmar que ja paguei"}
             </Button>
           ) : null}
           <Button className="w-full" onClick={() => void handleBackToLogin()}>
