@@ -117,7 +117,7 @@ CREATE TABLE IF NOT EXISTS billing_transactions (
   invoice_url VARCHAR(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   bank_slip_url VARCHAR(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   pix_qr_code_text TEXT COLLATE utf8mb4_unicode_ci,
-  pix_qr_code_image_url VARCHAR(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  pix_qr_code_image_url LONGTEXT COLLATE utf8mb4_unicode_ci,
   card_brand VARCHAR(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   card_last4 CHAR(4) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   external_reference VARCHAR(120) COLLATE utf8mb4_unicode_ci DEFAULT NULL,

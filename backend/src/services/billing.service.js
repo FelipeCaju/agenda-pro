@@ -43,6 +43,17 @@ function getTodayDate() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function resolveCheckoutDueDate(trialEnd) {
+  const today = getTodayDate();
+
+  if (!trialEnd) {
+    return today;
+  }
+
+  const normalizedTrialEnd = formatDateForDatabase(new Date(`${trialEnd}T12:00:00`));
+  return normalizedTrialEnd >= today ? normalizedTrialEnd : today;
+}
+
 function getNowIsoDateTime() {
   return new Date().toISOString();
 }
@@ -428,9 +439,7 @@ export async function startBillingCheckout({ organizationId }) {
           notificationDisabled: true,
         });
 
-  const nextDueDate = formatDateForDatabase(
-    organization.trial_end ? new Date(`${organization.trial_end}T12:00:00`) : getTodayDate(),
-  );
+  const nextDueDate = resolveCheckoutDueDate(organization.trial_end);
   const remoteSubscription = await createAsaasSubscription({
     customer: customer.id,
     billingType: "PIX",

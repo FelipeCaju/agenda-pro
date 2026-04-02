@@ -104,6 +104,24 @@ export function SubscriptionBlockedPage() {
                   </p>
                 </div>
               </div>
+
+              <div className="mt-4 flex flex-wrap gap-3">
+                <Button
+                  className="border-0 bg-[linear-gradient(135deg,#f8d7a7_0%,#e8b574_100%)] px-6 text-sm font-semibold text-[#5b2715] shadow-[0_14px_30px_rgba(91,39,21,0.20)] transition hover:brightness-[1.03]"
+                  onClick={() => navigate("/pagamento")}
+                  type="button"
+                >
+                  Ir para pagamento
+                </Button>
+                <Button
+                  className="border border-white/16 bg-white/8 text-white hover:bg-white/14"
+                  onClick={() => navigate("/meu-plano")}
+                  type="button"
+                  variant="secondary"
+                >
+                  Ver meu plano
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -163,12 +181,6 @@ export function SubscriptionBlockedPage() {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            <Button className="w-full" onClick={() => navigate("/pagamento")}>
-              Ir para pagamento
-            </Button>
-            <Button className="w-full" onClick={() => navigate("/meu-plano")} variant="secondary">
-              Ver meu plano
-            </Button>
             <Button className="w-full" onClick={() => navigate("/faturas")} variant="secondary">
               Ver faturas
             </Button>
