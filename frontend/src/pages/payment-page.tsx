@@ -61,6 +61,15 @@ export function PaymentPage() {
   } = useBillingMutations();
   const [copyMessage, setCopyMessage] = useState("");
 
+  useEffect(() => {
+    if (currentCharge?.paymentMethod === "pix" && currentCharge?.pixQrCodeText) {
+      setSelectedMethod("pix");
+      return;
+    }
+
+    setSelectedMethod("credit_card");
+  }, [currentCharge?.paymentMethod, currentCharge?.pixQrCodeText]);
+
   async function handleStartCheckout() {
     setCopyMessage("");
     await startCheckout();
@@ -125,15 +134,6 @@ export function PaymentPage() {
   const graceUntilLabel = overview?.access.graceUntil ? formatDateBR(overview.access.graceUntil) : null;
   const statusLabel = getSubscriptionStatusLabel(overview?.access.subscriptionStatus ?? null);
   const pixImageSrc = normalizePixImageSrc(currentCharge?.pixQrCodeImageUrl);
-
-  useEffect(() => {
-    if (currentCharge?.paymentMethod === "pix" && currentCharge?.pixQrCodeText) {
-      setSelectedMethod("pix");
-      return;
-    }
-
-    setSelectedMethod("credit_card");
-  }, [currentCharge?.paymentMethod, currentCharge?.pixQrCodeText]);
 
   return (
     <section className="space-y-4 pb-8 xl:space-y-5">
