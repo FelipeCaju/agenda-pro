@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { MobilePageHeader } from "@/components/layout/mobile-page-header";
 import { Button } from "@/components/ui/button";
@@ -44,6 +44,7 @@ async function copyText(value: string) {
 
 export function PaymentPage() {
   const navigate = useNavigate();
+  const [selectedMethod, setSelectedMethod] = useState<"credit_card" | "pix">("credit_card");
   const { data: overview, error, isError, isLoading } = useBillingOverviewQuery();
   const {
     data: currentCharge,
@@ -125,6 +126,15 @@ export function PaymentPage() {
   const statusLabel = getSubscriptionStatusLabel(overview?.access.subscriptionStatus ?? null);
   const pixImageSrc = normalizePixImageSrc(currentCharge?.pixQrCodeImageUrl);
 
+  useEffect(() => {
+    if (currentCharge?.paymentMethod === "pix" && currentCharge?.pixQrCodeText) {
+      setSelectedMethod("pix");
+      return;
+    }
+
+    setSelectedMethod("credit_card");
+  }, [currentCharge?.paymentMethod, currentCharge?.pixQrCodeText]);
+
   return (
     <section className="space-y-4 pb-8 xl:space-y-5">
       <MobilePageHeader
@@ -178,7 +188,7 @@ export function PaymentPage() {
             </div>
             <div className="rounded-[24px] border border-white/12 bg-white/10 px-4 py-4 backdrop-blur">
               <p className="text-xs uppercase tracking-[0.18em] text-white/65">Pagamento</p>
-              <p className="mt-2 text-lg font-semibold text-white">Pix com validacao por webhook</p>
+              <p className="mt-2 text-lg font-semibold text-white">Pix ou cartao com validacao por webhook</p>
             </div>
           </div>
         </div>
@@ -239,48 +249,79 @@ export function PaymentPage() {
         </Card>
 
         <Card className="space-y-4 border-slate-200 bg-white">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Checkout hospedado</p>
-                <h3 className="mt-1 text-xl font-semibold tracking-[-0.03em] text-ink">Cartao recorrente</h3>
-              </div>
-              <div className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-sky-700">
-                Asaas
-              </div>
-            </div>
-
-            <div className="rounded-[24px] border border-slate-200 bg-[linear-gradient(135deg,rgba(15,23,42,0.03),rgba(14,165,233,0.09))] p-4">
-              <p className="text-sm font-semibold text-ink">Pague com cartao sem expor dados no AgendaPro</p>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
-                O pagamento com cartao abre um checkout hospedado do Asaas. Numero do cartao, CVV e dados do titular ficam no gateway, nao no nosso backend.
-              </p>
-              <Button
-                className="mt-4 w-full sm:w-auto"
-                disabled={isStartingCardCheckout}
-                onClick={() => void handleStartCardCheckout()}
+          <div className="rounded-[22px] border border-slate-200 bg-slate-50/80 p-2">
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                className={`rounded-[18px] px-4 py-3 text-sm font-semibold transition ${
+                  selectedMethod === "credit_card"
+                    ? "bg-[#0f172a] text-white shadow-soft"
+                    : "bg-white text-slate-600"
+                }`}
+                onClick={() => setSelectedMethod("credit_card")}
                 type="button"
               >
-                {isStartingCardCheckout ? "Abrindo checkout..." : "Pagar com cartao"}
-              </Button>
-              {startCardCheckoutError ? (
-                <p className="mt-3 text-sm text-rose-600">{startCardCheckoutError.message}</p>
-              ) : null}
+                Cartao
+              </button>
+              <button
+                className={`rounded-[18px] px-4 py-3 text-sm font-semibold transition ${
+                  selectedMethod === "pix"
+                    ? "bg-emerald-600 text-white shadow-soft"
+                    : "bg-white text-slate-600"
+                }`}
+                onClick={() => setSelectedMethod("pix")}
+                type="button"
+              >
+                Pix
+              </button>
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Pagamento alternativo</p>
-              <h3 className="mt-1 text-xl font-semibold tracking-[-0.03em] text-ink">Pix</h3>
-            </div>
-            <div className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
-              Seguro
-            </div>
-          </div>
-
-          {currentCharge ? (
+          {selectedMethod === "credit_card" ? (
             <div className="space-y-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Checkout hospedado</p>
+                  <h3 className="mt-1 text-xl font-semibold tracking-[-0.03em] text-ink">Cartao recorrente</h3>
+                </div>
+                <div className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-sky-700">
+                  Asaas
+                </div>
+              </div>
+
+              <div className="rounded-[24px] border border-slate-200 bg-[linear-gradient(135deg,rgba(15,23,42,0.03),rgba(14,165,233,0.09))] p-4">
+                <p className="text-sm font-semibold text-ink">Pague com cartao sem expor dados no AgendaPro</p>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  Ao continuar, voce vai para um checkout seguro do Asaas. Numero do cartao, CVV e dados do titular ficam no gateway, nao no nosso backend.
+                </p>
+                <Button
+                  className="mt-4 w-full sm:w-auto"
+                  disabled={isStartingCardCheckout}
+                  onClick={() => void handleStartCardCheckout()}
+                  type="button"
+                >
+                  {isStartingCardCheckout ? "Abrindo checkout..." : "Pagar com cartao"}
+                </Button>
+                {startCardCheckoutError ? (
+                  <p className="mt-3 text-sm text-rose-600">{startCardCheckoutError.message}</p>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+
+          {selectedMethod === "pix" ? (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Pagamento instantaneo</p>
+                  <h3 className="mt-1 text-xl font-semibold tracking-[-0.03em] text-ink">Pix</h3>
+                </div>
+                <div className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
+                  Seguro
+                </div>
+              </div>
+
+              {currentCharge ? (
+                <>
               <div className="flex flex-col items-center gap-4 rounded-[28px] border border-slate-200 bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.10),rgba(255,255,255,1)_72%)] p-5 xl:flex-row xl:items-start xl:gap-5">
                 {pixImageSrc ? (
                   <img
@@ -329,12 +370,14 @@ export function PaymentPage() {
               </div>
 
               {copyMessage ? <p className="text-sm text-emerald-700">{copyMessage}</p> : null}
+                </>
+              ) : (
+                <div className="rounded-[24px] border border-slate-200 bg-slate-50/80 p-4 text-sm text-slate-500">
+                  Gere a cobranca do plano para visualizar o QR Code Pix e a fatura hospedada.
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="rounded-[24px] border border-slate-200 bg-slate-50/80 p-4 text-sm text-slate-500">
-              Gere a cobranca do plano para visualizar o QR Code Pix e a fatura hospedada.
-            </div>
-          )}
+          ) : null}
         </Card>
       </div>
     </section>

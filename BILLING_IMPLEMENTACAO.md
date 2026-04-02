@@ -181,6 +181,7 @@
 - [x] Cadastro inicial e onboarding passaram a exigir CPF/CNPJ do assinante
 - [x] Tela de pagamento passou a oferecer Pix e checkout hospedado com cartao
 - [x] Cadastro e configuracoes passaram a buscar cidade/IBGE automaticamente a partir do CEP
+- [x] Tela bloqueada passou a redirecionar direto para a tela de pagamento
 
 ### Pendencias
 - [ ] Revisar e migrar totalmente telas antigas que ainda usam historico legado
@@ -193,6 +194,7 @@
 - As telas novas consomem os endpoints de billing dedicados.
 - Organizacoes bloqueadas continuam acessando telas de billing em modo leitura/regularizacao.
 - O banner global aponta rapidamente para regularizacao sem liberar operacoes sensiveis do sistema.
+- A conta bloqueada usa a tela de pagamento como destino principal, reduzindo a intersticial visual antes da regularizacao.
 
 ### Riscos de compatibilidade identificados
 - Partes da gestao antiga ainda mostram dados de billing legado.
@@ -229,6 +231,7 @@
 - O Asaas pode exigir campos cadastrais adicionais por ambiente ou meio de pagamento.
 - O startup automatico do billing depende de permissao suficiente no MySQL.
 - O checkout com cartao exige perfil de billing completo na organizacao, incluindo endereco e codigo IBGE da cidade.
+- Ambientes MySQL antigos nao suportam mais de um trigger `BEFORE UPDATE` por tabela; a garantia automatica do schema precisa respeitar essa restricao.
 
 ## Etapa 9. O que falta para producao
 

@@ -52,6 +52,18 @@ async function hasIndex(tableName, indexName) {
   return rows.length > 0;
 }
 
+async function listTableTriggers(tableName) {
+  const rows = await query(
+    `SELECT trigger_name, action_timing, event_manipulation
+      FROM information_schema.triggers
+      WHERE trigger_schema = DATABASE()
+        AND event_object_table = ?`,
+    [tableName],
+  );
+
+  return rows;
+}
+
 async function ensureIndex(tableName, indexName, ddl) {
   if (await hasIndex(tableName, indexName)) {
     return;
@@ -433,6 +445,8 @@ async function ensureBillingTables() {
 async function ensureBillingTriggers() {
   const triggerStatements = [
     {
+      table: "subscription_plans",
+      name: "trg_subscription_plans_updated_at",
       drop: "DROP TRIGGER IF EXISTS trg_subscription_plans_updated_at",
       create: `CREATE TRIGGER trg_subscription_plans_updated_at
         BEFORE UPDATE ON subscription_plans
@@ -442,6 +456,8 @@ async function ensureBillingTriggers() {
         END`,
     },
     {
+      table: "organization_subscriptions",
+      name: "trg_organization_subscriptions_updated_at",
       drop: "DROP TRIGGER IF EXISTS trg_organization_subscriptions_updated_at",
       create: `CREATE TRIGGER trg_organization_subscriptions_updated_at
         BEFORE UPDATE ON organization_subscriptions
@@ -451,6 +467,8 @@ async function ensureBillingTriggers() {
         END`,
     },
     {
+      table: "billing_transactions",
+      name: "trg_billing_transactions_updated_at",
       drop: "DROP TRIGGER IF EXISTS trg_billing_transactions_updated_at",
       create: `CREATE TRIGGER trg_billing_transactions_updated_at
         BEFORE UPDATE ON billing_transactions
@@ -460,6 +478,8 @@ async function ensureBillingTriggers() {
         END`,
     },
     {
+      table: "organization_access_locks",
+      name: "trg_organization_access_locks_updated_at",
       drop: "DROP TRIGGER IF EXISTS trg_organization_access_locks_updated_at",
       create: `CREATE TRIGGER trg_organization_access_locks_updated_at
         BEFORE UPDATE ON organization_access_locks
@@ -471,6 +491,20 @@ async function ensureBillingTriggers() {
   ];
 
   for (const statement of triggerStatements) {
+    const existingTriggers = await listTableTriggers(statement.table);
+    const hasCompatibleBeforeUpdateTrigger = existingTriggers.some(
+      (trigger) =>
+        String(trigger.action_timing ?? "").toUpperCase() === "BEFORE" &&
+        String(trigger.event_manipulation ?? "").toUpperCase() === "UPDATE",
+    );
+    const hasOurTrigger = existingTriggers.some(
+      (trigger) => String(trigger.trigger_name ?? "") === statement.name,
+    );
+
+    if (hasCompatibleBeforeUpdateTrigger && !hasOurTrigger) {
+      continue;
+    }
+
     await query(statement.drop);
     await query(statement.create);
   }
@@ -505,7 +539,9 @@ async function ensureDefaultPlan() {
   );
 }
 
-export async function ensureBillingInfrastructure() {
+let billingInfrastructurePromise = null;
+
+async function ensureBillingInfrastructureInternal() {
   if (!(await hasTable("organizations"))) {
     return;
   }
@@ -527,6 +563,17 @@ export async function ensureBillingInfrastructure() {
     `ALTER TABLE billing_transactions
       MODIFY COLUMN pix_qr_code_image_url LONGTEXT COLLATE utf8mb4_unicode_ci NULL`,
   );
+}
+
+export async function ensureBillingInfrastructure() {
+  if (!billingInfrastructurePromise) {
+    billingInfrastructurePromise = ensureBillingInfrastructureInternal().catch((error) => {
+      billingInfrastructurePromise = null;
+      throw error;
+    });
+  }
+
+  return billingInfrastructurePromise;
 }
 
 export async function getBillingOrganizationSummary(organizationId) {
