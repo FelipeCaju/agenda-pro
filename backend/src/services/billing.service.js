@@ -58,6 +58,32 @@ function resolveCheckoutDueDate(trialEnd) {
   return normalizedTrialEnd >= today ? normalizedTrialEnd : today;
 }
 
+function addCycleToDueDate(baseDate, billingCycle = "monthly") {
+  const normalizedBaseDate = formatDateForDatabase(baseDate);
+
+  if (!normalizedBaseDate) {
+    return null;
+  }
+
+  const date = new Date(`${normalizedBaseDate}T12:00:00`);
+
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  const monthsToAdd =
+    billingCycle === "annual"
+      ? 12
+      : billingCycle === "semiannual"
+        ? 6
+        : billingCycle === "quarterly"
+          ? 3
+          : 1;
+
+  date.setMonth(date.getMonth() + monthsToAdd);
+  return formatDateForDatabase(date);
+}
+
 function getNowIsoDateTime() {
   return new Date().toISOString();
 }
@@ -237,6 +263,24 @@ async function refreshAsaasPayments(subscription, plan) {
   }
 
   return localTransactions;
+}
+
+function compareDueDateAsc(left, right) {
+  const leftValue = String(left?.dueDate ?? "");
+  const rightValue = String(right?.dueDate ?? "");
+  return leftValue.localeCompare(rightValue);
+}
+
+function resolveNextOpenCharge(payments, currentPaymentId = "") {
+  return (
+    payments
+      .filter((payment) => payment?.id !== currentPaymentId)
+      .filter((payment) => {
+        const localStatus = mapAsaasPaymentStatus(payment?.status);
+        return (localStatus === "pending" || localStatus === "overdue") && Boolean(payment?.dueDate);
+      })
+      .sort(compareDueDateAsc)[0] ?? null
+  );
 }
 
 async function enrichTransactionWithPix(transaction) {
@@ -830,6 +874,39 @@ async function applyPaymentWebhookEvent({
     subscription.gateway_subscription_id !== nextGatewaySubscriptionId
       ? subscription.gateway_subscription_id
       : null;
+  const subscriptionForLookup = {
+    ...subscription,
+    gateway_subscription_id: nextGatewaySubscriptionId ?? subscription.gateway_subscription_id,
+  };
+  const syncedPayments = subscriptionForLookup.gateway_subscription_id
+    ? await listAsaasSubscriptionPayments(subscriptionForLookup.gateway_subscription_id)
+    : [];
+
+  for (const subscriptionPayment of syncedPayments) {
+    await createOrUpdateBillingTransaction(
+      mapAsaasPaymentToTransactionInput(subscriptionPayment, {
+        organization_id: organizationId,
+        subscription_id: subscription.id,
+        plan_id: plan.id,
+        gateway_event_reference: eventId,
+        description: plan.name,
+        external_reference: buildCheckoutExternalReference(organizationId),
+      }),
+    );
+  }
+
+  const nextOpenCharge = resolveNextOpenCharge(syncedPayments, payment.id);
+  const resolvedNextDueDate =
+    nextOpenCharge?.dueDate ??
+    addCycleToDueDate(
+      payment.clientPaymentDate ?? payment.paymentDate ?? payment.dueDate ?? subscription.next_due_date,
+      subscription.billing_cycle,
+    ) ??
+    payment.dueDate ??
+    subscription.next_due_date ??
+    null;
+  const resolvedCurrentPeriodStart =
+    payment.clientPaymentDate ?? payment.paymentDate ?? getNowIsoDateTime();
 
   await runBillingTransaction(async (connection) => {
     await updateOrganizationSubscription(
@@ -837,7 +914,7 @@ async function applyPaymentWebhookEvent({
       {
         gateway_customer_id: payment.customer ?? subscription.gateway_customer_id,
         gateway_subscription_id: nextGatewaySubscriptionId ?? subscription.gateway_subscription_id,
-        next_due_date: payment.dueDate ?? subscription.next_due_date,
+        next_due_date: resolvedNextDueDate,
       },
       connection,
     );
@@ -849,12 +926,14 @@ async function applyPaymentWebhookEvent({
           status: "active",
           gateway_customer_id: payment.customer ?? subscription.gateway_customer_id,
           gateway_subscription_id: nextGatewaySubscriptionId ?? subscription.gateway_subscription_id,
-          next_due_date: payment.dueDate ?? subscription.next_due_date,
+          current_period_start: resolvedCurrentPeriodStart,
+          current_period_end: resolvedNextDueDate,
+          next_due_date: resolvedNextDueDate,
           grace_until: null,
           blocked_at: null,
           cancelled_at: null,
           expired_at: null,
-          last_payment_at: payment.clientPaymentDate ?? payment.paymentDate ?? getNowIsoDateTime(),
+          last_payment_at: resolvedCurrentPeriodStart,
           last_status_change_at: getNowIsoDateTime(),
         },
         connection,
@@ -878,7 +957,7 @@ async function applyPaymentWebhookEvent({
           monthly_amount_cents: plan.price_cents,
           subscription_status: "active",
           subscription_plan: plan.code,
-          due_date: payment.dueDate ?? subscription.next_due_date,
+          due_date: resolvedNextDueDate,
           trial_end: null,
         },
         connection,

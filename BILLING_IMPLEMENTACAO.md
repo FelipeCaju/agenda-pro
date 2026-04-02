@@ -183,6 +183,7 @@
 - [x] Cadastro e configuracoes passaram a buscar cidade/IBGE automaticamente a partir do CEP
 - [x] Tela bloqueada passou a redirecionar direto para a tela de pagamento
 - [x] Tela de pagamento passou a orientar retorno do checkout externo e exibicao de status confirmado apos webhook
+- [x] Confirmacao de pagamento passou a recalcular a proxima cobranca pelo ciclo quando o sandbox ainda nao devolve a proxima parcela aberta
 
 ### Pendencias
 - [ ] Revisar e migrar totalmente telas antigas que ainda usam historico legado
@@ -197,6 +198,7 @@
 - O banner global aponta rapidamente para regularizacao sem liberar operacoes sensiveis do sistema.
 - A conta bloqueada usa a tela de pagamento como destino principal, reduzindo a intersticial visual antes da regularizacao.
 - O checkout hospedado com cartao assume falha visual do sandbox do Asaas e orienta o usuario a atualizar o status antes de repetir a tentativa.
+- Quando o gateway confirma um pagamento e ainda nao expõe a parcela seguinte no sandbox, o sistema projeta a proxima cobranca a partir do ciclo da assinatura para manter a data futura correta.
 
 ### Riscos de compatibilidade identificados
 - Partes da gestao antiga ainda mostram dados de billing legado.
