@@ -114,10 +114,9 @@ export function SubscriptionBlockedPage() {
                   Ir para pagamento
                 </Button>
                 <Button
-                  className="border border-white/16 bg-white/8 text-white hover:bg-white/14"
+                  className="border border-white/20 bg-white/12 px-5 text-sm font-semibold text-white shadow-[0_12px_28px_rgba(17,24,39,0.18)] hover:bg-white/18"
                   onClick={() => navigate("/meu-plano")}
                   type="button"
-                  variant="secondary"
                 >
                   Ver meu plano
                 </Button>
