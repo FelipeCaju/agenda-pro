@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { MobilePageHeader } from "@/components/layout/mobile-page-header";
 import { Button } from "@/components/ui/button";
@@ -46,6 +46,7 @@ export function PaymentPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const [selectedMethod, setSelectedMethod] = useState<"credit_card" | "pix">("credit_card");
+  const hasPreparedPixChargeRef = useRef(false);
   const { data: overview, error, isError, isLoading } = useBillingOverviewQuery();
   const {
     data: currentCharge,
@@ -62,6 +63,10 @@ export function PaymentPage() {
   } = useBillingMutations();
   const [copyMessage, setCopyMessage] = useState("");
   const checkoutState = new URLSearchParams(location.search).get("checkout");
+  const needsPixPreparation =
+    !currentCharge ||
+    currentCharge.paymentMethod !== "pix" ||
+    (!currentCharge.pixQrCodeText && !currentCharge.pixQrCodeImageUrl);
 
   useEffect(() => {
     if (currentCharge?.paymentMethod === "pix" && currentCharge?.pixQrCodeText) {
@@ -71,6 +76,31 @@ export function PaymentPage() {
 
     setSelectedMethod("credit_card");
   }, [currentCharge?.paymentMethod, currentCharge?.pixQrCodeText]);
+
+  useEffect(() => {
+    if (isLoading || isStartingCheckout || hasPreparedPixChargeRef.current || !overview || isError || isCurrentChargeError) {
+      return;
+    }
+
+    if (!needsPixPreparation) {
+      hasPreparedPixChargeRef.current = true;
+      return;
+    }
+
+    hasPreparedPixChargeRef.current = true;
+    void startCheckout().catch(() => {
+      hasPreparedPixChargeRef.current = false;
+    });
+  }, [
+    currentCharge,
+    isCurrentChargeError,
+    isError,
+    isLoading,
+    isStartingCheckout,
+    needsPixPreparation,
+    overview,
+    startCheckout,
+  ]);
 
   async function handleStartCheckout() {
     setCopyMessage("");
@@ -253,17 +283,13 @@ export function PaymentPage() {
 
           {!currentCharge ? (
             <div className="rounded-[24px] border border-emerald-100 bg-emerald-50/80 p-4">
-              <p className="text-sm font-semibold text-emerald-900">Sua cobranca ainda nao foi preparada</p>
+              <p className="text-sm font-semibold text-emerald-900">Estamos preparando sua cobranca</p>
               <p className="mt-2 text-sm text-emerald-800">
-                Gere agora a cobranca do plano mensal de {formatCurrencyFromCents(planPriceCents)} para abrir o pagamento.
+                Assim que a tela abre, o sistema prepara automaticamente o Pix do plano mensal de{" "}
+                {formatCurrencyFromCents(planPriceCents)} para deixar o pagamento pronto.
               </p>
-              <Button
-                className="mt-4 w-full sm:w-auto"
-                disabled={isStartingCheckout}
-                onClick={() => void handleStartCheckout()}
-                type="button"
-              >
-                {isStartingCheckout ? "Preparando pagamento..." : "Gerar pagamento agora"}
+              <Button className="mt-4 w-full sm:w-auto" disabled type="button">
+                {isStartingCheckout ? "Preparando pagamento..." : "Preparando automaticamente..."}
               </Button>
             </div>
           ) : (
@@ -272,6 +298,11 @@ export function PaymentPage() {
               <p className="mt-2 text-sm text-slate-600">
                 O plano mensal ja esta configurado com o valor de {formatCurrencyFromCents(planPriceCents)}.
               </p>
+              {needsPixPreparation ? (
+                <p className="mt-2 text-sm text-slate-600">
+                  Estamos atualizando os dados do Pix para deixar o QR Code disponivel nesta tela.
+                </p>
+              ) : null}
               {currentCharge.dueDate ? (
                 <p className="mt-2 text-sm text-slate-600">
                   Vencimento atual: <strong className="text-ink">{formatDateBR(currentCharge.dueDate)}</strong>
@@ -381,14 +412,17 @@ export function PaymentPage() {
                   />
                 ) : (
                   <div className="flex h-60 w-60 shrink-0 items-center justify-center rounded-[26px] border border-slate-200 bg-white p-6 text-center text-sm text-slate-500">
-                    O QR Code Pix sera disponibilizado assim que a cobranca estiver pronta no gateway.
+                    {isStartingCheckout || needsPixPreparation
+                      ? "Estamos gerando o QR Code Pix para deixar o pagamento pronto nesta tela."
+                      : "O QR Code Pix sera disponibilizado assim que a cobranca estiver pronta no gateway."}
                   </div>
                 )}
 
                 <div className="w-full rounded-[24px] border border-slate-200 bg-white px-4 py-4 shadow-soft xl:min-h-[240px]">
                   <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Codigo Pix</p>
                   <p className="mt-2 break-all text-sm font-semibold leading-6 text-ink">
-                    {currentCharge.pixQrCodeText || "Ainda indisponivel"}
+                    {currentCharge.pixQrCodeText ||
+                      (isStartingCheckout || needsPixPreparation ? "Gerando codigo Pix..." : "Ainda indisponivel")}
                   </p>
                 </div>
               </div>
@@ -419,11 +453,17 @@ export function PaymentPage() {
                 </p>
               </div>
 
+              {isStartingCheckout || needsPixPreparation ? (
+                <p className="text-sm text-slate-500">
+                  O Pix esta sendo preparado automaticamente para ficar disponivel mesmo se voce preferir pagar com cartao.
+                </p>
+              ) : null}
+
               {copyMessage ? <p className="text-sm text-emerald-700">{copyMessage}</p> : null}
                 </>
               ) : (
                 <div className="rounded-[24px] border border-slate-200 bg-slate-50/80 p-4 text-sm text-slate-500">
-                  Gere a cobranca do plano para visualizar o QR Code Pix e a fatura hospedada.
+                  Estamos preparando automaticamente a cobranca do plano para exibir o QR Code Pix e a fatura hospedada.
                 </div>
               )}
             </div>
