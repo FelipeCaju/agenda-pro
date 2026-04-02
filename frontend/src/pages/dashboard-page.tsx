@@ -38,7 +38,7 @@ function MetricCard({
   value: string;
 }) {
   return (
-    <Card className="rounded-[22px] border border-slate-200/70 bg-white px-4 py-4 shadow-[0_4px_16px_rgba(15,23,36,0.05)]">
+    <Card className="rounded-[22px] border border-slate-200/70 bg-white px-4 py-4 shadow-[0_4px_16px_rgba(15,23,36,0.05)] xl:min-h-[196px] xl:px-5 xl:py-5">
       <div className={`flex h-11 w-11 items-center justify-center rounded-2xl ${iconTone}`}>{icon}</div>
       <p className="mt-6 text-sm text-slate-500">{label}</p>
       <p className="mt-2 text-[2rem] font-semibold tracking-[-0.04em] text-ink">{value}</p>
@@ -60,7 +60,7 @@ function HighlightCard({
   subtitle: string;
 }) {
   return (
-    <Card className="rounded-[22px] border border-slate-200/70 bg-white px-4 py-4 shadow-[0_4px_16px_rgba(15,23,36,0.05)]">
+    <Card className="rounded-[22px] border border-slate-200/70 bg-white px-4 py-4 shadow-[0_4px_16px_rgba(15,23,36,0.05)] xl:min-h-[132px] xl:px-5 xl:py-5">
       <div className="flex items-center gap-4">
         <div className={`flex h-11 w-11 items-center justify-center rounded-2xl ${iconTone}`}>{icon}</div>
         <div>
@@ -101,7 +101,7 @@ function ServiceFinanceChart({
   }
 
   return (
-    <Card className="rounded-[22px] border border-slate-200/70 bg-white px-4 py-4 shadow-[0_4px_16px_rgba(15,23,36,0.05)]">
+    <Card className="rounded-[22px] border border-slate-200/70 bg-white px-4 py-4 shadow-[0_4px_16px_rgba(15,23,36,0.05)] xl:px-5 xl:py-5">
       <div className="flex items-start justify-between gap-3">
         <p className="text-sm font-semibold text-ink">Financeiro por servico</p>
         {selectedServiceId ? (
@@ -299,13 +299,13 @@ export function DashboardPage() {
   ]);
 
   return (
-    <section className="space-y-4 pb-24">
+    <section className="space-y-4 pb-24 xl:space-y-5">
       <MobilePageHeader subtitle="Visao geral do negocio" title="Painel" />
 
-      <Card className="rounded-[22px] border border-slate-200/70 bg-white px-4 py-4 shadow-[0_4px_16px_rgba(15,23,36,0.05)]">
+      <Card className="rounded-[22px] border border-slate-200/70 bg-white px-4 py-4 shadow-[0_4px_16px_rgba(15,23,36,0.05)] xl:px-5 xl:py-5">
         <p className="text-sm font-semibold text-ink">Filtros</p>
 
-        <div className="mt-5 grid grid-cols-2 gap-3">
+        <div className="mt-5 grid grid-cols-2 gap-3 xl:grid-cols-4 xl:gap-4">
           <label className="block space-y-2">
             <span className="text-sm text-slate-500">Data Inicial</span>
             <div className="relative">
@@ -355,7 +355,7 @@ export function DashboardPage() {
             selectedServiceId={selectedServiceId}
           />
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-4 xl:gap-4">
             <MetricCard
               icon={<MoneyIcon className="h-5 w-5 text-emerald-600" />}
               iconTone="bg-emerald-50"
@@ -382,21 +382,23 @@ export function DashboardPage() {
             />
           </div>
 
-          <HighlightCard
-            icon={<ScissorsIcon className="h-5 w-5 text-amber-500" />}
-            iconTone="bg-amber-50"
-            name={topService?.nome ?? "Sem destaque"}
-            subtitle={`${topService?.total ?? 0} atendimento(s)`}
-            title="Servico mais realizado"
-          />
+          <div className="grid gap-3 xl:grid-cols-2 xl:gap-4">
+            <HighlightCard
+              icon={<ScissorsIcon className="h-5 w-5 text-amber-500" />}
+              iconTone="bg-amber-50"
+              name={topService?.nome ?? "Sem destaque"}
+              subtitle={`${topService?.total ?? 0} atendimento(s)`}
+              title="Servico mais realizado"
+            />
 
-          <HighlightCard
-            icon={<UsersIcon className="h-5 w-5 text-brand-500" />}
-            iconTone="bg-brand-50"
-            name={topClient?.nome ?? "Sem destaque"}
-            subtitle={`${topClient?.total ?? 0} atendimento(s) no recorte atual`}
-            title={selectedServiceId ? "Cliente em destaque" : "Cliente mais frequente"}
-          />
+            <HighlightCard
+              icon={<UsersIcon className="h-5 w-5 text-brand-500" />}
+              iconTone="bg-brand-50"
+              name={topClient?.nome ?? "Sem destaque"}
+              subtitle={`${topClient?.total ?? 0} atendimento(s) no recorte atual`}
+              title={selectedServiceId ? "Cliente em destaque" : "Cliente mais frequente"}
+            />
+          </div>
         </>
       ) : null}
     </section>

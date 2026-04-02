@@ -62,7 +62,7 @@ export function ManagementPage() {
   }
 
   return (
-    <section className="space-y-4">
+    <section className="space-y-4 xl:space-y-5">
       <MobilePageHeader
         action={
           <Button
@@ -137,8 +137,8 @@ export function ManagementPage() {
 
       {organization ? (
         <>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            <Card>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 xl:gap-4">
+            <Card className="xl:min-h-[270px]">
               <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Empresa</p>
               <h3 className="mt-2 text-lg font-semibold text-ink">{organization.nomeEmpresa}</h3>
               <div className="mt-4 space-y-2 text-sm text-slate-600">
@@ -149,7 +149,7 @@ export function ManagementPage() {
               </div>
             </Card>
 
-            <Card>
+            <Card className="xl:min-h-[270px]">
               <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Pagamento</p>
               <h3 className="mt-2 text-lg font-semibold text-ink">Situacao da assinatura</h3>
               <div className="mt-4 space-y-2 text-sm text-slate-600">
@@ -215,7 +215,7 @@ export function ManagementPage() {
               ) : null}
             </Card>
 
-            <Card>
+            <Card className="xl:min-h-[270px]">
               <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Acoes</p>
               <h3 className="mt-2 text-lg font-semibold text-ink">Atalhos uteis</h3>
               <div className="mt-4 flex flex-col gap-3">
@@ -235,8 +235,8 @@ export function ManagementPage() {
             </Card>
           </div>
 
-          <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-            <Card>
+          <div className="grid gap-4 xl:grid-cols-[1.12fr_0.88fr] xl:gap-5">
+            <Card className="xl:min-h-[100%]">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Pagamentos</p>
@@ -276,7 +276,7 @@ export function ManagementPage() {
               </div>
             </Card>
 
-            <Card>
+            <Card className="xl:min-h-[100%]">
               <div>
                 <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Equipe</p>
                 <h3 className="mt-1 text-lg font-semibold text-ink">Funcionarios da empresa</h3>

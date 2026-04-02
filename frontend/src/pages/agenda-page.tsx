@@ -157,19 +157,19 @@ export function AgendaPage() {
 
   return (
     <PullToRefresh isRefreshing={isFetching} onRefresh={refetch}>
-      <section className="space-y-4 pb-2">
+      <section className="space-y-4 pb-2 xl:space-y-5">
         <div
-          className="sticky top-0 z-[55] -mx-3 space-y-4 border-b border-slate-100 bg-white/95 px-3 pb-4 backdrop-blur-xl sm:-mx-4 sm:px-4 xl:static xl:mx-0 xl:border-b-0 xl:bg-transparent xl:px-0 xl:pb-0 xl:backdrop-blur-none"
+          className="sticky top-0 z-[55] -mx-3 space-y-4 border-b border-slate-100 bg-white/95 px-3 pb-4 backdrop-blur-xl sm:-mx-4 sm:px-4 xl:static xl:mx-0 xl:space-y-5 xl:border-b-0 xl:bg-transparent xl:px-0 xl:pb-1 xl:backdrop-blur-none"
           style={{ paddingTop: "env(safe-area-inset-top)" }}
         >
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center justify-between gap-3 xl:gap-6">
             <div>
-              <p className="text-[1.9rem] font-bold tracking-[-0.04em] text-ink">{heroDateLabel}</p>
+              <p className="text-[1.9rem] font-bold tracking-[-0.04em] text-ink xl:text-[2.3rem]">{heroDateLabel}</p>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 xl:gap-3">
               <button
-                className={`rounded-full px-3 py-1.5 text-sm font-semibold transition ${
+                className={`rounded-full px-3 py-1.5 text-sm font-semibold transition xl:px-4 xl:py-2 ${
                   isToday ? "bg-brand-50 text-brand-700" : "bg-white text-slate-500 shadow-sm"
                 }`}
                 onClick={() => startTransition(() => setSelectedDate(getTodayDate()))}
@@ -182,39 +182,41 @@ export function AgendaPage() {
             </div>
           </div>
 
-          <div className="rounded-[18px] bg-white/70 p-1.5 shadow-sm">
-            <div className="grid grid-cols-3 gap-1.5">
-              {viewOptions.map((option) => (
-                <button
-                  className={`rounded-[14px] px-3 py-2.5 text-sm font-semibold transition ${
-                    view === option.value
-                      ? "bg-brand-500 text-white shadow-soft"
-                      : "text-slate-500"
-                  }`}
-                  key={option.value}
-                  onClick={() => startTransition(() => setView(option.value))}
-                  type="button"
-                >
-                  {option.label}
-                </button>
-              ))}
+          <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-center">
+            <div className="rounded-[18px] bg-white/70 p-1.5 shadow-sm">
+              <div className="grid grid-cols-3 gap-1.5">
+                {viewOptions.map((option) => (
+                  <button
+                    className={`rounded-[14px] px-3 py-2.5 text-sm font-semibold transition xl:py-3 ${
+                      view === option.value
+                        ? "bg-brand-500 text-white shadow-soft"
+                        : "text-slate-500"
+                    }`}
+                    key={option.value}
+                    onClick={() => startTransition(() => setView(option.value))}
+                    type="button"
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
 
-          <div className="relative">
-            <select
-              className="app-select appearance-none bg-white pr-10 text-sm"
-              onChange={(event) => setSelectedProfessionalId(event.target.value)}
-              value={selectedProfessionalId}
-            >
-              <option value="">Todos os profissionais</option>
-              {professionals.map((professional) => (
-                <option key={professional.id} value={professional.id}>
-                  {professional.nome}
-                </option>
-              ))}
-            </select>
-            <ChevronDownIcon className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <div className="relative">
+              <select
+                className="app-select appearance-none bg-white pr-10 text-sm"
+                onChange={(event) => setSelectedProfessionalId(event.target.value)}
+                value={selectedProfessionalId}
+              >
+                <option value="">Todos os profissionais</option>
+                {professionals.map((professional) => (
+                  <option key={professional.id} value={professional.id}>
+                    {professional.nome}
+                  </option>
+                ))}
+              </select>
+              <ChevronDownIcon className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            </div>
           </div>
         </div>
 

@@ -70,9 +70,9 @@ export function SubscriptionBlockedPage() {
           : `A assinatura da empresa ${companyName} esta em restricao no momento.`;
 
   return (
-    <section className="space-y-4 pb-8">
+    <section className="space-y-4 pb-8 xl:space-y-5">
       <Card className="overflow-hidden border-0 bg-[linear-gradient(145deg,#3f0d12_0%,#7f1d1d_36%,#111827_100%)] p-0 text-white shadow-[0_24px_60px_rgba(17,24,39,0.30)]">
-        <div className="grid gap-6 px-5 py-6 sm:px-6 xl:grid-cols-[1.08fr_0.92fr] xl:px-8 xl:py-8">
+        <div className="grid gap-6 px-5 py-6 sm:px-6 xl:grid-cols-[minmax(0,1.08fr)_320px] xl:items-start xl:px-8 xl:py-8">
           <div className="space-y-4">
             <div className="inline-flex rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.28em] text-white/80">
               Acesso restrito
@@ -124,7 +124,7 @@ export function SubscriptionBlockedPage() {
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
+          <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1 xl:self-stretch">
             <div className="rounded-[24px] border border-white/12 bg-white/10 px-4 py-4 backdrop-blur">
               <p className="text-xs uppercase tracking-[0.18em] text-white/65">Status</p>
               <p className="mt-2 text-lg font-semibold text-white">
@@ -147,7 +147,7 @@ export function SubscriptionBlockedPage() {
         </div>
       </Card>
 
-      <div className="grid gap-4 xl:grid-cols-[0.92fr_1.08fr]">
+      <div className="grid gap-4 xl:grid-cols-[360px_minmax(0,1fr)] xl:items-start xl:gap-5">
         <Card className="space-y-4 border-slate-200 bg-[linear-gradient(180deg,rgba(248,250,252,0.96),rgba(255,255,255,1))]">
           <div className="space-y-2">
             <p className="text-xs uppercase tracking-[0.2em] text-slate-500">O que acontece agora</p>
@@ -170,7 +170,7 @@ export function SubscriptionBlockedPage() {
           </div>
         </Card>
 
-        <Card className="space-y-4 border-slate-200 bg-white">
+        <Card className="space-y-4 border-slate-200 bg-white xl:min-h-[100%]">
           <div className="space-y-2">
             <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Regularizar agora</p>
             <h2 className="text-xl font-semibold tracking-[-0.03em] text-ink">Acoes rapidas</h2>

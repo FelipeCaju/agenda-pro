@@ -126,7 +126,7 @@ export function PaymentPage() {
   const pixImageSrc = normalizePixImageSrc(currentCharge?.pixQrCodeImageUrl);
 
   return (
-    <section className="space-y-4 pb-8">
+    <section className="space-y-4 pb-8 xl:space-y-5">
       <MobilePageHeader
         action={
           <Button onClick={() => navigate("/meu-plano")} type="button" variant="secondary">
@@ -138,7 +138,7 @@ export function PaymentPage() {
       />
 
       <Card className="overflow-hidden border-0 bg-[linear-gradient(135deg,#0f172a_0%,#1e293b_48%,#0f766e_100%)] p-0 text-white shadow-[0_24px_60px_rgba(15,23,42,0.26)]">
-        <div className="grid gap-6 px-5 py-6 sm:px-6 xl:grid-cols-[1.1fr_0.9fr] xl:px-8 xl:py-8">
+        <div className="grid gap-6 px-5 py-6 sm:px-6 xl:grid-cols-[minmax(0,1.1fr)_340px] xl:items-start xl:px-8 xl:py-8">
           <div className="space-y-4">
             <div className="inline-flex rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.28em] text-white/80">
               Assinatura profissional
@@ -167,7 +167,7 @@ export function PaymentPage() {
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
+          <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1 xl:self-stretch">
             <div className="rounded-[24px] border border-white/12 bg-white/10 px-4 py-4 backdrop-blur">
               <p className="text-xs uppercase tracking-[0.18em] text-white/65">Vencimento</p>
               <p className="mt-2 text-lg font-semibold text-white">{dueDateLabel}</p>
@@ -184,8 +184,8 @@ export function PaymentPage() {
         </div>
       </Card>
 
-      <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
-        <Card className="space-y-4 border-slate-200 bg-[linear-gradient(180deg,rgba(248,250,252,0.96),rgba(255,255,255,1))]">
+      <div className="grid gap-4 xl:grid-cols-[360px_minmax(0,1fr)] xl:items-start xl:gap-5">
+        <Card className="space-y-4 border-slate-200 bg-[linear-gradient(180deg,rgba(248,250,252,0.96),rgba(255,255,255,1))] xl:sticky xl:top-6">
           <div className="space-y-2">
             <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Como funciona</p>
             <h3 className="text-xl font-semibold tracking-[-0.03em] text-ink">Regularize em poucos passos</h3>
@@ -281,20 +281,20 @@ export function PaymentPage() {
 
           {currentCharge ? (
             <div className="space-y-4">
-              <div className="flex flex-col items-center gap-4 rounded-[28px] border border-slate-200 bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.10),rgba(255,255,255,1)_72%)] p-5">
+              <div className="flex flex-col items-center gap-4 rounded-[28px] border border-slate-200 bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.10),rgba(255,255,255,1)_72%)] p-5 xl:flex-row xl:items-start xl:gap-5">
                 {pixImageSrc ? (
                   <img
                     alt="QR Code Pix"
-                    className="h-60 w-60 rounded-[26px] border border-slate-200 bg-white p-3 shadow-soft"
+                    className="h-60 w-60 shrink-0 rounded-[26px] border border-slate-200 bg-white p-3 shadow-soft"
                     src={pixImageSrc}
                   />
                 ) : (
-                  <div className="flex h-60 w-60 items-center justify-center rounded-[26px] border border-slate-200 bg-white p-6 text-center text-sm text-slate-500">
+                  <div className="flex h-60 w-60 shrink-0 items-center justify-center rounded-[26px] border border-slate-200 bg-white p-6 text-center text-sm text-slate-500">
                     O QR Code Pix sera disponibilizado assim que a cobranca estiver pronta no gateway.
                   </div>
                 )}
 
-                <div className="w-full rounded-[24px] border border-slate-200 bg-white px-4 py-4 shadow-soft">
+                <div className="w-full rounded-[24px] border border-slate-200 bg-white px-4 py-4 shadow-soft xl:min-h-[240px]">
                   <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Codigo Pix</p>
                   <p className="mt-2 break-all text-sm font-semibold leading-6 text-ink">
                     {currentCharge.pixQrCodeText || "Ainda indisponivel"}
