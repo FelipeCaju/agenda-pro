@@ -30,7 +30,17 @@ export type SessionOrganization = {
   id: string;
   nomeEmpresa: string;
   monthlyAmount?: number;
-  subscriptionStatus: "active" | "overdue" | "blocked" | "trial" | "canceled";
+  subscriptionStatus:
+    | "trialing"
+    | "pending_payment"
+    | "active"
+    | "past_due"
+    | "cancelled"
+    | "expired"
+    | "blocked"
+    | "overdue"
+    | "trial"
+    | "canceled";
   subscriptionPlan: string;
   dueDate: string | null;
   trialEnd: string | null;

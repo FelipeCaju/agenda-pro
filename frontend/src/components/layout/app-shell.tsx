@@ -1,3 +1,4 @@
+import { BillingAlertBanner } from "@/components/billing/billing-alert-banner";
 import { DesktopSidebar } from "@/components/layout/desktop-sidebar";
 import { useLocalNotificationSync } from "@/hooks/use-local-notification-sync";
 import { Outlet } from "react-router-dom";
@@ -16,6 +17,7 @@ export function AppShell() {
               {lastSyncSummary}
             </div>
           ) : null}
+          <BillingAlertBanner />
           <Outlet />
         </main>
       </div>

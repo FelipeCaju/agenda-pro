@@ -1,213 +1,270 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { MobilePageHeader } from "@/components/layout/mobile-page-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FullscreenState } from "@/components/ui/fullscreen-state";
-import { useOrganizationMutations } from "@/hooks/use-organization-mutations";
-import {
-  useOrganizationPaymentsQuery,
-  useOrganizationQuery,
-} from "@/hooks/use-organization-query";
+import { useBillingMutations } from "@/hooks/use-billing-mutations";
+import { useBillingCurrentChargeQuery, useBillingOverviewQuery } from "@/hooks/use-billing-query";
 import { formatDateBR } from "@/utils/date";
-import { buildPixQrUrl, copyPixKey } from "@/utils/pix";
+import { getSubscriptionStatusLabel } from "@/utils/billing";
 
-function formatCurrency(value: number) {
+function formatCurrencyFromCents(value: number) {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: "BRL",
-  }).format(value);
+  }).format(Number(value ?? 0) / 100);
 }
 
-function getTitle(status?: string | null) {
-  if (status === "trial") return "Comprar sistema";
-  if (status === "overdue" || status === "blocked") return "Regularizar assinatura";
-  return "Pagamento do sistema";
-}
-
-function formatReferenceMonth(value?: string | null) {
-  if (!value || !/^\d{4}-\d{2}$/.test(value)) {
-    return "Mes atual";
+async function copyText(value: string) {
+  if (!value.trim()) {
+    throw new Error("Nao existe codigo Pix disponivel para copiar.");
   }
 
-  const [year, month] = value.split("-");
-  return new Intl.DateTimeFormat("pt-BR", {
-    month: "long",
-    year: "numeric",
-  }).format(new Date(Number(year), Number(month) - 1, 1));
+  await navigator.clipboard.writeText(value);
 }
 
 export function PaymentPage() {
   const navigate = useNavigate();
+  const { data: overview, error, isError, isLoading } = useBillingOverviewQuery();
   const {
-    data: organization,
-    error: organizationError,
-    isError: isOrganizationError,
-    isLoading: isLoadingOrganization,
-  } = useOrganizationQuery();
-  const { data: payments = [] } = useOrganizationPaymentsQuery();
-  const { notifyPaymentPaid, isNotifyingPaymentPaid, notifyPaymentPaidError } =
-    useOrganizationMutations();
+    data: currentCharge,
+    error: currentChargeError,
+    isError: isCurrentChargeError,
+  } = useBillingCurrentChargeQuery();
+  const { startCheckout, isStartingCheckout, startCheckoutError } = useBillingMutations();
   const [copyMessage, setCopyMessage] = useState("");
-  const [paymentSignalMessage, setPaymentSignalMessage] = useState("");
-  const latestPayment = payments[0] ?? null;
-  const billingAmount = latestPayment?.amount ?? organization?.latestPaymentAmount ?? 0;
-  const billingReferenceMonth = latestPayment?.referenceMonth ?? organization?.latestReferenceMonth ?? null;
 
-  const qrCodeUrl = useMemo(() => buildPixQrUrl(organization?.pixKey ?? ""), [organization?.pixKey]);
+  async function handleStartCheckout() {
+    setCopyMessage("");
+    await startCheckout();
+  }
 
-  async function handleCopyPixKey() {
+  async function handleCopyPix() {
     setCopyMessage("");
 
     try {
-      await copyPixKey(organization?.pixKey ?? "");
-      setCopyMessage("Chave Pix copiada com sucesso.");
-    } catch (error) {
-      setCopyMessage(error instanceof Error ? error.message : "Nao foi possivel copiar a chave Pix.");
+      await copyText(currentCharge?.pixQrCodeText ?? "");
+      setCopyMessage("Codigo Pix copiado com sucesso.");
+    } catch (copyError) {
+      setCopyMessage(copyError instanceof Error ? copyError.message : "Nao foi possivel copiar o Pix.");
     }
   }
 
-  async function handleNotifyPaymentPaid() {
-    try {
-      await notifyPaymentPaid({ paymentId: organization?.latestPaymentId ?? null });
-      setPaymentSignalMessage(
-        "Pagamento informado com sucesso. Aguarde enquanto processamos e validamos a liberacao do seu acesso.",
-      );
-    } catch {
-      return;
-    }
-  }
-
-  if (isLoadingOrganization && !organization) {
+  if (isLoading && !overview) {
     return (
       <FullscreenState
         eyebrow="Pagamento"
-        title="Carregando dados de cobranca"
-        description="Estamos buscando a chave Pix e o status da assinatura."
+        title="Carregando cobranca"
+        description="Estamos buscando a cobranca atual e os dados da assinatura."
       />
     );
   }
 
-  if (isOrganizationError || !organization) {
+  if ((isError && !overview) || isCurrentChargeError) {
     return (
       <FullscreenState
         eyebrow="Pagamento"
-        title="Nao foi possivel abrir a cobranca"
-        description={organizationError?.message ?? "Organizacao nao encontrada."}
+        title="Nao foi possivel abrir o pagamento"
+        description={error?.message ?? currentChargeError?.message ?? "Falha ao carregar billing."}
         action={
-          <Button onClick={() => navigate("/gestao")} type="button">
-            Voltar para gestao
+          <Button onClick={() => navigate("/meu-plano")} type="button">
+            Voltar para meu plano
           </Button>
         }
       />
     );
   }
+
+  const planName = overview?.plan?.name ?? "AgendaPro Mensal";
+  const planPriceCents = currentCharge?.amountCents ?? overview?.plan?.priceCents ?? 2990;
+  const planDescription =
+    overview?.plan?.description ?? "Assinatura mensal para manter sua empresa ativa no AgendaPro.";
+  const dueDateLabel = overview?.access.dueDate ? formatDateBR(overview.access.dueDate) : "Assim que a cobranca for gerada";
+  const graceUntilLabel = overview?.access.graceUntil ? formatDateBR(overview.access.graceUntil) : null;
+  const statusLabel = getSubscriptionStatusLabel(overview?.access.subscriptionStatus ?? null);
 
   return (
     <section className="space-y-4 pb-8">
       <MobilePageHeader
         action={
-          <Button onClick={() => navigate("/gestao")} type="button" variant="secondary">
+          <Button onClick={() => navigate("/meu-plano")} type="button" variant="secondary">
             Voltar
           </Button>
         }
-        subtitle="Pix com QR Code e copia da chave"
-        title={getTitle(organization.subscriptionStatus)}
+        subtitle="Plano mensal e regularizacao segura via Asaas"
+        title="Pagamento"
       />
 
-      <div className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
-        <Card className="space-y-4">
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Resumo</p>
-          <div className="space-y-2 text-sm text-slate-600">
-            <p>
-              Empresa: <strong className="text-ink">{organization.nomeEmpresa}</strong>
-            </p>
-            <p>
-              Valor da mensalidade: <strong className="text-ink">{formatCurrency(billingAmount)}</strong>
-            </p>
-            <p>
-              Referente a: <strong className="text-ink">{formatReferenceMonth(billingReferenceMonth)}</strong>
-            </p>
-            <p>
-              Status atual: <strong className="text-ink">{organization.subscriptionStatus}</strong>
-            </p>
-            {organization.trialEnd ? (
-              <p>
-                Trial ate: <strong className="text-ink">{formatDateBR(organization.trialEnd)}</strong>
+      <Card className="overflow-hidden border-0 bg-[linear-gradient(135deg,#0f172a_0%,#1e293b_48%,#0f766e_100%)] p-0 text-white shadow-[0_24px_60px_rgba(15,23,42,0.26)]">
+        <div className="grid gap-6 px-5 py-6 sm:px-6 xl:grid-cols-[1.1fr_0.9fr] xl:px-8 xl:py-8">
+          <div className="space-y-4">
+            <div className="inline-flex rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.28em] text-white/80">
+              Assinatura profissional
+            </div>
+            <div className="space-y-2">
+              <h2 className="max-w-xl text-[2rem] font-semibold leading-tight tracking-[-0.04em] text-white sm:text-[2.5rem]">
+                {planName}
+              </h2>
+              <p className="max-w-2xl text-sm leading-6 text-white/74 sm:text-base">
+                {planDescription}
               </p>
-            ) : null}
-            {organization.dueDate ? (
-              <p>
-                Vencimento: <strong className="text-ink">{formatDateBR(organization.dueDate)}</strong>
-              </p>
-            ) : null}
-            {billingAmount > 0 ? (
-              <p>
-                Cobranca atual: <strong className="text-ink">{formatCurrency(billingAmount)}</strong>
-              </p>
-            ) : null}
+            </div>
+
+            <div className="flex flex-col gap-3 rounded-[28px] border border-white/12 bg-white/10 p-5 backdrop-blur sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.22em] text-white/70">Valor do plano</p>
+                <p className="mt-2 text-4xl font-semibold tracking-[-0.05em] text-white sm:text-5xl">
+                  {formatCurrencyFromCents(planPriceCents)}
+                </p>
+                <p className="mt-2 text-sm text-emerald-100/90">Cobranca mensal recorrente</p>
+              </div>
+              <div className="rounded-[22px] bg-white/95 px-4 py-3 text-slate-900 shadow-soft">
+                <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Status atual</p>
+                <p className="mt-1 text-lg font-semibold">{statusLabel}</p>
+              </div>
+            </div>
           </div>
 
-          <div className="rounded-[24px] border border-slate-200 bg-slate-50/80 p-4">
-            <p className="text-sm font-semibold text-ink">Como pagar</p>
-            <p className="mt-2 text-sm text-slate-500">
-              Escaneie o QR Code no app do banco ou copie o codigo Pix para colar manualmente no seu banco.
-            </p>
+          <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
+            <div className="rounded-[24px] border border-white/12 bg-white/10 px-4 py-4 backdrop-blur">
+              <p className="text-xs uppercase tracking-[0.18em] text-white/65">Vencimento</p>
+              <p className="mt-2 text-lg font-semibold text-white">{dueDateLabel}</p>
+            </div>
+            <div className="rounded-[24px] border border-white/12 bg-white/10 px-4 py-4 backdrop-blur">
+              <p className="text-xs uppercase tracking-[0.18em] text-white/65">Tolerancia</p>
+              <p className="mt-2 text-lg font-semibold text-white">{graceUntilLabel ?? "Sem periodo extra"}</p>
+            </div>
+            <div className="rounded-[24px] border border-white/12 bg-white/10 px-4 py-4 backdrop-blur">
+              <p className="text-xs uppercase tracking-[0.18em] text-white/65">Pagamento</p>
+              <p className="mt-2 text-lg font-semibold text-white">Pix com validacao por webhook</p>
+            </div>
           </div>
+        </div>
+      </Card>
+
+      <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+        <Card className="space-y-4 border-slate-200 bg-[linear-gradient(180deg,rgba(248,250,252,0.96),rgba(255,255,255,1))]">
+          <div className="space-y-2">
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Como funciona</p>
+            <h3 className="text-xl font-semibold tracking-[-0.03em] text-ink">Regularize em poucos passos</h3>
+          </div>
+
+          <div className="space-y-3">
+            {[
+              "1. Gere ou reaproveite a cobranca ativa do plano mensal.",
+              "2. Pague com Pix usando o QR Code ou a fatura hospedada.",
+              "3. O Asaas confirma pelo webhook e o acesso volta automaticamente.",
+            ].map((item) => (
+              <div
+                className="rounded-[22px] border border-slate-200 bg-white px-4 py-4 text-sm leading-6 text-slate-600 shadow-soft"
+                key={item}
+              >
+                {item}
+              </div>
+            ))}
+          </div>
+
+          {!currentCharge ? (
+            <div className="rounded-[24px] border border-emerald-100 bg-emerald-50/80 p-4">
+              <p className="text-sm font-semibold text-emerald-900">Sua cobranca ainda nao foi preparada</p>
+              <p className="mt-2 text-sm text-emerald-800">
+                Gere agora a cobranca do plano mensal de {formatCurrencyFromCents(planPriceCents)} para abrir o pagamento.
+              </p>
+              <Button
+                className="mt-4 w-full sm:w-auto"
+                disabled={isStartingCheckout}
+                onClick={() => void handleStartCheckout()}
+                type="button"
+              >
+                {isStartingCheckout ? "Preparando pagamento..." : "Gerar pagamento agora"}
+              </Button>
+            </div>
+          ) : (
+            <div className="rounded-[24px] border border-slate-200 bg-slate-50/85 p-4">
+              <p className="text-sm font-semibold text-ink">Cobranca pronta para pagamento</p>
+              <p className="mt-2 text-sm text-slate-600">
+                O plano mensal ja esta configurado com o valor de {formatCurrencyFromCents(planPriceCents)}.
+              </p>
+              {currentCharge.dueDate ? (
+                <p className="mt-2 text-sm text-slate-600">
+                  Vencimento atual: <strong className="text-ink">{formatDateBR(currentCharge.dueDate)}</strong>
+                </p>
+              ) : null}
+            </div>
+          )}
+
+          {startCheckoutError ? <p className="text-sm text-rose-600">{startCheckoutError.message}</p> : null}
         </Card>
 
-        <Card className="space-y-4">
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Pix</p>
-          <div className="flex flex-col items-center gap-4 rounded-[28px] border border-slate-200 bg-slate-50/80 p-5">
-            {qrCodeUrl ? (
-              <img
-                alt="QR Code Pix"
-                className="h-56 w-56 rounded-[24px] border border-slate-200 bg-white p-3 shadow-soft"
-                src={qrCodeUrl}
-              />
-            ) : (
-              <div className="flex h-56 w-56 items-center justify-center rounded-[24px] border border-slate-200 bg-white p-6 text-center text-sm text-slate-500">
-                Nenhuma chave Pix cadastrada no gestor.
-              </div>
-            )}
-
-            <div className="w-full rounded-[24px] bg-white px-4 py-4 shadow-soft">
-              <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Chave Pix</p>
-              <p className="mt-2 break-all text-sm font-semibold text-ink">
-                {organization.pixKey || "Nao informada"}
-              </p>
+        <Card className="space-y-4 border-slate-200 bg-white">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Pagamento padrao</p>
+              <h3 className="mt-1 text-xl font-semibold tracking-[-0.03em] text-ink">Pix</h3>
             </div>
-
-            <div className="flex w-full flex-col gap-3 sm:flex-row">
-              <Button className="w-full" onClick={() => void handleCopyPixKey()} type="button">
-                Copiar codigo Pix
-              </Button>
-              <Button
-                className="w-full"
-                disabled={
-                  isNotifyingPaymentPaid ||
-                  Boolean(latestPayment?.customerNotifiedPaidAt)
-                }
-                onClick={() => void handleNotifyPaymentPaid()}
-                type="button"
-                variant="secondary"
-              >
-                {latestPayment?.customerNotifiedPaidAt
-                  ? "Administrador ja avisado"
-                  : isNotifyingPaymentPaid
-                    ? "Processando aviso..."
-                    : "Confirmar que paguei"}
-              </Button>
+            <div className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
+              Seguro
             </div>
-
-            {copyMessage ? <p className="text-sm text-emerald-700">{copyMessage}</p> : null}
-            {paymentSignalMessage ? (
-              <p className="text-sm text-emerald-700">{paymentSignalMessage}</p>
-            ) : null}
-            {notifyPaymentPaidError ? (
-              <p className="text-sm text-rose-600">{notifyPaymentPaidError.message}</p>
-            ) : null}
           </div>
+
+          {currentCharge ? (
+            <div className="space-y-4">
+              <div className="flex flex-col items-center gap-4 rounded-[28px] border border-slate-200 bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.10),rgba(255,255,255,1)_72%)] p-5">
+                {currentCharge.pixQrCodeImageUrl ? (
+                  <img
+                    alt="QR Code Pix"
+                    className="h-60 w-60 rounded-[26px] border border-slate-200 bg-white p-3 shadow-soft"
+                    src={currentCharge.pixQrCodeImageUrl}
+                  />
+                ) : (
+                  <div className="flex h-60 w-60 items-center justify-center rounded-[26px] border border-slate-200 bg-white p-6 text-center text-sm text-slate-500">
+                    O QR Code Pix sera disponibilizado assim que a cobranca estiver pronta no gateway.
+                  </div>
+                )}
+
+                <div className="w-full rounded-[24px] border border-slate-200 bg-white px-4 py-4 shadow-soft">
+                  <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Codigo Pix</p>
+                  <p className="mt-2 break-all text-sm font-semibold leading-6 text-ink">
+                    {currentCharge.pixQrCodeText || "Ainda indisponivel"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Button className="w-full" onClick={() => void handleCopyPix()} type="button">
+                  Copiar codigo Pix
+                </Button>
+                {currentCharge.invoiceUrl ? (
+                  <Button
+                    className="w-full"
+                    onClick={() => window.open(currentCharge.invoiceUrl ?? "", "_blank", "noopener,noreferrer")}
+                    type="button"
+                    variant="secondary"
+                  >
+                    Abrir fatura hospedada
+                  </Button>
+                ) : (
+                  <Button className="w-full" disabled type="button" variant="secondary">
+                    Fatura indisponivel
+                  </Button>
+                )}
+              </div>
+
+              <div className="rounded-[22px] border border-slate-200 bg-slate-50/80 px-4 py-4 text-sm text-slate-600">
+                <p className="font-semibold text-ink">Importante</p>
+                <p className="mt-2 leading-6">
+                  A liberacao acontece automaticamente depois da confirmacao do gateway. Nao depende de confirmacao manual no frontend.
+                </p>
+              </div>
+
+              {copyMessage ? <p className="text-sm text-emerald-700">{copyMessage}</p> : null}
+            </div>
+          ) : (
+            <div className="rounded-[24px] border border-slate-200 bg-slate-50/80 p-4 text-sm text-slate-500">
+              Gere a cobranca do plano para visualizar o QR Code Pix e a fatura hospedada.
+            </div>
+          )}
         </Card>
       </div>
     </section>

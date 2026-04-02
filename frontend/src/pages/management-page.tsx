@@ -222,6 +222,12 @@ export function ManagementPage() {
                 <Button onClick={() => navigate("/funcionarios")} type="button">
                   Abrir funcionarios
                 </Button>
+                <Button onClick={() => navigate("/meu-plano")} type="button" variant="secondary">
+                  Abrir meu plano
+                </Button>
+                <Button onClick={() => navigate("/faturas")} type="button" variant="secondary">
+                  Abrir faturas
+                </Button>
                 <Button onClick={() => navigate("/bloqueios")} type="button" variant="secondary">
                   Abrir bloqueios
                 </Button>

@@ -22,17 +22,27 @@ function differenceInDays(value?: string | null) {
 }
 
 export function getPaymentStatusLabel(status?: string | null) {
-  if (status === "paid") return "Pago";
   if (status === "pending") return "Pendente";
+  if (status === "received") return "Recebido";
+  if (status === "confirmed") return "Confirmado";
+  if (status === "paid") return "Pago";
   if (status === "overdue") return "Em atraso";
+  if (status === "refunded") return "Estornado";
+  if (status === "failed") return "Falhou";
   if (status === "canceled") return "Cancelado";
+  if (status === "cancelled") return "Cancelado";
   return "Sem registro";
 }
 
 export function getSubscriptionStatusLabel(status?: string | null) {
   if (status === "active") return "Ativa";
+  if (status === "pending_payment") return "Aguardando pagamento";
+  if (status === "past_due") return "Em atraso";
   if (status === "overdue") return "Em atraso";
   if (status === "blocked") return "Bloqueada";
+  if (status === "expired") return "Expirada";
+  if (status === "cancelled") return "Cancelada";
+  if (status === "trialing") return "Em teste";
   if (status === "trial") return "Em teste";
   if (status === "canceled") return "Cancelada";
   return status ?? "Indefinido";
@@ -55,7 +65,16 @@ export function getBillingAlert(
     };
   }
 
-  if (organization.subscriptionStatus === "overdue") {
+  if (organization.subscriptionStatus === "pending_payment") {
+    return {
+      hasAlert: true,
+      tone: "warning" as const,
+      title: "Pagamento inicial pendente",
+      description: "A assinatura ja foi iniciada, mas ainda falta confirmar o primeiro pagamento.",
+    };
+  }
+
+  if (organization.subscriptionStatus === "overdue" || organization.subscriptionStatus === "past_due") {
     return {
       hasAlert: true,
       tone: "warning" as const,
@@ -82,6 +101,18 @@ export function getBillingAlert(
       tone: "danger" as const,
       title: "Assinatura cancelada",
       description: "A conta foi cancelada. Os dados seguem intactos, mas o acesso esta limitado.",
+    };
+  }
+
+  if (organization.subscriptionStatus === "cancelled" || organization.subscriptionStatus === "expired") {
+    return {
+      hasAlert: true,
+      tone: "danger" as const,
+      title: organization.subscriptionStatus === "expired" ? "Assinatura expirada" : "Assinatura cancelada",
+      description:
+        organization.subscriptionStatus === "expired"
+          ? "O periodo de uso terminou e a conta agora esta em modo restrito."
+          : "A conta foi cancelada. Os dados seguem intactos, mas o acesso esta limitado.",
     };
   }
 

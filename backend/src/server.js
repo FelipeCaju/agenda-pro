@@ -2,6 +2,7 @@ import { app } from "./app.js";
 import { initDataStore } from "./lib/data.js";
 import { describeDatabaseTarget, verifyDatabaseConnection } from "./lib/database.js";
 import { loadEnvironment } from "./lib/env.js";
+import { ensureBillingInfrastructure } from "./repositories/billing.repository.js";
 import { processAutomaticReminders } from "./services/reminder.service.js";
 
 loadEnvironment();
@@ -39,6 +40,7 @@ async function startServer() {
   try {
     await verifyDatabaseConnection();
     await initDataStore();
+    await ensureBillingInfrastructure();
 
     app.listen(PORT, () => {
       const target = describeDatabaseTarget();

@@ -16,6 +16,12 @@ const OnboardingPage = lazy(async () => ({
 const SubscriptionBlockedPage = lazy(async () => ({
   default: (await import("@/pages/subscription-blocked-page")).SubscriptionBlockedPage,
 }));
+const BillingPlanPage = lazy(async () => ({
+  default: (await import("@/pages/billing-plan-page")).BillingPlanPage,
+}));
+const BillingInvoicesPage = lazy(async () => ({
+  default: (await import("@/pages/billing-invoices-page")).BillingInvoicesPage,
+}));
 const PlatformAdminPage = lazy(async () => ({
   default: (await import("@/pages/platform-admin-page")).PlatformAdminPage,
 }));
@@ -125,6 +131,14 @@ export const router = createBrowserRouter([
           {
             path: "/assinatura-bloqueada",
             element: withRouteSuspense(<SubscriptionBlockedPage />),
+          },
+          {
+            path: "/meu-plano",
+            element: withRouteSuspense(<BillingPlanPage />),
+          },
+          {
+            path: "/faturas",
+            element: withRouteSuspense(<BillingInvoicesPage />),
           },
           {
             path: "/pagamento",

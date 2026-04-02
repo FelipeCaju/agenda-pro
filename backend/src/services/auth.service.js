@@ -2,10 +2,8 @@ import {
   createOrganization,
   createUser,
   deactivateUserById,
-  getLatestOrganizationPayment,
   getUserByAppleId,
   getOrganizationById,
-  getPlatformSettings,
   getUserByGoogleId,
   getUserByEmail,
   updateUserSocialIdentityById,
@@ -14,7 +12,7 @@ import {
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { hashPassword, isValidPassword, verifyPassword } from "../lib/password.js";
 import { createSessionToken, verifySessionToken } from "../lib/session-token.js";
-import { evaluateSubscriptionAccess } from "../lib/subscription.js";
+import { resolveOrganizationBillingAccess } from "./billing.service.js";
 
 const LEGACY_DEMO_PASSWORD = "Agenda123!";
 const LEGACY_DEMO_EMAILS = new Set(["contato@agendapro.app", "bloqueado@agendapro.app"]);
@@ -145,10 +143,8 @@ async function createSessionPayload({ token, user, organization, needsOnboarding
     };
   }
 
-  const latestPayment = organization ? await getLatestOrganizationPayment(organization.id) : null;
-  const platformSettings = organization ? await getPlatformSettings() : null;
   const access = organization
-    ? evaluateSubscriptionAccess(organization, latestPayment, platformSettings)
+    ? await resolveOrganizationBillingAccess(organization.id)
     : {
         subscriptionStatus: null,
         canAccess: false,
@@ -176,11 +172,11 @@ async function createSessionPayload({ token, user, organization, needsOnboarding
           subscriptionStatus: access.subscriptionStatus,
           subscriptionPlan: organization.subscription_plan,
           dueDate: access.dueDate ?? organization.due_date,
-          trialEnd: organization.trial_end,
+          trialEnd: access.trialEndsAt ?? organization.trial_end,
           isBlocked: access.isBlocked,
-          pixKey: platformSettings?.pix_key ?? "",
-          paymentGraceDays: access.graceDays ?? 5,
-          paymentAlertDays: access.alertDays ?? 5,
+          pixKey: "",
+          paymentGraceDays: 3,
+          paymentAlertDays: 3,
           graceUntil: access.graceUntil ?? null,
         }
       : null,
@@ -343,9 +339,7 @@ async function verifySocialLogin({ provider, idToken }) {
 
 export async function requireActiveAuthenticatedContext(token) {
   const context = await requireAuthenticatedContext(token);
-  const latestPayment = await getLatestOrganizationPayment(context.organization.id);
-  const platformSettings = await getPlatformSettings();
-  const access = evaluateSubscriptionAccess(context.organization, latestPayment, platformSettings);
+  const access = await resolveOrganizationBillingAccess(context.organization.id);
 
   if (!access.canAccess) {
     const error = new Error(

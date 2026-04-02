@@ -18,6 +18,15 @@ import {
   updateAppointmentStatusController,
 } from "../controllers/agenda.controller.js";
 import {
+  cancelBillingSubscriptionController,
+  getBillingOverviewController,
+  getBillingSubscriptionController,
+  getCurrentChargeController,
+  listBillingInvoicesController,
+  reactivateBillingSubscriptionController,
+  startBillingCheckoutController,
+} from "../controllers/billing.controller.js";
+import {
   createBlockedSlotController,
   deleteBlockedSlotController,
   listBlockedSlotsController,
@@ -76,6 +85,7 @@ import {
   receiveWhatsappWebhookController,
   sendWhatsappTestMessageController,
 } from "../controllers/whatsapp.controller.js";
+import { receiveAsaasWebhookController } from "../controllers/webhooks.controller.js";
 import {
   createAdminOrganizationController,
   createAdminOrganizationPaymentController,
@@ -111,8 +121,16 @@ router.post("/auth/onboarding", finishOnboarding);
 router.post("/auth/logout", signOut);
 router.delete("/auth/account", deleteCurrentAccount);
 router.post("/whatsapp/webhook", receiveWhatsappWebhookController);
+router.post("/webhooks/asaas", receiveAsaasWebhookController);
 router.get("/tenants", listTenants);
 router.get("/dashboard/summary", getDashboardSummaryController);
+router.get("/billing/overview", getBillingOverviewController);
+router.post("/billing/checkout/start", startBillingCheckoutController);
+router.get("/billing/subscription", getBillingSubscriptionController);
+router.post("/billing/subscription/cancel", cancelBillingSubscriptionController);
+router.post("/billing/subscription/reactivate", reactivateBillingSubscriptionController);
+router.get("/billing/invoices", listBillingInvoicesController);
+router.get("/billing/current-charge", getCurrentChargeController);
 router.get("/organizations/current", getCurrentOrganizationController);
 router.patch("/organizations/current", updateCurrentOrganizationController);
 router.get("/organizations/current/users", listOrganizationMembersController);
