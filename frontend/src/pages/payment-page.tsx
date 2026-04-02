@@ -16,6 +16,24 @@ function formatCurrencyFromCents(value: number) {
   }).format(Number(value ?? 0) / 100);
 }
 
+function normalizePixImageSrc(value: string | null | undefined) {
+  const normalized = String(value ?? "").trim();
+
+  if (!normalized) {
+    return "";
+  }
+
+  if (
+    normalized.startsWith("data:image/") ||
+    normalized.startsWith("http://") ||
+    normalized.startsWith("https://")
+  ) {
+    return normalized;
+  }
+
+  return `data:image/png;base64,${normalized}`;
+}
+
 async function copyText(value: string) {
   if (!value.trim()) {
     throw new Error("Nao existe codigo Pix disponivel para copiar.");
@@ -83,6 +101,7 @@ export function PaymentPage() {
   const dueDateLabel = overview?.access.dueDate ? formatDateBR(overview.access.dueDate) : "Assim que a cobranca for gerada";
   const graceUntilLabel = overview?.access.graceUntil ? formatDateBR(overview.access.graceUntil) : null;
   const statusLabel = getSubscriptionStatusLabel(overview?.access.subscriptionStatus ?? null);
+  const pixImageSrc = normalizePixImageSrc(currentCharge?.pixQrCodeImageUrl);
 
   return (
     <section className="space-y-4 pb-8">
@@ -200,7 +219,7 @@ export function PaymentPage() {
         <Card className="space-y-4 border-slate-200 bg-white">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Pagamento padrao</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Pagamento disponivel agora</p>
               <h3 className="mt-1 text-xl font-semibold tracking-[-0.03em] text-ink">Pix</h3>
             </div>
             <div className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
@@ -211,11 +230,11 @@ export function PaymentPage() {
           {currentCharge ? (
             <div className="space-y-4">
               <div className="flex flex-col items-center gap-4 rounded-[28px] border border-slate-200 bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.10),rgba(255,255,255,1)_72%)] p-5">
-                {currentCharge.pixQrCodeImageUrl ? (
+                {pixImageSrc ? (
                   <img
                     alt="QR Code Pix"
                     className="h-60 w-60 rounded-[26px] border border-slate-200 bg-white p-3 shadow-soft"
-                    src={currentCharge.pixQrCodeImageUrl}
+                    src={pixImageSrc}
                   />
                 ) : (
                   <div className="flex h-60 w-60 items-center justify-center rounded-[26px] border border-slate-200 bg-white p-6 text-center text-sm text-slate-500">
@@ -232,29 +251,31 @@ export function PaymentPage() {
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
-                <Button className="w-full" onClick={() => void handleCopyPix()} type="button">
-                  Copiar codigo Pix
-                </Button>
                 {currentCharge.invoiceUrl ? (
                   <Button
                     className="w-full"
                     onClick={() => window.open(currentCharge.invoiceUrl ?? "", "_blank", "noopener,noreferrer")}
                     type="button"
-                    variant="secondary"
                   >
-                    Abrir fatura hospedada
+                    Abrir cobranca no Asaas
                   </Button>
                 ) : (
-                  <Button className="w-full" disabled type="button" variant="secondary">
-                    Fatura indisponivel
+                  <Button className="w-full" disabled type="button">
+                    Cobranca indisponivel
                   </Button>
                 )}
+                <Button className="w-full" onClick={() => void handleCopyPix()} type="button" variant="secondary">
+                  Copiar codigo Pix
+                </Button>
               </div>
 
               <div className="rounded-[22px] border border-slate-200 bg-slate-50/80 px-4 py-4 text-sm text-slate-600">
                 <p className="font-semibold text-ink">Importante</p>
                 <p className="mt-2 leading-6">
                   A liberacao acontece automaticamente depois da confirmacao do gateway. Nao depende de confirmacao manual no frontend.
+                </p>
+                <p className="mt-2 leading-6">
+                  Nesta etapa da integracao, o fluxo automatico publicado usa Pix. O checkout recorrente por cartao via Asaas Checkout ainda precisa ser implementado separadamente.
                 </p>
               </div>
 
