@@ -180,6 +180,7 @@
 - [x] Campo de CPF/CNPJ exposto nas configuracoes da organizacao para viabilizar checkout real
 - [x] Cadastro inicial e onboarding passaram a exigir CPF/CNPJ do assinante
 - [x] Tela de pagamento passou a oferecer Pix e checkout hospedado com cartao
+- [x] Cadastro e configuracoes passaram a buscar cidade/IBGE automaticamente a partir do CEP
 
 ### Pendencias
 - [ ] Revisar e migrar totalmente telas antigas que ainda usam historico legado
@@ -256,6 +257,7 @@
 - O billing novo fica pronto para SaaS real, mas ainda precisa de homologacao operacional antes de chamar de producao plena.
 - O documento fiscal da organizacao passa a ser obrigatorio para iniciar checkout no Asaas.
 - O checkout com cartao usa o ambiente hospedado do Asaas e depende de dados completos do pagador na organizacao.
+- O codigo IBGE nao fica mais exposto no formulario; ele e resolvido automaticamente pelo CEP para reduzir atrito.
 
 ### Riscos de compatibilidade identificados
 - Existe coexistencia temporaria entre billing novo e legado.

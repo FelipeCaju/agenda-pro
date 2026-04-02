@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { PasswordField } from "@/components/ui/password-field";
 import { useAuth } from "@/hooks/use-auth";
+import { isValidCep, lookupCep, normalizeCep } from "@/services/cepService";
 import { getPostAuthRedirect } from "@/utils/auth";
 
 function normalizeDocument(value: string) {
@@ -13,10 +14,6 @@ function normalizeDocument(value: string) {
 function isValidCpfCnpj(value: string) {
   const digits = normalizeDocument(value);
   return digits.length === 11 || digits.length === 14;
-}
-
-function isValidPostalCode(value: string) {
-  return normalizeDocument(value).length === 8;
 }
 
 function isValidCityIbge(value: string) {
@@ -37,11 +34,36 @@ export function OnboardingPage() {
   const [billingPostalCode, setBillingPostalCode] = useState("");
   const [billingProvince, setBillingProvince] = useState("");
   const [billingCityIbge, setBillingCityIbge] = useState("");
+  const [billingCityLabel, setBillingCityLabel] = useState("");
   const [senha, setSenha] = useState("");
   const [confirmacaoSenha, setConfirmacaoSenha] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
+  const [isLookingUpCep, setIsLookingUpCep] = useState(false);
+
+  async function handleBillingCepBlur() {
+    if (!isValidCep(billingPostalCode)) {
+      return;
+    }
+
+    setIsLookingUpCep(true);
+    setLocalError(null);
+
+    try {
+      const result = await lookupCep(billingPostalCode);
+
+      setBillingPostalCode(normalizeCep(result.cep));
+      setBillingAddress((current) => current.trim() || result.address);
+      setBillingProvince((current) => current.trim() || result.neighborhood);
+      setBillingCityIbge(result.ibge);
+      setBillingCityLabel(result.city && result.state ? `${result.city} - ${result.state}` : result.city);
+    } catch (lookupError) {
+      setLocalError(lookupError instanceof Error ? lookupError.message : "Nao foi possivel consultar o CEP.");
+    } finally {
+      setIsLookingUpCep(false);
+    }
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -67,7 +89,7 @@ export function OnboardingPage() {
       return;
     }
 
-    if (!isValidPostalCode(billingPostalCode)) {
+    if (!isValidCep(billingPostalCode)) {
       setLocalError("Informe um CEP valido com 8 digitos.");
       return;
     }
@@ -182,6 +204,7 @@ export function OnboardingPage() {
             <input
               className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm"
               onChange={(event) => setBillingPostalCode(event.target.value)}
+              onBlur={() => void handleBillingCepBlur()}
               placeholder="CEP"
               value={billingPostalCode}
             />
@@ -192,12 +215,13 @@ export function OnboardingPage() {
               value={billingProvince}
             />
           </div>
-          <input
-            className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm"
-            onChange={(event) => setBillingCityIbge(event.target.value)}
-            placeholder="Codigo IBGE da cidade"
-            value={billingCityIbge}
-          />
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+            {isLookingUpCep
+              ? "Buscando endereco pelo CEP..."
+              : billingCityLabel
+                ? `Cidade identificada automaticamente: ${billingCityLabel}`
+                : "A cidade e o codigo IBGE serao preenchidos automaticamente pelo CEP."}
+          </div>
           {!isSocialOnboarding ? (
             <>
               <PasswordField

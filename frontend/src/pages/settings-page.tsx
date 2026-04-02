@@ -13,6 +13,7 @@ import {
 } from "@/hooks/use-organization-query";
 import { useSettingsMutations } from "@/hooks/use-settings-mutations";
 import { useSettingsQuery } from "@/hooks/use-settings-query";
+import { isValidCep, lookupCep, normalizeCep } from "@/services/cepService";
 import { getBillingAlert } from "@/utils/billing";
 import { formatDateBR, formatMonthYearBR } from "@/utils/date";
 
@@ -31,11 +32,6 @@ function normalizeDocument(value: string) {
 function isValidCpfCnpj(value: string) {
   const digits = normalizeDocument(value);
   return !digits || digits.length === 11 || digits.length === 14;
-}
-
-function isValidPostalCode(value: string) {
-  const digits = normalizeDocument(value);
-  return !digits || digits.length === 8;
 }
 
 function isValidCityIbge(value: string) {
@@ -113,6 +109,7 @@ export function SettingsPage() {
   const [billingPostalCode, setBillingPostalCode] = useState("");
   const [billingProvince, setBillingProvince] = useState("");
   const [billingCityIbge, setBillingCityIbge] = useState("");
+  const [billingCityLabel, setBillingCityLabel] = useState("");
   const [nomeNegocio, setNomeNegocio] = useState("");
   const [subtitulo, setSubtitulo] = useState("");
   const [horaInicioAgenda, setHoraInicioAgenda] = useState("08:00");
@@ -136,6 +133,7 @@ export function SettingsPage() {
   const [successMessage, setSuccessMessage] = useState(
     (location.state as SettingsLocationState | null)?.successMessage ?? "",
   );
+  const [isLookingUpCep, setIsLookingUpCep] = useState(false);
 
   useEffect(() => {
     if (!organization) {
@@ -152,6 +150,7 @@ export function SettingsPage() {
     setBillingPostalCode(organization.billingPostalCode ?? "");
     setBillingProvince(organization.billingProvince ?? "");
     setBillingCityIbge(organization.billingCityIbge ?? "");
+    setBillingCityLabel("");
   }, [
     organization?.billingAddress,
     organization?.billingAddressComplement,
@@ -198,6 +197,31 @@ export function SettingsPage() {
   const billingAlert = useMemo(() => getBillingAlert(organization, payments), [organization, payments]);
   const latestPayment = payments[0] ?? null;
 
+  async function handleBillingCepBlur() {
+    if (!billingPostalCode.trim() || !isValidCep(billingPostalCode)) {
+      return;
+    }
+
+    setIsLookingUpCep(true);
+    setCompanyValidationError(null);
+
+    try {
+      const result = await lookupCep(billingPostalCode);
+
+      setBillingPostalCode(normalizeCep(result.cep));
+      setBillingAddress((current) => current.trim() || result.address);
+      setBillingProvince((current) => current.trim() || result.neighborhood);
+      setBillingCityIbge(result.ibge);
+      setBillingCityLabel(result.city && result.state ? `${result.city} - ${result.state}` : result.city);
+    } catch (lookupError) {
+      setCompanyValidationError(
+        lookupError instanceof Error ? lookupError.message : "Nao foi possivel consultar o CEP.",
+      );
+    } finally {
+      setIsLookingUpCep(false);
+    }
+  }
+
   async function handleCompanySubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setCompanyValidationError(null);
@@ -220,13 +244,13 @@ export function SettingsPage() {
       return;
     }
 
-    if (!isValidPostalCode(billingPostalCode)) {
+    if (!billingPostalCode.trim() || !isValidCep(billingPostalCode)) {
       setCompanyValidationError("CEP invalido. Use 8 digitos.");
       return;
     }
 
     if (!isValidCityIbge(billingCityIbge)) {
-      setCompanyValidationError("Codigo IBGE da cidade invalido. Use 7 digitos.");
+      setCompanyValidationError("Nao foi possivel identificar a cidade automaticamente pelo CEP.");
       return;
     }
 
@@ -505,6 +529,7 @@ export function SettingsPage() {
                 className="app-input"
                 id="billing-postal-code"
                 onChange={(event) => setBillingPostalCode(event.target.value)}
+                onBlur={() => void handleBillingCepBlur()}
                 placeholder="Somente numeros ou formatado"
                 value={billingPostalCode}
               />
@@ -522,20 +547,12 @@ export function SettingsPage() {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-ink" htmlFor="billing-city-ibge">
-              Cidade no IBGE
-            </label>
-            <input
-              className="app-input"
-              id="billing-city-ibge"
-              onChange={(event) => setBillingCityIbge(event.target.value)}
-              placeholder="Codigo IBGE com 7 digitos"
-              value={billingCityIbge}
-            />
-            <p className="text-sm text-slate-500">
-              O Asaas exige o codigo IBGE da cidade para checkout recorrente com cartao.
-            </p>
+          <div className="rounded-[22px] border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-600">
+            {isLookingUpCep
+              ? "Buscando cidade automaticamente pelo CEP..."
+              : billingCityLabel
+                ? `Cidade identificada automaticamente: ${billingCityLabel}`
+                : "A cidade e o codigo IBGE sao resolvidos automaticamente pelo CEP."}
           </div>
 
           {companyErrorMessage ? <p className="text-sm text-rose-600">{companyErrorMessage}</p> : null}
