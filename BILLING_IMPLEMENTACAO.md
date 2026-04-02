@@ -177,6 +177,7 @@
 - [x] Tela de bloqueio atualizada para regularizacao via billing
 - [x] Banner global de inadimplencia/regularizacao adicionado no app shell
 - [x] Campo de CPF/CNPJ exposto nas configuracoes da organizacao para viabilizar checkout real
+- [x] Cadastro inicial e onboarding passaram a exigir CPF/CNPJ do assinante
 
 ### Pendencias
 - [ ] Revisar e migrar totalmente telas antigas que ainda usam historico legado

@@ -11,6 +11,15 @@ function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim().toLowerCase());
 }
 
+function normalizeDocument(value: string) {
+  return value.replace(/\D+/g, "").trim();
+}
+
+function isValidCpfCnpj(value: string) {
+  const digits = normalizeDocument(value);
+  return digits.length === 11 || digits.length === 14;
+}
+
 export function SignupPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -23,6 +32,7 @@ export function SignupPage() {
   const [nome, setNome] = useState("");
   const [nomeEmpresa, setNomeEmpresa] = useState("");
   const [telefone, setTelefone] = useState("");
+  const [cpfCnpj, setCpfCnpj] = useState("");
   const [senha, setSenha] = useState("");
   const [confirmacaoSenha, setConfirmacaoSenha] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
@@ -42,6 +52,11 @@ export function SignupPage() {
 
     if (!nome.trim() || !nomeEmpresa.trim()) {
       setLocalError("Preencha seu nome e o nome da empresa.");
+      return;
+    }
+
+    if (!isValidCpfCnpj(cpfCnpj)) {
+      setLocalError("Informe um CPF ou CNPJ valido do assinante.");
       return;
     }
 
@@ -73,6 +88,7 @@ export function SignupPage() {
         nome: nome.trim(),
         nomeEmpresa: nomeEmpresa.trim(),
         telefone: telefone.trim(),
+        cpfCnpj: normalizeDocument(cpfCnpj),
         senha,
       });
 
@@ -125,6 +141,12 @@ export function SignupPage() {
             onChange={(event) => setTelefone(event.target.value)}
             placeholder="Telefone"
             value={telefone}
+          />
+          <input
+            className="app-input"
+            onChange={(event) => setCpfCnpj(event.target.value)}
+            placeholder="CPF ou CNPJ do assinante"
+            value={cpfCnpj}
           />
           <PasswordField
             inputClassName="app-input pr-14"

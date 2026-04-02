@@ -31,6 +31,15 @@ function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeEmail(email));
 }
 
+function normalizeDocument(value) {
+  return typeof value === "string" ? value.replace(/\D+/g, "").trim() : "";
+}
+
+function isValidCpfCnpj(value) {
+  const digits = normalizeDocument(value);
+  return digits.length === 11 || digits.length === 14;
+}
+
 function buildKnownToken(email) {
   return createSessionToken({
     type: "known",
@@ -523,7 +532,7 @@ export async function getSessionByToken(token) {
   });
 }
 
-export async function completeOnboarding({ token, nome, nomeEmpresa, telefone, senha }) {
+export async function completeOnboarding({ token, nome, nomeEmpresa, telefone, cpfCnpj, senha }) {
   const tokenPayload = readTokenPayload(token);
   const pendingUser = tokenPayload.type === "pending" ? readPendingToken(token) : null;
 
@@ -548,6 +557,12 @@ export async function completeOnboarding({ token, nome, nomeEmpresa, telefone, s
     throw error;
   }
 
+  if (!isValidCpfCnpj(cpfCnpj)) {
+    const error = new Error("CPF/CNPJ obrigatorio e invalido.");
+    error.statusCode = 400;
+    throw error;
+  }
+
   if (provider === "email" && !isValidPassword(senha)) {
     const error = new Error("A senha precisa ter pelo menos 8 caracteres.");
     error.statusCode = 400;
@@ -566,6 +581,7 @@ export async function completeOnboarding({ token, nome, nomeEmpresa, telefone, s
     emailResponsavel: email,
     nomeEmpresa: nomeEmpresa.trim(),
     telefone,
+    cpfCnpj: normalizeDocument(cpfCnpj),
   });
 
   const user = await createUser({

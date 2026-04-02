@@ -6,6 +6,15 @@ import { PasswordField } from "@/components/ui/password-field";
 import { useAuth } from "@/hooks/use-auth";
 import { getPostAuthRedirect } from "@/utils/auth";
 
+function normalizeDocument(value: string) {
+  return value.replace(/\D+/g, "").trim();
+}
+
+function isValidCpfCnpj(value: string) {
+  const digits = normalizeDocument(value);
+  return digits.length === 11 || digits.length === 14;
+}
+
 export function OnboardingPage() {
   const navigate = useNavigate();
   const { completeOnboarding, error, signOut, user } = useAuth();
@@ -13,6 +22,7 @@ export function OnboardingPage() {
   const [nome, setNome] = useState(user?.nome === "Novo usuario" ? "" : user?.nome ?? "");
   const [nomeEmpresa, setNomeEmpresa] = useState("");
   const [telefone, setTelefone] = useState("");
+  const [cpfCnpj, setCpfCnpj] = useState("");
   const [senha, setSenha] = useState("");
   const [confirmacaoSenha, setConfirmacaoSenha] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
@@ -22,6 +32,16 @@ export function OnboardingPage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLocalError(null);
+
+    if (!nome.trim() || !nomeEmpresa.trim()) {
+      setLocalError("Preencha seu nome e o nome da empresa.");
+      return;
+    }
+
+    if (!isValidCpfCnpj(cpfCnpj)) {
+      setLocalError("Informe um CPF ou CNPJ valido do assinante.");
+      return;
+    }
 
     if (!isSocialOnboarding && senha.trim().length < 8) {
       setLocalError("A senha precisa ter pelo menos 8 caracteres.");
@@ -36,7 +56,13 @@ export function OnboardingPage() {
     setIsSubmitting(true);
 
     try {
-      const session = await completeOnboarding({ nome, nomeEmpresa, telefone, senha });
+      const session = await completeOnboarding({
+        nome: nome.trim(),
+        nomeEmpresa: nomeEmpresa.trim(),
+        telefone: telefone.trim(),
+        cpfCnpj: normalizeDocument(cpfCnpj),
+        senha,
+      });
       navigate(getPostAuthRedirect(session), { replace: true });
     } finally {
       setIsSubmitting(false);
@@ -83,6 +109,15 @@ export function OnboardingPage() {
             placeholder="Telefone"
             value={telefone}
           />
+          <input
+            className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm"
+            onChange={(event) => setCpfCnpj(event.target.value)}
+            placeholder="CPF ou CNPJ do assinante"
+            value={cpfCnpj}
+          />
+          <p className="-mt-1 text-xs leading-6 text-slate-500">
+            Esse documento identifica quem vai assinar o AgendaPro e e obrigatorio para gerar a cobranca.
+          </p>
           {!isSocialOnboarding ? (
             <>
               <PasswordField

@@ -28,6 +28,15 @@ function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
+function normalizeDocument(value) {
+  return typeof value === "string" ? value.replace(/\D+/g, "").trim() : "";
+}
+
+function isValidCpfCnpj(value) {
+  const digits = normalizeDocument(value);
+  return digits.length === 11 || digits.length === 14;
+}
+
 function getTodayDate() {
   const now = new Date();
   const year = now.getFullYear();
@@ -77,6 +86,7 @@ function normalizeOrganizationInput(input) {
       input.email_responsavel ?? input.emailResponsavel ?? input.owner_email ?? input.ownerEmail,
     ).toLowerCase(),
     telefone: normalizeString(input.telefone),
+    cpfCnpj: normalizeDocument(input.cpf_cnpj ?? input.cpfCnpj),
     monthlyAmount: Number(input.monthly_amount ?? input.monthlyAmount ?? 0),
     subscriptionPlan: normalizeString(input.subscription_plan ?? input.subscriptionPlan) || "trial",
     subscriptionStatus: input.subscription_status ?? input.subscriptionStatus ?? null,
@@ -126,6 +136,12 @@ export async function createOrganizationForPlatformAdmin(input) {
 
   if (!normalized.emailResponsavel || !isValidEmail(normalized.emailResponsavel)) {
     const error = new Error("Email do responsavel invalido.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (!isValidCpfCnpj(normalized.cpfCnpj)) {
+    const error = new Error("CPF/CNPJ do assinante invalido.");
     error.statusCode = 400;
     throw error;
   }
@@ -184,6 +200,7 @@ export async function createOrganizationForPlatformAdmin(input) {
     emailResponsavel: normalized.emailResponsavel,
     nomeEmpresa: normalized.nomeEmpresa,
     telefone: normalized.telefone,
+    cpfCnpj: normalized.cpfCnpj,
     monthlyAmount: normalized.monthlyAmount,
     subscriptionPlan: normalized.subscriptionPlan,
     subscriptionStatus: computedSubscriptionStatus,

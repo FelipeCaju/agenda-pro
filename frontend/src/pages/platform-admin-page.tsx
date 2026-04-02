@@ -60,6 +60,15 @@ function parseCurrencyInput(value: string) {
   return Number.isFinite(parsed) ? parsed : NaN;
 }
 
+function normalizeDocument(value: string) {
+  return value.replace(/\D+/g, "").trim();
+}
+
+function isValidCpfCnpj(value: string) {
+  const digits = normalizeDocument(value);
+  return digits.length === 11 || digits.length === 14;
+}
+
 export function PlatformAdminPage() {
   const navigate = useNavigate();
   const { data = [], error, isLoading, isError } = useAdminOrganizationsQuery();
@@ -77,6 +86,7 @@ export function PlatformAdminPage() {
   const [emailResponsavel, setEmailResponsavel] = useState("");
   const [initialPassword, setInitialPassword] = useState("");
   const [telefone, setTelefone] = useState("");
+  const [cpfCnpj, setCpfCnpj] = useState("");
   const [monthlyAmount, setMonthlyAmount] = useState("149,90");
   const [subscriptionPlan, setSubscriptionPlan] = useState<"trial" | "pro">("trial");
   const [trialDays, setTrialDays] = useState("5");
@@ -116,6 +126,11 @@ export function PlatformAdminPage() {
   async function handleCreateOrganization(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    if (!isValidCpfCnpj(cpfCnpj)) {
+      setSuccessMessage("");
+      return;
+    }
+
     try {
       const created = await createOrganization({
         nomeEmpresa,
@@ -123,6 +138,7 @@ export function PlatformAdminPage() {
         emailResponsavel,
         initialPassword,
         telefone,
+        cpfCnpj: normalizeDocument(cpfCnpj),
         monthlyAmount: parseCurrencyInput(monthlyAmount) ?? 0,
         subscriptionPlan,
         trialDays: Number(trialDays),
@@ -134,6 +150,7 @@ export function PlatformAdminPage() {
       setEmailResponsavel("");
       setInitialPassword("");
       setTelefone("");
+      setCpfCnpj("");
       setMonthlyAmount("149,90");
       setSubscriptionPlan("trial");
       setTrialDays("5");
@@ -255,6 +272,13 @@ export function PlatformAdminPage() {
               <input className="app-input" onChange={(event) => setTelefone(event.target.value)} value={telefone} />
             </div>
             <div className="space-y-2">
+              <label className="text-sm font-medium text-ink">CPF ou CNPJ do assinante</label>
+              <input className="app-input" onChange={(event) => setCpfCnpj(event.target.value)} value={cpfCnpj} />
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
               <label className="text-sm font-medium text-ink">Mensalidade</label>
               <input
                 className="app-input"
@@ -308,6 +332,9 @@ export function PlatformAdminPage() {
           </div>
 
           {successMessage ? <p className="text-sm text-emerald-700">{successMessage}</p> : null}
+          {!isValidCpfCnpj(cpfCnpj) && cpfCnpj.trim() ? (
+            <p className="text-sm text-rose-600">Informe um CPF ou CNPJ valido para cadastrar a empresa.</p>
+          ) : null}
           {createOrganizationError ? (
             <p className="text-sm text-rose-600">{createOrganizationError.message}</p>
           ) : null}

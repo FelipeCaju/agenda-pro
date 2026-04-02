@@ -14,6 +14,7 @@ export type CompleteOnboardingInput = {
   nome: string;
   nomeEmpresa: string;
   telefone?: string;
+  cpfCnpj: string;
   senha?: string;
 };
 

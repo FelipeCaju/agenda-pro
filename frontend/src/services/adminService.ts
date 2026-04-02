@@ -95,6 +95,7 @@ export type AdminOrganizationCreateInput = {
   ownerName: string;
   initialPassword: string;
   telefone?: string | null;
+  cpfCnpj: string;
   monthlyAmount: number;
   subscriptionPlan: "trial" | "pro";
   trialDays?: number;
@@ -168,6 +169,7 @@ export const adminService = {
       owner_name: input.ownerName,
       initial_password: input.initialPassword,
       telefone: input.telefone,
+      cpf_cnpj: input.cpfCnpj,
       monthly_amount: input.monthlyAmount,
       subscription_plan: input.subscriptionPlan,
       trial_days: input.trialDays,
