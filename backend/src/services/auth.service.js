@@ -40,6 +40,14 @@ function isValidCpfCnpj(value) {
   return digits.length === 11 || digits.length === 14;
 }
 
+function isValidPostalCode(value) {
+  return normalizeDocument(value).length === 8;
+}
+
+function isValidCityIbge(value) {
+  return normalizeDocument(value).length === 7;
+}
+
 function buildKnownToken(email) {
   return createSessionToken({
     type: "known",
@@ -532,7 +540,20 @@ export async function getSessionByToken(token) {
   });
 }
 
-export async function completeOnboarding({ token, nome, nomeEmpresa, telefone, cpfCnpj, senha }) {
+export async function completeOnboarding({
+  token,
+  nome,
+  nomeEmpresa,
+  telefone,
+  cpfCnpj,
+  billingAddress,
+  billingAddressNumber,
+  billingAddressComplement,
+  billingPostalCode,
+  billingProvince,
+  billingCityIbge,
+  senha,
+}) {
   const tokenPayload = readTokenPayload(token);
   const pendingUser = tokenPayload.type === "pending" ? readPendingToken(token) : null;
 
@@ -563,6 +584,30 @@ export async function completeOnboarding({ token, nome, nomeEmpresa, telefone, c
     throw error;
   }
 
+  if (!telefone?.trim()) {
+    const error = new Error("Telefone obrigatorio.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (!billingAddress?.trim() || !billingAddressNumber?.trim() || !billingProvince?.trim()) {
+    const error = new Error("Endereco de billing incompleto.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (!isValidPostalCode(billingPostalCode)) {
+    const error = new Error("CEP obrigatorio e invalido.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (!isValidCityIbge(billingCityIbge)) {
+    const error = new Error("Codigo IBGE da cidade obrigatorio e invalido.");
+    error.statusCode = 400;
+    throw error;
+  }
+
   if (provider === "email" && !isValidPassword(senha)) {
     const error = new Error("A senha precisa ter pelo menos 8 caracteres.");
     error.statusCode = 400;
@@ -580,8 +625,14 @@ export async function completeOnboarding({ token, nome, nomeEmpresa, telefone, c
   const organization = await createOrganization({
     emailResponsavel: email,
     nomeEmpresa: nomeEmpresa.trim(),
-    telefone,
+    telefone: telefone.trim(),
     cpfCnpj: normalizeDocument(cpfCnpj),
+    billingAddress: billingAddress.trim(),
+    billingAddressNumber: billingAddressNumber.trim(),
+    billingAddressComplement: billingAddressComplement?.trim() || null,
+    billingPostalCode: normalizeDocument(billingPostalCode),
+    billingProvince: billingProvince.trim(),
+    billingCityIbge: normalizeDocument(billingCityIbge),
   });
 
   const user = await createUser({

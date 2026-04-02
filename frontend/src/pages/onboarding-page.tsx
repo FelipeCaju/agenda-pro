@@ -15,6 +15,14 @@ function isValidCpfCnpj(value: string) {
   return digits.length === 11 || digits.length === 14;
 }
 
+function isValidPostalCode(value: string) {
+  return normalizeDocument(value).length === 8;
+}
+
+function isValidCityIbge(value: string) {
+  return normalizeDocument(value).length === 7;
+}
+
 export function OnboardingPage() {
   const navigate = useNavigate();
   const { completeOnboarding, error, signOut, user } = useAuth();
@@ -23,6 +31,12 @@ export function OnboardingPage() {
   const [nomeEmpresa, setNomeEmpresa] = useState("");
   const [telefone, setTelefone] = useState("");
   const [cpfCnpj, setCpfCnpj] = useState("");
+  const [billingAddress, setBillingAddress] = useState("");
+  const [billingAddressNumber, setBillingAddressNumber] = useState("");
+  const [billingAddressComplement, setBillingAddressComplement] = useState("");
+  const [billingPostalCode, setBillingPostalCode] = useState("");
+  const [billingProvince, setBillingProvince] = useState("");
+  const [billingCityIbge, setBillingCityIbge] = useState("");
   const [senha, setSenha] = useState("");
   const [confirmacaoSenha, setConfirmacaoSenha] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
@@ -40,6 +54,26 @@ export function OnboardingPage() {
 
     if (!isValidCpfCnpj(cpfCnpj)) {
       setLocalError("Informe um CPF ou CNPJ valido do assinante.");
+      return;
+    }
+
+    if (!telefone.trim()) {
+      setLocalError("Informe o telefone do assinante.");
+      return;
+    }
+
+    if (!billingAddress.trim() || !billingAddressNumber.trim() || !billingProvince.trim()) {
+      setLocalError("Preencha endereco, numero e bairro para billing.");
+      return;
+    }
+
+    if (!isValidPostalCode(billingPostalCode)) {
+      setLocalError("Informe um CEP valido com 8 digitos.");
+      return;
+    }
+
+    if (!isValidCityIbge(billingCityIbge)) {
+      setLocalError("Informe o codigo IBGE da cidade com 7 digitos.");
       return;
     }
 
@@ -61,6 +95,12 @@ export function OnboardingPage() {
         nomeEmpresa: nomeEmpresa.trim(),
         telefone: telefone.trim(),
         cpfCnpj: normalizeDocument(cpfCnpj),
+        billingAddress: billingAddress.trim(),
+        billingAddressNumber: billingAddressNumber.trim(),
+        billingAddressComplement: billingAddressComplement.trim(),
+        billingPostalCode: normalizeDocument(billingPostalCode),
+        billingProvince: billingProvince.trim(),
+        billingCityIbge: normalizeDocument(billingCityIbge),
         senha,
       });
       navigate(getPostAuthRedirect(session), { replace: true });
@@ -118,6 +158,46 @@ export function OnboardingPage() {
           <p className="-mt-1 text-xs leading-6 text-slate-500">
             Esse documento identifica quem vai assinar o AgendaPro e e obrigatorio para gerar a cobranca.
           </p>
+          <input
+            className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm"
+            onChange={(event) => setBillingAddress(event.target.value)}
+            placeholder="Endereco de billing"
+            value={billingAddress}
+          />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <input
+              className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm"
+              onChange={(event) => setBillingAddressNumber(event.target.value)}
+              placeholder="Numero"
+              value={billingAddressNumber}
+            />
+            <input
+              className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm"
+              onChange={(event) => setBillingAddressComplement(event.target.value)}
+              placeholder="Complemento"
+              value={billingAddressComplement}
+            />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <input
+              className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm"
+              onChange={(event) => setBillingPostalCode(event.target.value)}
+              placeholder="CEP"
+              value={billingPostalCode}
+            />
+            <input
+              className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm"
+              onChange={(event) => setBillingProvince(event.target.value)}
+              placeholder="Bairro"
+              value={billingProvince}
+            />
+          </div>
+          <input
+            className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm"
+            onChange={(event) => setBillingCityIbge(event.target.value)}
+            placeholder="Codigo IBGE da cidade"
+            value={billingCityIbge}
+          />
           {!isSocialOnboarding ? (
             <>
               <PasswordField

@@ -15,6 +15,12 @@ export type CompleteOnboardingInput = {
   nomeEmpresa: string;
   telefone?: string;
   cpfCnpj: string;
+  billingAddress: string;
+  billingAddressNumber: string;
+  billingAddressComplement?: string;
+  billingPostalCode: string;
+  billingProvince: string;
+  billingCityIbge: string;
   senha?: string;
 };
 
