@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { MobilePageHeader } from "@/components/layout/mobile-page-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -44,6 +44,7 @@ async function copyText(value: string) {
 
 export function PaymentPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [selectedMethod, setSelectedMethod] = useState<"credit_card" | "pix">("credit_card");
   const { data: overview, error, isError, isLoading } = useBillingOverviewQuery();
   const {
@@ -60,6 +61,7 @@ export function PaymentPage() {
     startCardCheckoutError,
   } = useBillingMutations();
   const [copyMessage, setCopyMessage] = useState("");
+  const checkoutState = new URLSearchParams(location.search).get("checkout");
 
   useEffect(() => {
     if (currentCharge?.paymentMethod === "pix" && currentCharge?.pixQrCodeText) {
@@ -134,6 +136,9 @@ export function PaymentPage() {
   const graceUntilLabel = overview?.access.graceUntil ? formatDateBR(overview.access.graceUntil) : null;
   const statusLabel = getSubscriptionStatusLabel(overview?.access.subscriptionStatus ?? null);
   const pixImageSrc = normalizePixImageSrc(currentCharge?.pixQrCodeImageUrl);
+  const isPaymentConfirmed =
+    overview?.access.subscriptionStatus === "active" &&
+    (currentCharge?.status === "confirmed" || currentCharge?.status === "received");
 
   return (
     <section className="space-y-4 pb-8 xl:space-y-5">
@@ -196,6 +201,36 @@ export function PaymentPage() {
 
       <div className="grid gap-4 xl:grid-cols-[360px_minmax(0,1fr)] xl:items-start xl:gap-5">
         <Card className="space-y-4 border-slate-200 bg-[linear-gradient(180deg,rgba(248,250,252,0.96),rgba(255,255,255,1))] xl:sticky xl:top-6">
+          {isPaymentConfirmed ? (
+            <div className="rounded-[24px] border border-emerald-100 bg-emerald-50/90 p-4">
+              <p className="text-sm font-semibold text-emerald-900">Pagamento confirmado</p>
+              <p className="mt-2 text-sm leading-6 text-emerald-800">
+                O webhook do gateway confirmou o pagamento e sua assinatura ja esta ativa.
+              </p>
+              <Button className="mt-4 w-full sm:w-auto" onClick={() => navigate("/")} type="button">
+                Voltar para o sistema
+              </Button>
+            </div>
+          ) : null}
+
+          {checkoutState === "cancelled" ? (
+            <div className="rounded-[24px] border border-amber-100 bg-amber-50/90 p-4 text-sm text-amber-800">
+              O checkout com cartao foi cancelado antes da confirmacao. Se quiser, tente novamente ou use Pix.
+            </div>
+          ) : null}
+
+          {checkoutState === "expired" ? (
+            <div className="rounded-[24px] border border-amber-100 bg-amber-50/90 p-4 text-sm text-amber-800">
+              A sessao de checkout expirou. Gere uma nova tentativa ou regularize pelo Pix.
+            </div>
+          ) : null}
+
+          {checkoutState === "success" && !isPaymentConfirmed ? (
+            <div className="rounded-[24px] border border-sky-100 bg-sky-50/90 p-4 text-sm text-sky-800">
+              O checkout foi concluido no gateway. Estamos aguardando a confirmacao do webhook para liberar o acesso.
+            </div>
+          ) : null}
+
           <div className="space-y-2">
             <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Como funciona</p>
             <h3 className="text-xl font-semibold tracking-[-0.03em] text-ink">Regularize em poucos passos</h3>
@@ -304,6 +339,21 @@ export function PaymentPage() {
                 {startCardCheckoutError ? (
                   <p className="mt-3 text-sm text-rose-600">{startCardCheckoutError.message}</p>
                 ) : null}
+
+                <div className="mt-4 rounded-[20px] border border-slate-200 bg-white/85 px-4 py-4 text-sm text-slate-600">
+                  <p className="font-semibold text-ink">Se o checkout externo travar</p>
+                  <p className="mt-2 leading-6">
+                    No sandbox do Asaas pode acontecer timeout visual mesmo com processamento em andamento. Volte para esta tela e atualize o status antes de tentar pagar novamente.
+                  </p>
+                  <div className="mt-3 flex flex-col gap-3 sm:flex-row">
+                    <Button className="w-full sm:w-auto" onClick={() => window.location.reload()} type="button" variant="secondary">
+                      Atualizar status
+                    </Button>
+                    <Button className="w-full sm:w-auto" onClick={() => setSelectedMethod("pix")} type="button" variant="secondary">
+                      Usar Pix agora
+                    </Button>
+                  </div>
+                </div>
               </div>
             </div>
           ) : null}

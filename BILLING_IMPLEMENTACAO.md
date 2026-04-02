@@ -182,6 +182,7 @@
 - [x] Tela de pagamento passou a oferecer Pix e checkout hospedado com cartao
 - [x] Cadastro e configuracoes passaram a buscar cidade/IBGE automaticamente a partir do CEP
 - [x] Tela bloqueada passou a redirecionar direto para a tela de pagamento
+- [x] Tela de pagamento passou a orientar retorno do checkout externo e exibicao de status confirmado apos webhook
 
 ### Pendencias
 - [ ] Revisar e migrar totalmente telas antigas que ainda usam historico legado
@@ -195,6 +196,7 @@
 - Organizacoes bloqueadas continuam acessando telas de billing em modo leitura/regularizacao.
 - O banner global aponta rapidamente para regularizacao sem liberar operacoes sensiveis do sistema.
 - A conta bloqueada usa a tela de pagamento como destino principal, reduzindo a intersticial visual antes da regularizacao.
+- O checkout hospedado com cartao assume falha visual do sandbox do Asaas e orienta o usuario a atualizar o status antes de repetir a tentativa.
 
 ### Riscos de compatibilidade identificados
 - Partes da gestao antiga ainda mostram dados de billing legado.
