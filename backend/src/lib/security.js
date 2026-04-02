@@ -9,6 +9,12 @@ function isLocalDevelopmentOrigin(origin) {
   return /^(https?:\/\/)(localhost|127\.0\.0\.1|10\.0\.2\.2)(:\d+)?$/i.test(origin);
 }
 
+function isTrustedMobileAppOrigin(origin) {
+  return /^(https?:\/\/localhost|https?:\/\/127\.0\.0\.1|capacitor:\/\/localhost|ionic:\/\/localhost)(:\d+)?$/i.test(
+    origin,
+  );
+}
+
 function getClientIp(request) {
   const forwardedFor = request.headers["x-forwarded-for"];
 
@@ -31,6 +37,11 @@ export function buildCorsOptions() {
       }
 
       if (allowAnyOrigin || configuredOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      if (isTrustedMobileAppOrigin(origin)) {
         callback(null, true);
         return;
       }
