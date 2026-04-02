@@ -389,6 +389,14 @@ export async function startBillingCheckout({ organizationId }) {
     throw error;
   }
 
+  if (!String(organization.cpf_cnpj ?? "").replace(/\D+/g, "")) {
+    const error = new Error(
+      "Informe o CPF/CNPJ da organizacao nas configuracoes antes de iniciar o pagamento.",
+    );
+    error.statusCode = 400;
+    throw error;
+  }
+
   const existingSubscription = await getOrganizationSubscriptionByOrganizationId(organizationId);
 
   if (existingSubscription?.gateway_subscription_id) {
@@ -414,7 +422,8 @@ export async function startBillingCheckout({ organizationId }) {
       : await createAsaasCustomer({
           name: organization.nome_empresa,
           email: organization.email_responsavel ?? undefined,
-          mobilePhone: organization.telefone ?? undefined,
+          cpfCnpj: organization.cpf_cnpj ?? undefined,
+          mobilePhone: undefined,
           externalReference: organization.id,
           notificationDisabled: true,
         });

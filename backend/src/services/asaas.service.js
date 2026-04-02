@@ -10,6 +10,24 @@ function getRequiredEnv(name) {
   return value;
 }
 
+function normalizeDigits(value) {
+  return String(value ?? "").replace(/\D+/g, "").trim();
+}
+
+function normalizeAsaasMobilePhone(value) {
+  const digits = normalizeDigits(value);
+
+  if (digits.length < 10 || digits.length > 11) {
+    return "";
+  }
+
+  if (/^(\d)\1+$/.test(digits)) {
+    return "";
+  }
+
+  return digits;
+}
+
 function getAsaasBaseUrl() {
   const explicitBaseUrl = String(process.env.ASAAS_API_BASE_URL ?? "").trim();
 
@@ -57,12 +75,16 @@ export function getAsaasWebhookToken() {
 }
 
 export async function createAsaasCustomer(input) {
+  const mobilePhone = normalizeAsaasMobilePhone(input.mobilePhone);
+  const cpfCnpj = normalizeDigits(input.cpfCnpj);
+
   return asaasRequest("/customers", {
     method: "POST",
     body: {
       name: input.name,
       email: input.email ?? undefined,
-      mobilePhone: input.mobilePhone ?? undefined,
+      cpfCnpj: cpfCnpj || undefined,
+      mobilePhone: mobilePhone || undefined,
       externalReference: input.externalReference ?? undefined,
       notificationDisabled: input.notificationDisabled ?? true,
     },

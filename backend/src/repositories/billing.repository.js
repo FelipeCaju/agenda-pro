@@ -471,8 +471,8 @@ async function ensureBillingTriggers() {
   ];
 
   for (const statement of triggerStatements) {
-    await execute(statement.drop);
-    await execute(statement.create);
+    await query(statement.drop);
+    await query(statement.create);
   }
 }
 
@@ -527,7 +527,7 @@ export async function ensureBillingInfrastructure() {
 
 export async function getBillingOrganizationSummary(organizationId) {
   const rows = await query(
-    `SELECT id, nome_empresa, email_responsavel, telefone, monthly_amount, subscription_status,
+    `SELECT id, nome_empresa, email_responsavel, telefone, cpf_cnpj, monthly_amount, subscription_status,
       subscription_plan, due_date, trial_end
       FROM organizations
       WHERE id = ?

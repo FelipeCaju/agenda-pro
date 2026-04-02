@@ -29,6 +29,7 @@ export type OrganizationPayment = {
 export type OrganizationProfile = SessionOrganization & {
   emailResponsavel: string;
   telefone: string;
+  cpfCnpj: string | null;
   monthlyAmount: number;
   pixKey: string;
   paymentGraceDays: number;
@@ -46,6 +47,7 @@ type OrganizationApiModel = {
   nome_empresa: string;
   email_responsavel: string;
   telefone: string;
+  cpf_cnpj: string | null;
   monthly_amount: number;
   subscription_status: string;
   subscription_plan: string;
@@ -88,6 +90,7 @@ function mapOrganization(model: OrganizationApiModel): OrganizationProfile {
     nomeEmpresa: model.nome_empresa,
     emailResponsavel: model.email_responsavel,
     telefone: model.telefone ?? "",
+    cpfCnpj: model.cpf_cnpj ?? null,
     monthlyAmount: Number(model.monthly_amount ?? 0),
     subscriptionStatus: model.subscription_status as SessionOrganization["subscriptionStatus"],
     subscriptionPlan: model.subscription_plan,

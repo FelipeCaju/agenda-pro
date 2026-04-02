@@ -24,6 +24,15 @@ function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+function normalizeDocument(value: string) {
+  return value.replace(/\D+/g, "").trim();
+}
+
+function isValidCpfCnpj(value: string) {
+  const digits = normalizeDocument(value);
+  return !digits || digits.length === 11 || digits.length === 14;
+}
+
 function isValidTime(value: string) {
   if (!/^\d{2}:\d{2}$/.test(value)) {
     return false;
@@ -87,6 +96,7 @@ export function SettingsPage() {
   const [companyName, setCompanyName] = useState("");
   const [companyEmail, setCompanyEmail] = useState("");
   const [companyPhone, setCompanyPhone] = useState("");
+  const [companyDocument, setCompanyDocument] = useState("");
   const [nomeNegocio, setNomeNegocio] = useState("");
   const [subtitulo, setSubtitulo] = useState("");
   const [horaInicioAgenda, setHoraInicioAgenda] = useState("08:00");
@@ -119,7 +129,9 @@ export function SettingsPage() {
     setCompanyName(organization.nomeEmpresa ?? "");
     setCompanyEmail(organization.emailResponsavel ?? "");
     setCompanyPhone(organization.telefone ?? "");
+    setCompanyDocument(organization.cpfCnpj ?? "");
   }, [
+    organization?.cpfCnpj,
     organization?.emailResponsavel,
     organization?.id,
     organization?.nomeEmpresa,
@@ -175,11 +187,17 @@ export function SettingsPage() {
       return;
     }
 
+    if (!isValidCpfCnpj(companyDocument)) {
+      setCompanyValidationError("CPF/CNPJ invalido. Use 11 ou 14 digitos.");
+      return;
+    }
+
     try {
       await updateOrganization({
         nomeEmpresa: normalizedName,
         emailResponsavel: normalizedEmail,
         telefone: companyPhone.trim(),
+        cpfCnpj: normalizeDocument(companyDocument) || null,
       });
 
       setSuccessMessage("Dados da empresa atualizados com sucesso.");
@@ -370,6 +388,22 @@ export function SettingsPage() {
               placeholder="Opcional"
               value={companyPhone}
             />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-ink" htmlFor="company-document">
+              CPF ou CNPJ para billing
+            </label>
+            <input
+              className="app-input"
+              id="company-document"
+              onChange={(event) => setCompanyDocument(event.target.value)}
+              placeholder="Somente numeros ou formatado"
+              value={companyDocument}
+            />
+            <p className="text-sm text-slate-500">
+              Esse documento e usado para criar a cobranca no gateway e liberar os testes de pagamento.
+            </p>
           </div>
 
           {companyErrorMessage ? <p className="text-sm text-rose-600">{companyErrorMessage}</p> : null}

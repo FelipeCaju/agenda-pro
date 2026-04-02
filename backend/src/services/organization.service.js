@@ -15,6 +15,15 @@ function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+function normalizeDocument(value) {
+  return String(value ?? "").replace(/\D+/g, "").trim();
+}
+
+function isValidCpfCnpj(value) {
+  const digits = normalizeDocument(value);
+  return !digits || digits.length === 11 || digits.length === 14;
+}
+
 async function buildOrganizationPayload(organization) {
   const latestPayment = await getCurrentCharge({ organizationId: organization.id });
   const access = await resolveOrganizationBillingAccess(organization.id);
@@ -24,6 +33,7 @@ async function buildOrganizationPayload(organization) {
     nome_empresa: organization.nome_empresa,
     email_responsavel: organization.email_responsavel,
     telefone: organization.telefone,
+    cpf_cnpj: organization.cpf_cnpj ?? null,
     monthly_amount: Number(organization.monthly_amount ?? 0),
     subscription_status: access.subscriptionStatus,
     subscription_plan: organization.subscription_plan,
@@ -91,6 +101,7 @@ export async function updateCurrentOrganization({ organizationId, input }) {
   const nomeEmpresa = input.nome_empresa ?? input.nomeEmpresa;
   const emailResponsavel = input.email_responsavel ?? input.emailResponsavel;
   const telefone = input.telefone;
+  const cpfCnpj = input.cpf_cnpj ?? input.cpfCnpj;
   const subscriptionStatus = input.subscription_status ?? input.subscriptionStatus;
   const trialEnd = input.trial_end ?? input.trialEnd;
   const monthlyAmount = input.monthly_amount ?? input.monthlyAmount;
@@ -109,6 +120,12 @@ export async function updateCurrentOrganization({ organizationId, input }) {
       error.statusCode = 400;
       throw error;
     }
+  }
+
+  if (cpfCnpj !== undefined && !isValidCpfCnpj(cpfCnpj)) {
+    const error = new Error("CPF/CNPJ invalido.");
+    error.statusCode = 400;
+    throw error;
   }
 
   if (subscriptionStatus !== undefined && !isValidSubscriptionStatus(subscriptionStatus)) {
@@ -142,6 +159,7 @@ export async function updateCurrentOrganization({ organizationId, input }) {
     email_responsavel:
       emailResponsavel !== undefined ? normalizeString(emailResponsavel).toLowerCase() : undefined,
     telefone: telefone !== undefined ? normalizeString(telefone) : undefined,
+    cpf_cnpj: cpfCnpj !== undefined ? normalizeDocument(cpfCnpj) || null : undefined,
     monthly_amount: monthlyAmount !== undefined ? Number(monthlyAmount) : undefined,
     subscription_status: subscriptionStatus,
     subscription_plan: input.subscription_plan ?? input.subscriptionPlan,

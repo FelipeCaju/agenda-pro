@@ -122,6 +122,7 @@
 - [x] Endpoints novos de billing implementados
 - [x] Resolver de acesso por billing integrado a autenticacao
 - [x] Compatibilidade parcial com o modelo legado mantida via cache em `organizations`
+- [x] Validacao de CPF/CNPJ da organizacao adicionada ao checkout e configuracoes
 
 ### Pendencias
 - [ ] Ampliar suporte a cartao com checkout hospedado do Asaas
@@ -135,6 +136,7 @@
 - O checkout inicial foi implementado com recorrencia via Asaas e cobranca Pix.
 - A assinatura local e as transacoes locais sao sincronizadas a partir do gateway.
 - O endpoint manual legado de "ja paguei" foi bloqueado para evitar fluxo inseguro fora do webhook.
+- O checkout passou a exigir `organizations.cpf_cnpj`, porque o Asaas sandbox recusou a criacao da cobranca sem documento fiscal do cliente.
 
 ### Riscos de compatibilidade identificados
 - Algumas telas antigas ainda leem `organization_payments`.
@@ -174,6 +176,7 @@
 - [x] Tela `Faturas` criada
 - [x] Tela de bloqueio atualizada para regularizacao via billing
 - [x] Banner global de inadimplencia/regularizacao adicionado no app shell
+- [x] Campo de CPF/CNPJ exposto nas configuracoes da organizacao para viabilizar checkout real
 
 ### Pendencias
 - [ ] Revisar e migrar totalmente telas antigas que ainda usam historico legado
@@ -200,12 +203,13 @@
 - [x] Persistencia de log bruto do webhook foi adicionada
 - [x] Idempotencia do webhook foi implementada
 - [x] Fluxo manual inseguro de confirmacao foi bloqueado
+- [x] Homologacao inicial do checkout sandbox executada com credenciais reais de teste
 
 ### Pendencias
 - [ ] Configurar segredo real de producao para `ASAAS_API_KEY`
 - [ ] Configurar segredo real de producao para `ASAAS_WEBHOOK_TOKEN`
 - [ ] Colocar observabilidade/monitoramento de falhas de webhook
-- [ ] Homologar o fluxo contra a conta Asaas real ou sandbox configurada
+- [ ] Homologar o recebimento do webhook sandbox apos pagamento confirmado
 
 ### Proximos passos
 - Documentar gaps finais para producao e rollout
@@ -216,7 +220,7 @@
 - O backend faz a ponte com o gateway sem confiar em payloads de sucesso vindos do frontend.
 
 ### Riscos de compatibilidade identificados
-- Sem testes de homologacao reais do Asaas ainda existe risco de ajuste fino de payload.
+- O Asaas pode exigir campos cadastrais adicionais por ambiente ou meio de pagamento.
 - O startup automatico do billing depende de permissao suficiente no MySQL.
 
 ## Etapa 9. O que falta para producao
@@ -227,12 +231,13 @@
 ### Pendencias
 - [ ] Preencher `ASAAS_API_KEY` e `ASAAS_WEBHOOK_TOKEN` em cada ambiente
 - [ ] Configurar webhook do Asaas apontando para `/api/webhooks/asaas`
-- [ ] Homologar criacao de customer, subscription, cobranca e pagamento real em sandbox
+- [ ] Homologar pagamento sandbox completo com webhook confirmado
 - [ ] Validar permissao do usuario MySQL para criar triggers e indices
 - [ ] Decidir rollout final das telas legadas que ainda usam `organization_payments`
 - [ ] Implementar checkout hospedado de cartao, se esse meio de pagamento for obrigatorio agora
 - [ ] Adicionar monitoramento, alerta e replay operacional para falhas de webhook
 - [ ] Validar se sera necessario job agendado adicional para reconciliacao periodica
+- [ ] Versionar e aplicar a migration de `organizations.cpf_cnpj` em todos os ambientes
 
 ### Proximos passos
 - Rodar homologacao ponta a ponta com o gateway configurado
@@ -242,6 +247,7 @@
 ### Decisoes tecnicas tomadas
 - A entrega atual prioriza seguranca e fluxo real de webhook.
 - O billing novo fica pronto para SaaS real, mas ainda precisa de homologacao operacional antes de chamar de producao plena.
+- O documento fiscal da organizacao passa a ser obrigatorio para iniciar checkout no Asaas.
 
 ### Riscos de compatibilidade identificados
 - Existe coexistencia temporaria entre billing novo e legado.

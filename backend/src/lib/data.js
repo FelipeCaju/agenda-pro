@@ -461,6 +461,7 @@ function mapOrganization(row) {
     nome_empresa: row.nome_empresa,
     email_responsavel: row.email_responsavel,
     telefone: row.telefone,
+    cpf_cnpj: row.cpf_cnpj ?? null,
     monthly_amount: Number(row.monthly_amount ?? 0),
     subscription_status: row.subscription_status,
     subscription_plan: row.subscription_plan,
@@ -780,6 +781,13 @@ async function ensurePlatformSettingsInfrastructure() {
     await execute(
       `ALTER TABLE organizations
         ADD COLUMN monthly_amount DECIMAL(12,2) NOT NULL DEFAULT 0 AFTER telefone`,
+    );
+  }
+
+  if (!(await hasColumn("organizations", "cpf_cnpj"))) {
+    await execute(
+      `ALTER TABLE organizations
+        ADD COLUMN cpf_cnpj VARCHAR(20) NULL AFTER telefone`,
     );
   }
 
@@ -1526,6 +1534,8 @@ export async function createOrganization({
   emailResponsavel,
   nomeEmpresa,
   telefone,
+  cpfCnpj,
+  cpf_cnpj,
   monthlyAmount,
   monthly_amount,
   subscriptionStatus,
@@ -1540,6 +1550,7 @@ export async function createOrganization({
     nome_empresa: nomeEmpresa,
     email_responsavel: emailResponsavel,
     telefone: telefone ?? "",
+    cpf_cnpj: cpfCnpj ?? cpf_cnpj ?? null,
     monthly_amount: Number(monthlyAmount ?? monthly_amount ?? 0),
     subscription_status: subscriptionStatus ?? "trial",
     subscription_plan: subscriptionPlan ?? "starter",
@@ -1550,14 +1561,15 @@ export async function createOrganization({
   await withTransaction(async (connection) => {
     await connection.execute(
       `INSERT INTO organizations (
-        id, nome_empresa, email_responsavel, telefone, monthly_amount,
+        id, nome_empresa, email_responsavel, telefone, cpf_cnpj, monthly_amount,
         subscription_status, subscription_plan, due_date, trial_end
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         organization.id,
         organization.nome_empresa,
         organization.email_responsavel,
         organization.telefone || null,
+        organization.cpf_cnpj || null,
         organization.monthly_amount,
         organization.subscription_status,
         organization.subscription_plan,
@@ -1640,6 +1652,7 @@ export async function updateOrganizationById(organizationId, input) {
     "nome_empresa",
     "email_responsavel",
     "telefone",
+    "cpf_cnpj",
     "monthly_amount",
     "subscription_status",
     "subscription_plan",
