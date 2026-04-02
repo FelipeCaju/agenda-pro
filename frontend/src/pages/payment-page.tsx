@@ -50,7 +50,14 @@ export function PaymentPage() {
     error: currentChargeError,
     isError: isCurrentChargeError,
   } = useBillingCurrentChargeQuery();
-  const { startCheckout, isStartingCheckout, startCheckoutError } = useBillingMutations();
+  const {
+    startCheckout,
+    startCardCheckout,
+    isStartingCheckout,
+    isStartingCardCheckout,
+    startCheckoutError,
+    startCardCheckoutError,
+  } = useBillingMutations();
   const [copyMessage, setCopyMessage] = useState("");
 
   async function handleStartCheckout() {
@@ -66,6 +73,21 @@ export function PaymentPage() {
       setCopyMessage("Codigo Pix copiado com sucesso.");
     } catch (copyError) {
       setCopyMessage(copyError instanceof Error ? copyError.message : "Nao foi possivel copiar o Pix.");
+    }
+  }
+
+  async function handleStartCardCheckout() {
+    setCopyMessage("");
+    try {
+      const session = await startCardCheckout();
+
+      if (!session.checkoutUrl) {
+        return;
+      }
+
+      window.location.assign(session.checkoutUrl);
+    } catch {
+      return;
     }
   }
 
@@ -172,7 +194,7 @@ export function PaymentPage() {
           <div className="space-y-3">
             {[
               "1. Gere ou reaproveite a cobranca ativa do plano mensal.",
-              "2. Pague com Pix usando o QR Code ou a fatura hospedada.",
+              "2. Escolha entre Pix imediato ou checkout hospedado com cartao.",
               "3. O Asaas confirma pelo webhook e o acesso volta automaticamente.",
             ].map((item) => (
               <div
@@ -217,9 +239,39 @@ export function PaymentPage() {
         </Card>
 
         <Card className="space-y-4 border-slate-200 bg-white">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Checkout hospedado</p>
+                <h3 className="mt-1 text-xl font-semibold tracking-[-0.03em] text-ink">Cartao recorrente</h3>
+              </div>
+              <div className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-sky-700">
+                Asaas
+              </div>
+            </div>
+
+            <div className="rounded-[24px] border border-slate-200 bg-[linear-gradient(135deg,rgba(15,23,42,0.03),rgba(14,165,233,0.09))] p-4">
+              <p className="text-sm font-semibold text-ink">Pague com cartao sem expor dados no AgendaPro</p>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                O pagamento com cartao abre um checkout hospedado do Asaas. Numero do cartao, CVV e dados do titular ficam no gateway, nao no nosso backend.
+              </p>
+              <Button
+                className="mt-4 w-full sm:w-auto"
+                disabled={isStartingCardCheckout}
+                onClick={() => void handleStartCardCheckout()}
+                type="button"
+              >
+                {isStartingCardCheckout ? "Abrindo checkout..." : "Pagar com cartao"}
+              </Button>
+              {startCardCheckoutError ? (
+                <p className="mt-3 text-sm text-rose-600">{startCardCheckoutError.message}</p>
+              ) : null}
+            </div>
+          </div>
+
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Pagamento disponivel agora</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Pagamento alternativo</p>
               <h3 className="mt-1 text-xl font-semibold tracking-[-0.03em] text-ink">Pix</h3>
             </div>
             <div className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
@@ -273,9 +325,6 @@ export function PaymentPage() {
                 <p className="font-semibold text-ink">Importante</p>
                 <p className="mt-2 leading-6">
                   A liberacao acontece automaticamente depois da confirmacao do gateway. Nao depende de confirmacao manual no frontend.
-                </p>
-                <p className="mt-2 leading-6">
-                  Nesta etapa da integracao, o fluxo automatico publicado usa Pix. O checkout recorrente por cartao via Asaas Checkout ainda precisa ser implementado separadamente.
                 </p>
               </div>
 

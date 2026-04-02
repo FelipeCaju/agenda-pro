@@ -531,8 +531,9 @@ export async function ensureBillingInfrastructure() {
 
 export async function getBillingOrganizationSummary(organizationId) {
   const rows = await query(
-    `SELECT id, nome_empresa, email_responsavel, telefone, cpf_cnpj, monthly_amount, subscription_status,
-      subscription_plan, due_date, trial_end
+    `SELECT id, nome_empresa, email_responsavel, telefone, cpf_cnpj, billing_address,
+      billing_address_number, billing_address_complement, billing_postal_code, billing_province,
+      billing_city_ibge, monthly_amount, subscription_status, subscription_plan, due_date, trial_end
       FROM organizations
       WHERE id = ?
       LIMIT 1`,
@@ -569,6 +570,15 @@ export async function getOrganizationSubscriptionByGatewaySubscriptionId(gateway
   const rows = await query(
     "SELECT * FROM organization_subscriptions WHERE gateway_subscription_id = ? LIMIT 1",
     [gatewaySubscriptionId],
+  );
+
+  return mapSubscription(rows[0]);
+}
+
+export async function getOrganizationSubscriptionByGatewayCustomerId(gatewayCustomerId) {
+  const rows = await query(
+    "SELECT * FROM organization_subscriptions WHERE gateway_customer_id = ? LIMIT 1",
+    [gatewayCustomerId],
   );
 
   return mapSubscription(rows[0]);

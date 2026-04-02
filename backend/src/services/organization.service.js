@@ -24,6 +24,16 @@ function isValidCpfCnpj(value) {
   return !digits || digits.length === 11 || digits.length === 14;
 }
 
+function isValidPostalCode(value) {
+  const digits = normalizeDocument(value);
+  return !digits || digits.length === 8;
+}
+
+function isValidCityIbge(value) {
+  const digits = normalizeDocument(value);
+  return !digits || digits.length === 7;
+}
+
 async function buildOrganizationPayload(organization) {
   const latestPayment = await getCurrentCharge({ organizationId: organization.id });
   const access = await resolveOrganizationBillingAccess(organization.id);
@@ -34,6 +44,12 @@ async function buildOrganizationPayload(organization) {
     email_responsavel: organization.email_responsavel,
     telefone: organization.telefone,
     cpf_cnpj: organization.cpf_cnpj ?? null,
+    billing_address: organization.billing_address ?? null,
+    billing_address_number: organization.billing_address_number ?? null,
+    billing_address_complement: organization.billing_address_complement ?? null,
+    billing_postal_code: organization.billing_postal_code ?? null,
+    billing_province: organization.billing_province ?? null,
+    billing_city_ibge: organization.billing_city_ibge ?? null,
     monthly_amount: Number(organization.monthly_amount ?? 0),
     subscription_status: access.subscriptionStatus,
     subscription_plan: organization.subscription_plan,
@@ -102,6 +118,12 @@ export async function updateCurrentOrganization({ organizationId, input }) {
   const emailResponsavel = input.email_responsavel ?? input.emailResponsavel;
   const telefone = input.telefone;
   const cpfCnpj = input.cpf_cnpj ?? input.cpfCnpj;
+  const billingAddress = input.billing_address ?? input.billingAddress;
+  const billingAddressNumber = input.billing_address_number ?? input.billingAddressNumber;
+  const billingAddressComplement = input.billing_address_complement ?? input.billingAddressComplement;
+  const billingPostalCode = input.billing_postal_code ?? input.billingPostalCode;
+  const billingProvince = input.billing_province ?? input.billingProvince;
+  const billingCityIbge = input.billing_city_ibge ?? input.billingCityIbge;
   const subscriptionStatus = input.subscription_status ?? input.subscriptionStatus;
   const trialEnd = input.trial_end ?? input.trialEnd;
   const monthlyAmount = input.monthly_amount ?? input.monthlyAmount;
@@ -124,6 +146,18 @@ export async function updateCurrentOrganization({ organizationId, input }) {
 
   if (cpfCnpj !== undefined && !isValidCpfCnpj(cpfCnpj)) {
     const error = new Error("CPF/CNPJ invalido.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (billingPostalCode !== undefined && !isValidPostalCode(billingPostalCode)) {
+    const error = new Error("CEP invalido.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (billingCityIbge !== undefined && !isValidCityIbge(billingCityIbge)) {
+    const error = new Error("Codigo IBGE da cidade invalido.");
     error.statusCode = 400;
     throw error;
   }
@@ -160,6 +194,16 @@ export async function updateCurrentOrganization({ organizationId, input }) {
       emailResponsavel !== undefined ? normalizeString(emailResponsavel).toLowerCase() : undefined,
     telefone: telefone !== undefined ? normalizeString(telefone) : undefined,
     cpf_cnpj: cpfCnpj !== undefined ? normalizeDocument(cpfCnpj) || null : undefined,
+    billing_address: billingAddress !== undefined ? normalizeString(billingAddress) || null : undefined,
+    billing_address_number:
+      billingAddressNumber !== undefined ? normalizeString(billingAddressNumber) || null : undefined,
+    billing_address_complement:
+      billingAddressComplement !== undefined ? normalizeString(billingAddressComplement) || null : undefined,
+    billing_postal_code:
+      billingPostalCode !== undefined ? normalizeDocument(billingPostalCode) || null : undefined,
+    billing_province: billingProvince !== undefined ? normalizeString(billingProvince) || null : undefined,
+    billing_city_ibge:
+      billingCityIbge !== undefined ? normalizeDocument(billingCityIbge) || null : undefined,
     monthly_amount: monthlyAmount !== undefined ? Number(monthlyAmount) : undefined,
     subscription_status: subscriptionStatus,
     subscription_plan: input.subscription_plan ?? input.subscriptionPlan,

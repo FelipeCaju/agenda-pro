@@ -6,6 +6,7 @@ import {
   getBillingOverview,
   listBillingInvoices,
   reactivateBillingSubscription,
+  startHostedCardCheckout,
   startBillingCheckout,
 } from "../services/billing.service.js";
 
@@ -20,6 +21,19 @@ export async function startBillingCheckoutController(request, response) {
     const { organization } = await getRequestAuthContext(request);
     const data = await startBillingCheckout({ organizationId: organization.id });
     response.json({ data, message: "Checkout de billing iniciado com sucesso." });
+  } catch (error) {
+    sendError(response, error);
+  }
+}
+
+export async function startHostedCardCheckoutController(request, response) {
+  try {
+    const { organization } = await getRequestAuthContext(request);
+    const data = await startHostedCardCheckout({
+      organizationId: organization.id,
+      frontendOrigin: request.headers.origin ?? request.headers.referer ?? "",
+    });
+    response.json({ data, message: "Checkout hospedado com cartao criado com sucesso." });
   } catch (error) {
     sendError(response, error);
   }

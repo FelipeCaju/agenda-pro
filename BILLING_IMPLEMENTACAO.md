@@ -123,9 +123,9 @@
 - [x] Resolver de acesso por billing integrado a autenticacao
 - [x] Compatibilidade parcial com o modelo legado mantida via cache em `organizations`
 - [x] Validacao de CPF/CNPJ da organizacao adicionada ao checkout e configuracoes
+- [x] Checkout hospedado com cartao via Asaas criado sem trafegar dados sensiveis pelo backend
 
 ### Pendencias
-- [ ] Ampliar suporte a cartao com checkout hospedado do Asaas
 - [ ] Revisar listagens administrativas antigas para consumir o billing novo
 
 ### Proximos passos
@@ -134,6 +134,7 @@
 ### Decisoes tecnicas tomadas
 - O modulo novo usa `controller -> service -> repository -> integracao externa`.
 - O checkout inicial foi implementado com recorrencia via Asaas e cobranca Pix.
+- O checkout com cartao usa o `checkoutSession` hospedado do Asaas com callback publico do frontend.
 - A assinatura local e as transacoes locais sao sincronizadas a partir do gateway.
 - O endpoint manual legado de "ja paguei" foi bloqueado para evitar fluxo inseguro fora do webhook.
 - O checkout passou a exigir `organizations.cpf_cnpj`, porque o Asaas sandbox recusou a criacao da cobranca sem documento fiscal do cliente.
@@ -178,6 +179,7 @@
 - [x] Banner global de inadimplencia/regularizacao adicionado no app shell
 - [x] Campo de CPF/CNPJ exposto nas configuracoes da organizacao para viabilizar checkout real
 - [x] Cadastro inicial e onboarding passaram a exigir CPF/CNPJ do assinante
+- [x] Tela de pagamento passou a oferecer Pix e checkout hospedado com cartao
 
 ### Pendencias
 - [ ] Revisar e migrar totalmente telas antigas que ainda usam historico legado
@@ -205,10 +207,12 @@
 - [x] Idempotencia do webhook foi implementada
 - [x] Fluxo manual inseguro de confirmacao foi bloqueado
 - [x] Homologacao inicial do checkout sandbox executada com credenciais reais de teste
+- [x] Checkout hospedado do cartao homologado no sandbox com URL valida
 
 ### Pendencias
 - [ ] Configurar segredo real de producao para `ASAAS_API_KEY`
 - [ ] Configurar segredo real de producao para `ASAAS_WEBHOOK_TOKEN`
+- [ ] Configurar `FRONTEND_APP_URL` publico em cada ambiente de backend
 - [ ] Colocar observabilidade/monitoramento de falhas de webhook
 - [ ] Homologar o recebimento do webhook sandbox apos pagamento confirmado
 
@@ -223,6 +227,7 @@
 ### Riscos de compatibilidade identificados
 - O Asaas pode exigir campos cadastrais adicionais por ambiente ou meio de pagamento.
 - O startup automatico do billing depende de permissao suficiente no MySQL.
+- O checkout com cartao exige perfil de billing completo na organizacao, incluindo endereco e codigo IBGE da cidade.
 
 ## Etapa 9. O que falta para producao
 
@@ -231,14 +236,15 @@
 
 ### Pendencias
 - [ ] Preencher `ASAAS_API_KEY` e `ASAAS_WEBHOOK_TOKEN` em cada ambiente
+- [ ] Preencher `FRONTEND_APP_URL` publico no backend de cada ambiente
 - [ ] Configurar webhook do Asaas apontando para `/api/webhooks/asaas`
 - [ ] Homologar pagamento sandbox completo com webhook confirmado
 - [ ] Validar permissao do usuario MySQL para criar triggers e indices
 - [ ] Decidir rollout final das telas legadas que ainda usam `organization_payments`
-- [ ] Implementar checkout hospedado de cartao, se esse meio de pagamento for obrigatorio agora
 - [ ] Adicionar monitoramento, alerta e replay operacional para falhas de webhook
 - [ ] Validar se sera necessario job agendado adicional para reconciliacao periodica
 - [ ] Versionar e aplicar a migration de `organizations.cpf_cnpj` em todos os ambientes
+- [ ] Versionar e aplicar a migration do perfil de billing da organizacao em todos os ambientes
 
 ### Proximos passos
 - Rodar homologacao ponta a ponta com o gateway configurado
@@ -249,6 +255,7 @@
 - A entrega atual prioriza seguranca e fluxo real de webhook.
 - O billing novo fica pronto para SaaS real, mas ainda precisa de homologacao operacional antes de chamar de producao plena.
 - O documento fiscal da organizacao passa a ser obrigatorio para iniciar checkout no Asaas.
+- O checkout com cartao usa o ambiente hospedado do Asaas e depende de dados completos do pagador na organizacao.
 
 ### Riscos de compatibilidade identificados
 - Existe coexistencia temporaria entre billing novo e legado.

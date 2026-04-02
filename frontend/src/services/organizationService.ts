@@ -30,6 +30,12 @@ export type OrganizationProfile = SessionOrganization & {
   emailResponsavel: string;
   telefone: string;
   cpfCnpj: string | null;
+  billingAddress: string | null;
+  billingAddressNumber: string | null;
+  billingAddressComplement: string | null;
+  billingPostalCode: string | null;
+  billingProvince: string | null;
+  billingCityIbge: string | null;
   monthlyAmount: number;
   pixKey: string;
   paymentGraceDays: number;
@@ -48,6 +54,12 @@ type OrganizationApiModel = {
   email_responsavel: string;
   telefone: string;
   cpf_cnpj: string | null;
+  billing_address: string | null;
+  billing_address_number: string | null;
+  billing_address_complement: string | null;
+  billing_postal_code: string | null;
+  billing_province: string | null;
+  billing_city_ibge: string | null;
   monthly_amount: number;
   subscription_status: string;
   subscription_plan: string;
@@ -91,6 +103,12 @@ function mapOrganization(model: OrganizationApiModel): OrganizationProfile {
     emailResponsavel: model.email_responsavel,
     telefone: model.telefone ?? "",
     cpfCnpj: model.cpf_cnpj ?? null,
+    billingAddress: model.billing_address ?? null,
+    billingAddressNumber: model.billing_address_number ?? null,
+    billingAddressComplement: model.billing_address_complement ?? null,
+    billingPostalCode: model.billing_postal_code ?? null,
+    billingProvince: model.billing_province ?? null,
+    billingCityIbge: model.billing_city_ibge ?? null,
     monthlyAmount: Number(model.monthly_amount ?? 0),
     subscriptionStatus: model.subscription_status as SessionOrganization["subscriptionStatus"],
     subscriptionPlan: model.subscription_plan,

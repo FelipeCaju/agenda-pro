@@ -41,6 +41,11 @@ function getAsaasBaseUrl() {
     : "https://sandbox.asaas.com/api/v3";
 }
 
+function getAsaasAppBaseUrl() {
+  const environment = String(process.env.ASAAS_ENV ?? "sandbox").trim().toLowerCase();
+  return environment === "production" ? "https://asaas.com" : "https://sandbox.asaas.com";
+}
+
 async function asaasRequest(path, { method = "GET", body, allowNotFound = false } = {}) {
   const response = await fetch(`${getAsaasBaseUrl()}${path}`, {
     method,
@@ -77,6 +82,8 @@ export function getAsaasWebhookToken() {
 export async function createAsaasCustomer(input) {
   const mobilePhone = normalizeAsaasMobilePhone(input.mobilePhone);
   const cpfCnpj = normalizeDigits(input.cpfCnpj);
+  const postalCode = normalizeDigits(input.postalCode);
+  const city = normalizeDigits(input.city);
 
   return asaasRequest("/customers", {
     method: "POST",
@@ -85,6 +92,37 @@ export async function createAsaasCustomer(input) {
       email: input.email ?? undefined,
       cpfCnpj: cpfCnpj || undefined,
       mobilePhone: mobilePhone || undefined,
+      address: input.address ?? undefined,
+      addressNumber: input.addressNumber ?? undefined,
+      complement: input.complement ?? undefined,
+      province: input.province ?? undefined,
+      postalCode: postalCode || undefined,
+      city: city ? Number(city) : undefined,
+      externalReference: input.externalReference ?? undefined,
+      notificationDisabled: input.notificationDisabled ?? true,
+    },
+  });
+}
+
+export async function updateAsaasCustomer(customerId, input) {
+  const mobilePhone = normalizeAsaasMobilePhone(input.mobilePhone);
+  const cpfCnpj = normalizeDigits(input.cpfCnpj);
+  const postalCode = normalizeDigits(input.postalCode);
+  const city = normalizeDigits(input.city);
+
+  return asaasRequest(`/customers/${customerId}`, {
+    method: "PUT",
+    body: {
+      name: input.name,
+      email: input.email ?? undefined,
+      cpfCnpj: cpfCnpj || undefined,
+      mobilePhone: mobilePhone || undefined,
+      address: input.address ?? undefined,
+      addressNumber: input.addressNumber ?? undefined,
+      complement: input.complement ?? undefined,
+      province: input.province ?? undefined,
+      postalCode: postalCode || undefined,
+      city: city ? Number(city) : undefined,
       externalReference: input.externalReference ?? undefined,
       notificationDisabled: input.notificationDisabled ?? true,
     },
@@ -108,6 +146,24 @@ export async function createAsaasSubscription(input) {
       interest: input.interest ?? undefined,
     },
   });
+}
+
+export async function createAsaasCheckout(input) {
+  return asaasRequest("/checkouts", {
+    method: "POST",
+    body: {
+      customer: input.customer ?? undefined,
+      billingTypes: input.billingTypes ?? ["CREDIT_CARD"],
+      chargeTypes: input.chargeTypes ?? ["RECURRENT"],
+      callback: input.callback ?? undefined,
+      subscription: input.subscription ?? undefined,
+      items: input.items ?? [],
+    },
+  });
+}
+
+export function buildAsaasCheckoutUrl(checkoutId) {
+  return `${getAsaasAppBaseUrl()}/checkoutSession/show?id=${checkoutId}`;
 }
 
 export async function cancelAsaasSubscription(subscriptionId) {

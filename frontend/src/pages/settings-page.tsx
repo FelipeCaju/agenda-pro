@@ -33,6 +33,16 @@ function isValidCpfCnpj(value: string) {
   return !digits || digits.length === 11 || digits.length === 14;
 }
 
+function isValidPostalCode(value: string) {
+  const digits = normalizeDocument(value);
+  return !digits || digits.length === 8;
+}
+
+function isValidCityIbge(value: string) {
+  const digits = normalizeDocument(value);
+  return !digits || digits.length === 7;
+}
+
 function isValidTime(value: string) {
   if (!/^\d{2}:\d{2}$/.test(value)) {
     return false;
@@ -97,6 +107,12 @@ export function SettingsPage() {
   const [companyEmail, setCompanyEmail] = useState("");
   const [companyPhone, setCompanyPhone] = useState("");
   const [companyDocument, setCompanyDocument] = useState("");
+  const [billingAddress, setBillingAddress] = useState("");
+  const [billingAddressNumber, setBillingAddressNumber] = useState("");
+  const [billingAddressComplement, setBillingAddressComplement] = useState("");
+  const [billingPostalCode, setBillingPostalCode] = useState("");
+  const [billingProvince, setBillingProvince] = useState("");
+  const [billingCityIbge, setBillingCityIbge] = useState("");
   const [nomeNegocio, setNomeNegocio] = useState("");
   const [subtitulo, setSubtitulo] = useState("");
   const [horaInicioAgenda, setHoraInicioAgenda] = useState("08:00");
@@ -130,7 +146,19 @@ export function SettingsPage() {
     setCompanyEmail(organization.emailResponsavel ?? "");
     setCompanyPhone(organization.telefone ?? "");
     setCompanyDocument(organization.cpfCnpj ?? "");
+    setBillingAddress(organization.billingAddress ?? "");
+    setBillingAddressNumber(organization.billingAddressNumber ?? "");
+    setBillingAddressComplement(organization.billingAddressComplement ?? "");
+    setBillingPostalCode(organization.billingPostalCode ?? "");
+    setBillingProvince(organization.billingProvince ?? "");
+    setBillingCityIbge(organization.billingCityIbge ?? "");
   }, [
+    organization?.billingAddress,
+    organization?.billingAddressComplement,
+    organization?.billingAddressNumber,
+    organization?.billingCityIbge,
+    organization?.billingPostalCode,
+    organization?.billingProvince,
     organization?.cpfCnpj,
     organization?.emailResponsavel,
     organization?.id,
@@ -192,12 +220,28 @@ export function SettingsPage() {
       return;
     }
 
+    if (!isValidPostalCode(billingPostalCode)) {
+      setCompanyValidationError("CEP invalido. Use 8 digitos.");
+      return;
+    }
+
+    if (!isValidCityIbge(billingCityIbge)) {
+      setCompanyValidationError("Codigo IBGE da cidade invalido. Use 7 digitos.");
+      return;
+    }
+
     try {
       await updateOrganization({
         nomeEmpresa: normalizedName,
         emailResponsavel: normalizedEmail,
         telefone: companyPhone.trim(),
         cpfCnpj: normalizeDocument(companyDocument) || null,
+        billingAddress: billingAddress.trim() || null,
+        billingAddressNumber: billingAddressNumber.trim() || null,
+        billingAddressComplement: billingAddressComplement.trim() || null,
+        billingPostalCode: normalizeDocument(billingPostalCode) || null,
+        billingProvince: billingProvince.trim() || null,
+        billingCityIbge: normalizeDocument(billingCityIbge) || null,
       });
 
       setSuccessMessage("Dados da empresa atualizados com sucesso.");
@@ -403,6 +447,94 @@ export function SettingsPage() {
             />
             <p className="text-sm text-slate-500">
               Esse documento e usado para criar a cobranca no gateway e liberar os testes de pagamento.
+            </p>
+          </div>
+
+          <div className="rounded-[22px] border border-slate-200 bg-slate-50/80 px-4 py-4">
+            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Checkout com cartao</p>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Para liberar o checkout hospedado com cartao recorrente no Asaas, preencha tambem os dados de endereco do pagador.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-ink" htmlFor="billing-address">
+              Endereco de billing
+            </label>
+            <input
+              className="app-input"
+              id="billing-address"
+              onChange={(event) => setBillingAddress(event.target.value)}
+              placeholder="Rua, avenida, etc."
+              value={billingAddress}
+            />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-ink" htmlFor="billing-address-number">
+                Numero
+              </label>
+              <input
+                className="app-input"
+                id="billing-address-number"
+                onChange={(event) => setBillingAddressNumber(event.target.value)}
+                value={billingAddressNumber}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-ink" htmlFor="billing-address-complement">
+                Complemento
+              </label>
+              <input
+                className="app-input"
+                id="billing-address-complement"
+                onChange={(event) => setBillingAddressComplement(event.target.value)}
+                placeholder="Opcional"
+                value={billingAddressComplement}
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-ink" htmlFor="billing-postal-code">
+                CEP
+              </label>
+              <input
+                className="app-input"
+                id="billing-postal-code"
+                onChange={(event) => setBillingPostalCode(event.target.value)}
+                placeholder="Somente numeros ou formatado"
+                value={billingPostalCode}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-ink" htmlFor="billing-province">
+                Bairro
+              </label>
+              <input
+                className="app-input"
+                id="billing-province"
+                onChange={(event) => setBillingProvince(event.target.value)}
+                value={billingProvince}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-ink" htmlFor="billing-city-ibge">
+              Cidade no IBGE
+            </label>
+            <input
+              className="app-input"
+              id="billing-city-ibge"
+              onChange={(event) => setBillingCityIbge(event.target.value)}
+              placeholder="Codigo IBGE com 7 digitos"
+              value={billingCityIbge}
+            />
+            <p className="text-sm text-slate-500">
+              O Asaas exige o codigo IBGE da cidade para checkout recorrente com cartao.
             </p>
           </div>
 

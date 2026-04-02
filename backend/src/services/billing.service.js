@@ -11,12 +11,15 @@ import {
 import { evaluateSubscriptionAccess } from "../lib/subscription.js";
 import { getLatestOrganizationPayment, getPlatformSettings } from "../lib/data.js";
 import {
+  buildAsaasCheckoutUrl,
   createAsaasCustomer,
+  createAsaasCheckout,
   createAsaasSubscription,
   cancelAsaasSubscription,
   getAsaasPixQrCode,
   getAsaasWebhookToken,
   listAsaasSubscriptionPayments,
+  updateAsaasCustomer,
 } from "./asaas.service.js";
 import {
   createOrUpdateBillingTransaction,
@@ -28,6 +31,7 @@ import {
   getCurrentBillingTransactionBySubscriptionId,
   getOrganizationAccessLock,
   getOrganizationBillingAggregate,
+  getOrganizationSubscriptionByGatewayCustomerId,
   getOrganizationSubscriptionByGatewaySubscriptionId,
   getOrganizationSubscriptionByOrganizationId,
   getSubscriptionPlanByCode,
@@ -66,11 +70,98 @@ function buildCheckoutExternalReference(organizationId) {
   return `agendapro:${organizationId}`;
 }
 
+function getFrontendAppUrl(frontendOrigin = "") {
+  const requestOrigin = String(frontendOrigin ?? "").trim();
+
+  if (
+    requestOrigin &&
+    /^https?:\/\//.test(requestOrigin) &&
+    !requestOrigin.includes("localhost") &&
+    !requestOrigin.includes("127.0.0.1")
+  ) {
+    return requestOrigin.replace(/\/+$/, "");
+  }
+
+  const explicitUrl = String(process.env.FRONTEND_APP_URL ?? "").trim();
+
+  if (explicitUrl) {
+    return explicitUrl.replace(/\/+$/, "");
+  }
+
+  const firstAllowedOrigin = String(process.env.CORS_ALLOWED_ORIGINS ?? "")
+    .split(",")
+    .map((item) => item.trim())
+    .find(Boolean);
+
+  return (firstAllowedOrigin || "http://localhost:5173").replace(/\/+$/, "");
+}
+
 function mapCycleToAsaas(value) {
   if (value === "quarterly") return "QUARTERLY";
   if (value === "semiannual") return "SEMIANNUALLY";
   if (value === "annual") return "YEARLY";
   return "MONTHLY";
+}
+
+function buildCheckoutCallbacks(frontendOrigin = "") {
+  const appUrl = getFrontendAppUrl(frontendOrigin);
+
+  if (
+    !appUrl ||
+    appUrl.includes("localhost") ||
+    appUrl.includes("127.0.0.1")
+  ) {
+    return undefined;
+  }
+
+  return {
+    successUrl: `${appUrl}/pagamento?checkout=success`,
+    cancelUrl: `${appUrl}/pagamento?checkout=cancelled`,
+    expiredUrl: `${appUrl}/pagamento?checkout=expired`,
+  };
+}
+
+function normalizeDigits(value) {
+  return String(value ?? "").replace(/\D+/g, "").trim();
+}
+
+function buildAsaasCustomerProfile(organization) {
+  return {
+    name: organization.nome_empresa,
+    email: organization.email_responsavel ?? undefined,
+    cpfCnpj: organization.cpf_cnpj ?? undefined,
+    mobilePhone: organization.telefone ?? undefined,
+    address: organization.billing_address ?? undefined,
+    addressNumber: organization.billing_address_number ?? undefined,
+    complement: organization.billing_address_complement ?? undefined,
+    postalCode: organization.billing_postal_code ?? undefined,
+    province: organization.billing_province ?? undefined,
+    city: organization.billing_city_ibge ?? undefined,
+    externalReference: organization.id,
+    notificationDisabled: true,
+  };
+}
+
+function validateHostedCheckoutProfile(organization) {
+  const missing = [];
+
+  if (!normalizeDigits(organization.cpf_cnpj).length) missing.push("CPF/CNPJ");
+  if (!normalizeDigits(organization.telefone).length) missing.push("telefone");
+  if (!String(organization.billing_address ?? "").trim()) missing.push("endereco");
+  if (!String(organization.billing_address_number ?? "").trim()) missing.push("numero");
+  if (!normalizeDigits(organization.billing_postal_code).length) missing.push("CEP");
+  if (!String(organization.billing_province ?? "").trim()) missing.push("bairro");
+  if (normalizeDigits(organization.billing_city_ibge).length !== 7) missing.push("cidade IBGE");
+
+  if (!missing.length) {
+    return;
+  }
+
+  const error = new Error(
+    `Preencha os dados de billing da organizacao antes de usar cartao: ${missing.join(", ")}.`,
+  );
+  error.statusCode = 400;
+  throw error;
 }
 
 function mapAsaasPaymentToTransactionInput(payment, context = {}) {
@@ -169,6 +260,60 @@ async function enrichTransactionWithPix(transaction) {
       pixData.payload ?? pixData.encodedImage ?? pixData.copyAndPasteCode ?? transaction.pix_qr_code_text,
     pix_qr_code_image_url: pixData.encodedImage ?? pixData.imageUrl ?? transaction.pix_qr_code_image_url,
   });
+}
+
+async function ensureAsaasCustomer({ organization, existingSubscription }) {
+  if (existingSubscription?.gateway_customer_id) {
+    return { id: existingSubscription.gateway_customer_id };
+  }
+
+  return createAsaasCustomer(buildAsaasCustomerProfile(organization));
+}
+
+async function syncAsaasCustomerProfile({ organization, customerId }) {
+  return updateAsaasCustomer(customerId, buildAsaasCustomerProfile(organization));
+}
+
+async function ensureLocalPendingSubscription({
+  organizationId,
+  plan,
+  customerId,
+  existingSubscription,
+  connection = null,
+}) {
+  if (existingSubscription) {
+    return updateOrganizationSubscription(
+      existingSubscription.id,
+      {
+        plan_id: plan.id,
+        gateway_customer_id: customerId,
+        billing_cycle: plan.billing_cycle,
+        amount_cents: plan.price_cents,
+        currency: plan.currency,
+        status: existingSubscription.status === "active" ? "active" : "pending_payment",
+        cancelled_at: null,
+        expired_at: null,
+        blocked_at: null,
+        last_status_change_at:
+          existingSubscription.status === "active" ? existingSubscription.last_status_change_at : getNowIsoDateTime(),
+      },
+      connection,
+    );
+  }
+
+  return createOrganizationSubscription(
+    {
+      organization_id: organizationId,
+      plan_id: plan.id,
+      gateway_customer_id: customerId,
+      status: "pending_payment",
+      billing_cycle: plan.billing_cycle,
+      amount_cents: plan.price_cents,
+      currency: plan.currency,
+      last_status_change_at: getNowIsoDateTime(),
+    },
+    connection,
+  );
 }
 
 async function persistCompatibilityCache({ organizationId, plan, subscription }) {
@@ -427,17 +572,7 @@ export async function startBillingCheckout({ organizationId }) {
     };
   }
 
-  const customer =
-    existingSubscription?.gateway_customer_id
-      ? { id: existingSubscription.gateway_customer_id }
-      : await createAsaasCustomer({
-          name: organization.nome_empresa,
-          email: organization.email_responsavel ?? undefined,
-          cpfCnpj: organization.cpf_cnpj ?? undefined,
-          mobilePhone: undefined,
-          externalReference: organization.id,
-          notificationDisabled: true,
-        });
+  const customer = await ensureAsaasCustomer({ organization, existingSubscription });
 
   const nextDueDate = resolveCheckoutDueDate(organization.trial_end);
   const remoteSubscription = await createAsaasSubscription({
@@ -521,6 +656,83 @@ export async function startBillingCheckout({ organizationId }) {
       started: true,
       reused_existing_subscription: false,
     },
+  };
+}
+
+export async function startHostedCardCheckout({ organizationId, frontendOrigin = "" }) {
+  await ensureBillingInfrastructure();
+  const organization = await getBillingOrganizationSummary(organizationId);
+  const plan = await getSubscriptionPlanByCode();
+
+  if (!organization) {
+    const error = new Error("Organizacao nao encontrada.");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  if (!plan) {
+    const error = new Error("Plano de assinatura nao encontrado.");
+    error.statusCode = 500;
+    throw error;
+  }
+
+  if (!String(organization.cpf_cnpj ?? "").replace(/\D+/g, "")) {
+    const error = new Error(
+      "Informe o CPF/CNPJ da organizacao nas configuracoes antes de iniciar o pagamento.",
+    );
+    error.statusCode = 400;
+    throw error;
+  }
+
+  validateHostedCheckoutProfile(organization);
+
+  const existingSubscription = await getOrganizationSubscriptionByOrganizationId(organizationId);
+  const customer = await ensureAsaasCustomer({ organization, existingSubscription });
+  await syncAsaasCustomerProfile({ organization, customerId: customer.id });
+
+  if (existingSubscription?.gateway_subscription_id && existingSubscription.status !== "active") {
+    try {
+      await cancelAsaasSubscription(existingSubscription.gateway_subscription_id);
+    } catch {
+      // Best effort: if cancellation fails we still allow the user to proceed with hosted checkout.
+    }
+  }
+
+  await runBillingTransaction(async (connection) => {
+    await ensureLocalPendingSubscription({
+      organizationId,
+      plan,
+      customerId: customer.id,
+      existingSubscription,
+      connection,
+    });
+  });
+
+  const checkout = await createAsaasCheckout({
+    customer: customer.id,
+    billingTypes: ["CREDIT_CARD"],
+    chargeTypes: ["RECURRENT"],
+    callback: buildCheckoutCallbacks(frontendOrigin),
+    subscription: {
+      cycle: mapCycleToAsaas(plan.billing_cycle),
+      value: formatCurrencyCentsToValue(plan.price_cents),
+      nextDueDate: resolveCheckoutDueDate(organization.trial_end),
+      description: plan.name,
+    },
+    items: [
+      {
+        name: plan.name,
+        description: plan.description ?? "Assinatura mensal do AgendaPro",
+        quantity: 1,
+        value: formatCurrencyCentsToValue(plan.price_cents),
+      },
+    ],
+  });
+
+  return {
+    checkout_id: checkout?.id ?? null,
+    checkout_url: checkout?.id ? buildAsaasCheckoutUrl(checkout.id) : null,
+    payment_method: "credit_card",
   };
 }
 
@@ -608,13 +820,35 @@ async function applyPaymentWebhookEvent({
     }),
   );
   const localStatus = mapAsaasPaymentStatus(payment.status);
+  const nextGatewaySubscriptionId =
+    typeof payment?.subscription === "string" && payment.subscription.trim()
+      ? payment.subscription.trim()
+      : subscription.gateway_subscription_id;
+  const previousGatewaySubscriptionId =
+    subscription.gateway_subscription_id &&
+    nextGatewaySubscriptionId &&
+    subscription.gateway_subscription_id !== nextGatewaySubscriptionId
+      ? subscription.gateway_subscription_id
+      : null;
 
   await runBillingTransaction(async (connection) => {
+    await updateOrganizationSubscription(
+      subscription.id,
+      {
+        gateway_customer_id: payment.customer ?? subscription.gateway_customer_id,
+        gateway_subscription_id: nextGatewaySubscriptionId ?? subscription.gateway_subscription_id,
+        next_due_date: payment.dueDate ?? subscription.next_due_date,
+      },
+      connection,
+    );
+
     if (localStatus === "confirmed" || localStatus === "received") {
       await updateOrganizationSubscription(
         subscription.id,
         {
           status: "active",
+          gateway_customer_id: payment.customer ?? subscription.gateway_customer_id,
+          gateway_subscription_id: nextGatewaySubscriptionId ?? subscription.gateway_subscription_id,
           next_due_date: payment.dueDate ?? subscription.next_due_date,
           grace_until: null,
           blocked_at: null,
@@ -724,6 +958,14 @@ async function applyPaymentWebhookEvent({
     }
   });
 
+  if (previousGatewaySubscriptionId && localStatus !== "failed") {
+    try {
+      await cancelAsaasSubscription(previousGatewaySubscriptionId);
+    } catch {
+      // Keep webhook processing resilient even if the previous recurring configuration cannot be cancelled.
+    }
+  }
+
   return transaction;
 }
 
@@ -746,9 +988,14 @@ export async function processAsaasWebhook({ rawBody, headers, payload }) {
         ? `${eventType}:${payment.id}`
         : `${eventType}:${Date.now()}`;
 
-  const subscription = payment?.subscription
+  const subscriptionByGatewayId = payment?.subscription
     ? await getOrganizationSubscriptionByGatewaySubscriptionId(payment.subscription)
     : null;
+  const subscriptionByCustomerId =
+    !subscriptionByGatewayId && payment?.customer
+      ? await getOrganizationSubscriptionByGatewayCustomerId(payment.customer)
+      : null;
+  const subscription = subscriptionByGatewayId ?? subscriptionByCustomerId;
   const organizationId = subscription?.organization_id ?? null;
   const plan = subscription ? await getSubscriptionPlanByCode() : null;
   const currentTransaction = payment?.id

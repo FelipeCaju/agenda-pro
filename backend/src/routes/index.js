@@ -24,6 +24,7 @@ import {
   getCurrentChargeController,
   listBillingInvoicesController,
   reactivateBillingSubscriptionController,
+  startHostedCardCheckoutController,
   startBillingCheckoutController,
 } from "../controllers/billing.controller.js";
 import {
@@ -126,6 +127,7 @@ router.get("/tenants", listTenants);
 router.get("/dashboard/summary", getDashboardSummaryController);
 router.get("/billing/overview", getBillingOverviewController);
 router.post("/billing/checkout/start", startBillingCheckoutController);
+router.post("/billing/checkout/card", startHostedCardCheckoutController);
 router.get("/billing/subscription", getBillingSubscriptionController);
 router.post("/billing/subscription/cancel", cancelBillingSubscriptionController);
 router.post("/billing/subscription/reactivate", reactivateBillingSubscriptionController);

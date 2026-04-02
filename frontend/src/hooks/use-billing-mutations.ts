@@ -17,6 +17,11 @@ export function useBillingMutations() {
     onSuccess: refreshBillingQueries,
   });
 
+  const startCardCheckoutMutation = useMutation({
+    mutationFn: () => billingService.startCardCheckout(),
+    onSuccess: refreshBillingQueries,
+  });
+
   const cancelSubscriptionMutation = useMutation({
     mutationFn: () => billingService.cancelSubscription(),
     onSuccess: refreshBillingQueries,
@@ -29,12 +34,15 @@ export function useBillingMutations() {
 
   return {
     startCheckout: startCheckoutMutation.mutateAsync,
+    startCardCheckout: startCardCheckoutMutation.mutateAsync,
     cancelSubscription: cancelSubscriptionMutation.mutateAsync,
     reactivateSubscription: reactivateSubscriptionMutation.mutateAsync,
     isStartingCheckout: startCheckoutMutation.isPending,
+    isStartingCardCheckout: startCardCheckoutMutation.isPending,
     isCancellingSubscription: cancelSubscriptionMutation.isPending,
     isReactivatingSubscription: reactivateSubscriptionMutation.isPending,
     startCheckoutError: startCheckoutMutation.error,
+    startCardCheckoutError: startCardCheckoutMutation.error,
     cancelSubscriptionError: cancelSubscriptionMutation.error,
     reactivateSubscriptionError: reactivateSubscriptionMutation.error,
   };

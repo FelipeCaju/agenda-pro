@@ -462,6 +462,12 @@ function mapOrganization(row) {
     email_responsavel: row.email_responsavel,
     telefone: row.telefone,
     cpf_cnpj: row.cpf_cnpj ?? null,
+    billing_address: row.billing_address ?? null,
+    billing_address_number: row.billing_address_number ?? null,
+    billing_address_complement: row.billing_address_complement ?? null,
+    billing_postal_code: row.billing_postal_code ?? null,
+    billing_province: row.billing_province ?? null,
+    billing_city_ibge: row.billing_city_ibge ?? null,
     monthly_amount: Number(row.monthly_amount ?? 0),
     subscription_status: row.subscription_status,
     subscription_plan: row.subscription_plan,
@@ -788,6 +794,48 @@ async function ensurePlatformSettingsInfrastructure() {
     await execute(
       `ALTER TABLE organizations
         ADD COLUMN cpf_cnpj VARCHAR(20) NULL AFTER telefone`,
+    );
+  }
+
+  if (!(await hasColumn("organizations", "billing_address"))) {
+    await execute(
+      `ALTER TABLE organizations
+        ADD COLUMN billing_address VARCHAR(180) NULL AFTER cpf_cnpj`,
+    );
+  }
+
+  if (!(await hasColumn("organizations", "billing_address_number"))) {
+    await execute(
+      `ALTER TABLE organizations
+        ADD COLUMN billing_address_number VARCHAR(30) NULL AFTER billing_address`,
+    );
+  }
+
+  if (!(await hasColumn("organizations", "billing_address_complement"))) {
+    await execute(
+      `ALTER TABLE organizations
+        ADD COLUMN billing_address_complement VARCHAR(120) NULL AFTER billing_address_number`,
+    );
+  }
+
+  if (!(await hasColumn("organizations", "billing_postal_code"))) {
+    await execute(
+      `ALTER TABLE organizations
+        ADD COLUMN billing_postal_code VARCHAR(12) NULL AFTER billing_address_complement`,
+    );
+  }
+
+  if (!(await hasColumn("organizations", "billing_province"))) {
+    await execute(
+      `ALTER TABLE organizations
+        ADD COLUMN billing_province VARCHAR(120) NULL AFTER billing_postal_code`,
+    );
+  }
+
+  if (!(await hasColumn("organizations", "billing_city_ibge"))) {
+    await execute(
+      `ALTER TABLE organizations
+        ADD COLUMN billing_city_ibge VARCHAR(12) NULL AFTER billing_province`,
     );
   }
 
@@ -1536,6 +1584,18 @@ export async function createOrganization({
   telefone,
   cpfCnpj,
   cpf_cnpj,
+  billingAddress,
+  billing_address,
+  billingAddressNumber,
+  billing_address_number,
+  billingAddressComplement,
+  billing_address_complement,
+  billingPostalCode,
+  billing_postal_code,
+  billingProvince,
+  billing_province,
+  billingCityIbge,
+  billing_city_ibge,
   monthlyAmount,
   monthly_amount,
   subscriptionStatus,
@@ -1551,6 +1611,12 @@ export async function createOrganization({
     email_responsavel: emailResponsavel,
     telefone: telefone ?? "",
     cpf_cnpj: cpfCnpj ?? cpf_cnpj ?? null,
+    billing_address: billingAddress ?? billing_address ?? null,
+    billing_address_number: billingAddressNumber ?? billing_address_number ?? null,
+    billing_address_complement: billingAddressComplement ?? billing_address_complement ?? null,
+    billing_postal_code: billingPostalCode ?? billing_postal_code ?? null,
+    billing_province: billingProvince ?? billing_province ?? null,
+    billing_city_ibge: billingCityIbge ?? billing_city_ibge ?? null,
     monthly_amount: Number(monthlyAmount ?? monthly_amount ?? 0),
     subscription_status: subscriptionStatus ?? "trial",
     subscription_plan: subscriptionPlan ?? "starter",
@@ -1561,15 +1627,22 @@ export async function createOrganization({
   await withTransaction(async (connection) => {
     await connection.execute(
       `INSERT INTO organizations (
-        id, nome_empresa, email_responsavel, telefone, cpf_cnpj, monthly_amount,
-        subscription_status, subscription_plan, due_date, trial_end
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        id, nome_empresa, email_responsavel, telefone, cpf_cnpj, billing_address,
+        billing_address_number, billing_address_complement, billing_postal_code, billing_province,
+        billing_city_ibge, monthly_amount, subscription_status, subscription_plan, due_date, trial_end
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         organization.id,
         organization.nome_empresa,
         organization.email_responsavel,
         organization.telefone || null,
         organization.cpf_cnpj || null,
+        organization.billing_address || null,
+        organization.billing_address_number || null,
+        organization.billing_address_complement || null,
+        organization.billing_postal_code || null,
+        organization.billing_province || null,
+        organization.billing_city_ibge || null,
         organization.monthly_amount,
         organization.subscription_status,
         organization.subscription_plan,
@@ -1653,6 +1726,12 @@ export async function updateOrganizationById(organizationId, input) {
     "email_responsavel",
     "telefone",
     "cpf_cnpj",
+    "billing_address",
+    "billing_address_number",
+    "billing_address_complement",
+    "billing_postal_code",
+    "billing_province",
+    "billing_city_ibge",
     "monthly_amount",
     "subscription_status",
     "subscription_plan",

@@ -93,6 +93,12 @@ type BillingOverviewApiModel = {
   };
 };
 
+type HostedCardCheckoutApiModel = {
+  checkout_id: string | null;
+  checkout_url: string | null;
+  payment_method: "credit_card";
+};
+
 export type BillingPlan = {
   id: string;
   name: string;
@@ -165,6 +171,12 @@ export type BillingOverview = {
     started: boolean;
     reusedExistingSubscription: boolean;
   };
+};
+
+export type HostedCardCheckoutSession = {
+  checkoutId: string | null;
+  checkoutUrl: string | null;
+  paymentMethod: "credit_card";
 };
 
 function mapPlan(model: BillingPlanApiModel | null): BillingPlan | null {
@@ -304,6 +316,21 @@ export const billingService = {
       },
       {
         errorMessage: "Nao foi possivel iniciar o checkout.",
+      },
+    );
+  },
+  async startCardCheckout() {
+    return executeServiceCall(
+      async () => {
+        const response = await apiClient.post<HostedCardCheckoutApiModel>("/billing/checkout/card");
+        return {
+          checkoutId: response.data.checkout_id,
+          checkoutUrl: response.data.checkout_url,
+          paymentMethod: response.data.payment_method,
+        } satisfies HostedCardCheckoutSession;
+      },
+      {
+        errorMessage: "Nao foi possivel iniciar o checkout com cartao.",
       },
     );
   },
