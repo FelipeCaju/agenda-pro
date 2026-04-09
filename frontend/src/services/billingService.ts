@@ -62,6 +62,8 @@ type BillingAccessApiModel = {
   grace_until: string | null;
   payment_notice_visible: boolean;
   alert_window_days?: number;
+  payment_action_enabled?: boolean;
+  payment_action_reason?: string | null;
   trial_ends_at: string | null;
 };
 
@@ -143,6 +145,8 @@ export type BillingAccess = {
   graceUntil: string | null;
   paymentNoticeVisible: boolean;
   alertWindowDays: number;
+  paymentActionEnabled: boolean;
+  paymentActionReason: string | null;
   trialEndsAt: string | null;
 };
 
@@ -237,6 +241,8 @@ function mapAccess(model: BillingAccessApiModel): BillingAccess {
     graceUntil: model.grace_until,
     paymentNoticeVisible: Boolean(model.payment_notice_visible),
     alertWindowDays: Number(model.alert_window_days ?? 5),
+    paymentActionEnabled: Boolean(model.payment_action_enabled),
+    paymentActionReason: model.payment_action_reason ?? null,
     trialEndsAt: model.trial_ends_at,
   };
 }

@@ -10,6 +10,7 @@ import {
 } from "@/hooks/use-organization-query";
 import { useOrganizationMutations } from "@/hooks/use-organization-mutations";
 import {
+  getBillingPaymentAccessFromOrganization,
   getBillingAlert,
   getPaymentStatusLabel,
   getSubscriptionStatusLabel,
@@ -41,6 +42,10 @@ export function ManagementPage() {
     useOrganizationMutations();
   const billingAlert = useMemo(() => getBillingAlert(organization, payments), [organization, payments]);
   const latestPayment = payments[0] ?? null;
+  const paymentAccess = useMemo(
+    () => getBillingPaymentAccessFromOrganization(organization, latestPayment),
+    [latestPayment, organization],
+  );
   const [paymentSignalMessage, setPaymentSignalMessage] = useState("");
 
   const isLoading = isLoadingOrganization || isLoadingProfessionals || isLoadingPayments;
@@ -168,15 +173,19 @@ export function ManagementPage() {
               </div>
 
               {organization.pixKey ? (
-                <Button
-                  className="mt-4 w-full sm:w-auto"
-                  onClick={() => navigate("/pagamento")}
-                  type="button"
-                >
-                  {organization.subscriptionStatus === "trial"
-                    ? "Comprar sistema"
-                    : "Abrir pagamento Pix"}
-                </Button>
+                <>
+                  <Button
+                    className="mt-4 w-full sm:w-auto"
+                    disabled={!paymentAccess.canOpen}
+                    onClick={() => navigate("/pagamento")}
+                    type="button"
+                  >
+                    Abrir pagamentos
+                  </Button>
+                  {!paymentAccess.canOpen ? (
+                    <p className="mt-3 text-sm text-slate-500">{paymentAccess.reason}</p>
+                  ) : null}
+                </>
               ) : null}
 
               {organization.paymentNoticeVisible && latestPayment?.status !== "paid" ? (
@@ -188,8 +197,8 @@ export function ManagementPage() {
                     Faca o pagamento via Pix e, se ja tiver pago, toque abaixo para avisar o administrador.
                   </p>
                   {organization.pixKey ? (
-                    <Button onClick={() => navigate("/pagamento")} type="button">
-                      Abrir QR Code Pix
+                    <Button disabled={!paymentAccess.canOpen} onClick={() => navigate("/pagamento")} type="button">
+                      Abrir pagamentos
                     </Button>
                   ) : null}
                   <Button

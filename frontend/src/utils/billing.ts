@@ -1,4 +1,5 @@
 import type { OrganizationPayment, OrganizationProfile } from "@/services/organizationService";
+import type { BillingAccess, BillingCharge } from "@/services/billingService";
 
 function toDateParts(value?: string | null) {
   if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
@@ -48,11 +49,78 @@ export function getSubscriptionStatusLabel(status?: string | null) {
   return status ?? "Indefinido";
 }
 
+function isSettledPaymentStatus(status?: string | null) {
+  return status === "paid" || status === "received" || status === "confirmed";
+}
+
+type BillingPaymentAccessInput = {
+  subscriptionStatus?: string | null;
+  paymentNoticeVisible?: boolean;
+  isBlocked?: boolean;
+  currentChargeStatus?: string | null;
+  latestPaymentStatus?: string | null;
+  alertWindowDays?: number | null;
+  paymentActionEnabled?: boolean | null;
+  paymentActionReason?: string | null;
+};
+
+export function getBillingPaymentAccess(input?: BillingPaymentAccessInput | null) {
+  const alertWindowDays = Number(input?.alertWindowDays ?? 5);
+  const status = input?.currentChargeStatus ?? input?.latestPaymentStatus ?? null;
+  const settled = isSettledPaymentStatus(status);
+  const paymentActionEnabled =
+    input?.paymentActionEnabled ??
+    Boolean(
+      input?.isBlocked ||
+        input?.subscriptionStatus === "pending_payment" ||
+        input?.subscriptionStatus === "past_due" ||
+        input?.subscriptionStatus === "overdue" ||
+        input?.paymentNoticeVisible,
+    );
+  const canOpen = Boolean(paymentActionEnabled && !settled);
+
+  return {
+    canOpen,
+    reason:
+      input?.paymentActionReason ??
+      `Os pagamentos ficam disponiveis apenas ${alertWindowDays} dia(s) antes do vencimento e durante a janela de regularizacao.`,
+  };
+}
+
+export function getBillingPaymentAccessFromOverview(
+  access?: BillingAccess | null,
+  currentCharge?: BillingCharge | null,
+) {
+  return getBillingPaymentAccess({
+    subscriptionStatus: access?.subscriptionStatus,
+    paymentNoticeVisible: access?.paymentNoticeVisible,
+    isBlocked: access?.isBlocked,
+    currentChargeStatus: currentCharge?.status ?? null,
+    alertWindowDays: access?.alertWindowDays,
+    paymentActionEnabled: access?.paymentActionEnabled,
+    paymentActionReason: access?.paymentActionReason,
+  });
+}
+
+export function getBillingPaymentAccessFromOrganization(
+  organization?: OrganizationProfile | null,
+  latestPayment?: OrganizationPayment | null,
+) {
+  return getBillingPaymentAccess({
+    subscriptionStatus: organization?.subscriptionStatus,
+    paymentNoticeVisible: organization?.paymentNoticeVisible,
+    isBlocked: organization?.isBlocked,
+    latestPaymentStatus: latestPayment?.status ?? organization?.latestPaymentStatus ?? null,
+    alertWindowDays: organization?.paymentAlertDays,
+  });
+}
+
 export function getBillingAlert(
   organization?: OrganizationProfile | null,
   payments: OrganizationPayment[] = [],
 ) {
   const latestPayment = payments[0] ?? null;
+  const paymentAccess = getBillingPaymentAccessFromOrganization(organization, latestPayment);
   const alertWindowDays = Number(organization?.paymentAlertDays ?? 5);
   const dueInDays = differenceInDays(organization?.dueDate ?? latestPayment?.dueDate ?? null);
 
@@ -134,7 +202,7 @@ export function getBillingAlert(
     };
   }
 
-  if (latestPayment && latestPayment.status === "pending") {
+  if (latestPayment && latestPayment.status === "pending" && paymentAccess.canOpen) {
     return {
       hasAlert: true,
       tone: "warning" as const,

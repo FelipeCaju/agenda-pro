@@ -7,7 +7,7 @@ import { FullscreenState } from "@/components/ui/fullscreen-state";
 import { useBillingMutations } from "@/hooks/use-billing-mutations";
 import { useBillingCurrentChargeQuery, useBillingOverviewQuery } from "@/hooks/use-billing-query";
 import { formatDateBR } from "@/utils/date";
-import { getSubscriptionStatusLabel } from "@/utils/billing";
+import { getBillingPaymentAccessFromOverview, getSubscriptionStatusLabel } from "@/utils/billing";
 
 function formatCurrencyFromCents(value: number) {
   return new Intl.NumberFormat("pt-BR", {
@@ -63,6 +63,7 @@ export function PaymentPage() {
   } = useBillingMutations();
   const [copyMessage, setCopyMessage] = useState("");
   const checkoutState = new URLSearchParams(location.search).get("checkout");
+  const paymentAccess = getBillingPaymentAccessFromOverview(overview?.access, currentCharge ?? overview?.currentCharge);
   const needsPixPreparation =
     !currentCharge ||
     currentCharge.paymentMethod !== "pix" ||
@@ -78,7 +79,15 @@ export function PaymentPage() {
   }, [currentCharge?.paymentMethod, currentCharge?.pixQrCodeText]);
 
   useEffect(() => {
-    if (isLoading || isStartingCheckout || hasPreparedPixChargeRef.current || !overview || isError || isCurrentChargeError) {
+    if (
+      isLoading ||
+      isStartingCheckout ||
+      hasPreparedPixChargeRef.current ||
+      !overview ||
+      isError ||
+      isCurrentChargeError ||
+      !paymentAccess.canOpen
+    ) {
       return;
     }
 
@@ -99,13 +108,9 @@ export function PaymentPage() {
     isStartingCheckout,
     needsPixPreparation,
     overview,
+    paymentAccess.canOpen,
     startCheckout,
   ]);
-
-  async function handleStartCheckout() {
-    setCopyMessage("");
-    await startCheckout();
-  }
 
   async function handleCopyPix() {
     setCopyMessage("");
@@ -149,6 +154,21 @@ export function PaymentPage() {
         eyebrow="Pagamento"
         title="Nao foi possivel abrir o pagamento"
         description={error?.message ?? currentChargeError?.message ?? "Falha ao carregar billing."}
+        action={
+          <Button onClick={() => navigate("/meu-plano")} type="button">
+            Voltar para meu plano
+          </Button>
+        }
+      />
+    );
+  }
+
+  if (overview && !paymentAccess.canOpen) {
+    return (
+      <FullscreenState
+        eyebrow="Pagamento"
+        title="Pagamento indisponivel agora"
+        description={paymentAccess.reason}
         action={
           <Button onClick={() => navigate("/meu-plano")} type="button">
             Voltar para meu plano
@@ -294,7 +314,7 @@ export function PaymentPage() {
             </div>
           ) : (
             <div className="rounded-[24px] border border-slate-200 bg-slate-50/85 p-4">
-              <p className="text-sm font-semibold text-ink">Cobranca pronta para pagamento</p>
+                  <p className="text-sm font-semibold text-ink">Cobranca pronta para pagamento</p>
               <p className="mt-2 text-sm text-slate-600">
                 O plano mensal ja esta configurado com o valor de {formatCurrencyFromCents(planPriceCents)}.
               </p>

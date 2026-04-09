@@ -116,6 +116,43 @@ function finalizeBillingAccess({ access, currentTransaction = null, platformSett
   };
 }
 
+function isSettledChargeStatus(status) {
+  return status === "confirmed" || status === "received" || status === "paid";
+}
+
+function isPaymentActionEnabled(access) {
+  if (!access) {
+    return false;
+  }
+
+  const subscriptionStatus = String(access.subscriptionStatus ?? "");
+  const chargeStatus = String(access.currentChargeStatus ?? "");
+
+  if (isSettledChargeStatus(chargeStatus)) {
+    return false;
+  }
+
+  if (
+    access.isBlocked ||
+    subscriptionStatus === "pending_payment" ||
+    subscriptionStatus === "past_due" ||
+    subscriptionStatus === "overdue"
+  ) {
+    return true;
+  }
+
+  return Boolean(access.paymentNoticeVisible);
+}
+
+function getPaymentActionReason(access) {
+  if (!access || isPaymentActionEnabled(access)) {
+    return null;
+  }
+
+  const alertWindowDays = Number(access.alertWindowDays ?? 5);
+  return `Os pagamentos ficam disponiveis apenas ${alertWindowDays} dia(s) antes do vencimento e durante a janela de regularizacao.`;
+}
+
 function resolveCheckoutDueDate(trialEnd) {
   const today = getTodayDate();
 
@@ -616,6 +653,8 @@ function buildOverviewPayload({ organization, plan, subscription, currentTransac
       grace_until: access.graceUntil,
       payment_notice_visible: access.paymentNoticeVisible,
       alert_window_days: access.alertWindowDays ?? 5,
+      payment_action_enabled: isPaymentActionEnabled(access),
+      payment_action_reason: getPaymentActionReason(access),
       trial_ends_at: access.trialEndsAt ?? null,
     },
     current_charge: currentTransaction,
@@ -757,6 +796,17 @@ export async function startBillingCheckout({ organizationId }) {
     throw error;
   }
 
+  const overview = await getBillingOverview({ organizationId });
+
+  if (!overview?.access?.payment_action_enabled) {
+    const error = new Error(
+      overview?.access?.payment_action_reason ??
+        "O pagamento ainda nao esta liberado para esta assinatura.",
+    );
+    error.statusCode = 409;
+    throw error;
+  }
+
   const existingSubscription = await getOrganizationSubscriptionByOrganizationId(organizationId);
   const chargeAmountCents = resolveChargeAmountCents({ organization, subscription: existingSubscription, plan });
 
@@ -886,6 +936,17 @@ export async function startHostedCardCheckout({ organizationId, frontendOrigin =
       "Informe o CPF/CNPJ da organizacao nas configuracoes antes de iniciar o pagamento.",
     );
     error.statusCode = 400;
+    throw error;
+  }
+
+  const overview = await getBillingOverview({ organizationId });
+
+  if (!overview?.access?.payment_action_enabled) {
+    const error = new Error(
+      overview?.access?.payment_action_reason ??
+        "O pagamento ainda nao esta liberado para esta assinatura.",
+    );
+    error.statusCode = 409;
     throw error;
   }
 

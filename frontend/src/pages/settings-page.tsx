@@ -14,7 +14,7 @@ import {
 import { useSettingsMutations } from "@/hooks/use-settings-mutations";
 import { useSettingsQuery } from "@/hooks/use-settings-query";
 import { isValidCep, lookupCep, normalizeCep } from "@/services/cepService";
-import { getBillingAlert } from "@/utils/billing";
+import { getBillingAlert, getBillingPaymentAccessFromOrganization } from "@/utils/billing";
 import { formatDateBR, formatMonthYearBR } from "@/utils/date";
 
 type SettingsLocationState = {
@@ -196,6 +196,10 @@ export function SettingsPage() {
   const appErrorMessage = appValidationError ?? updateSettingsError?.message ?? null;
   const billingAlert = useMemo(() => getBillingAlert(organization, payments), [organization, payments]);
   const latestPayment = payments[0] ?? null;
+  const paymentAccess = useMemo(
+    () => getBillingPaymentAccessFromOrganization(organization, latestPayment),
+    [latestPayment, organization],
+  );
 
   async function handleBillingCepBlur() {
     if (!billingPostalCode.trim() || !isValidCep(billingPostalCode)) {
@@ -676,13 +680,17 @@ export function SettingsPage() {
 
         {organization?.pixKey ? (
           <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-            <Button onClick={() => navigate("/pagamento")} type="button">
-              {organization.subscriptionStatus === "trial" ? "Comprar sistema" : "Abrir pagamento Pix"}
+            <Button disabled={!paymentAccess.canOpen} onClick={() => navigate("/pagamento")} type="button">
+              Abrir pagamentos
             </Button>
             <Button onClick={() => navigate("/faturas")} type="button" variant="secondary">
               Ver faturas
             </Button>
           </div>
+        ) : null}
+
+        {!paymentAccess.canOpen ? (
+          <p className="mt-4 text-sm text-slate-500">{paymentAccess.reason}</p>
         ) : null}
 
         {organization?.paymentNoticeVisible ? (
@@ -692,8 +700,8 @@ export function SettingsPage() {
               A notificacao segue visivel ate a baixa do pagamento pela administracao.
             </p>
             {organization.pixKey ? (
-              <Button onClick={() => navigate("/pagamento")} type="button">
-                Abrir QR Code Pix
+              <Button disabled={!paymentAccess.canOpen} onClick={() => navigate("/pagamento")} type="button">
+                Abrir pagamentos
               </Button>
             ) : null}
             <Button

@@ -3,8 +3,8 @@ import { MobilePageHeader } from "@/components/layout/mobile-page-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FullscreenState } from "@/components/ui/fullscreen-state";
-import { useBillingInvoicesQuery } from "@/hooks/use-billing-query";
-import { getPaymentStatusLabel } from "@/utils/billing";
+import { useBillingInvoicesQuery, useBillingOverviewQuery } from "@/hooks/use-billing-query";
+import { getBillingPaymentAccessFromOverview, getPaymentStatusLabel } from "@/utils/billing";
 import { formatDateBR, formatMonthYearBR } from "@/utils/date";
 
 function formatCurrencyFromCents(value: number) {
@@ -17,6 +17,8 @@ function formatCurrencyFromCents(value: number) {
 export function BillingInvoicesPage() {
   const navigate = useNavigate();
   const { data: invoices = [], error, isError, isLoading } = useBillingInvoicesQuery();
+  const { data: overview } = useBillingOverviewQuery();
+  const paymentAccess = getBillingPaymentAccessFromOverview(overview?.access, overview?.currentCharge);
 
   if (isLoading && !invoices.length) {
     return (
@@ -69,7 +71,9 @@ export function BillingInvoicesPage() {
                     Confirmada em {formatDateBR(invoice.confirmedAt)}
                   </p>
                 ) : null}
-                {invoice.invoiceUrl ? (
+                {invoice.invoiceUrl &&
+                paymentAccess.canOpen &&
+                (invoice.status === "pending" || invoice.status === "overdue") ? (
                   <button
                     className="mt-2 text-sm font-semibold text-brand-700"
                     onClick={() => window.open(invoice.invoiceUrl ?? "", "_blank", "noopener,noreferrer")}

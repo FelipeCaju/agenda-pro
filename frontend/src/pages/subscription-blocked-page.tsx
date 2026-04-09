@@ -28,11 +28,11 @@ export function SubscriptionBlockedPage() {
     <FullscreenState
       eyebrow="Assinatura"
       title="Indo para o pagamento"
-      description={`A conta de ${companyName} esta em modo restrito. Vamos abrir a tela de pagamento para voce escolher Pix ou cartao.`}
+      description={`A conta de ${companyName} esta em modo restrito. Vamos abrir a area de pagamentos para voce regularizar a assinatura.`}
       action={
         <div className="flex w-full flex-col gap-3 sm:flex-row">
           <Button className="w-full" onClick={() => navigate("/pagamento", { replace: true })} type="button">
-            Abrir pagamento agora
+            Abrir pagamentos
           </Button>
           <Button className="w-full" onClick={() => void handleBackToLogin()} type="button" variant="secondary">
             Voltar ao login

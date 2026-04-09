@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { FullscreenState } from "@/components/ui/fullscreen-state";
 import { useBillingMutations } from "@/hooks/use-billing-mutations";
 import { useBillingOverviewQuery } from "@/hooks/use-billing-query";
-import { getSubscriptionStatusLabel } from "@/utils/billing";
+import { getBillingPaymentAccessFromOverview, getSubscriptionStatusLabel } from "@/utils/billing";
 import { formatDateBR } from "@/utils/date";
 
 function formatCurrencyFromCents(value: number) {
@@ -19,13 +19,10 @@ export function BillingPlanPage() {
   const navigate = useNavigate();
   const { data: overview, error, isError, isLoading } = useBillingOverviewQuery();
   const {
-    startCheckout,
     cancelSubscription,
     reactivateSubscription,
-    isStartingCheckout,
     isCancellingSubscription,
     isReactivatingSubscription,
-    startCheckoutError,
     cancelSubscriptionError,
     reactivateSubscriptionError,
   } = useBillingMutations();
@@ -49,6 +46,8 @@ export function BillingPlanPage() {
       />
     );
   }
+
+  const paymentAccess = getBillingPaymentAccessFromOverview(overview.access, overview.currentCharge);
 
   return (
     <section className="space-y-4">
@@ -95,20 +94,14 @@ export function BillingPlanPage() {
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row">
-          <Button
-            disabled={isStartingCheckout}
-            onClick={() => void startCheckout()}
-            type="button"
-          >
-            {isStartingCheckout ? "Preparando..." : "Regularizar pagamento"}
-          </Button>
-          <Button onClick={() => navigate("/pagamento")} type="button" variant="secondary">
-            Abrir pagamento
+          <Button disabled={!paymentAccess.canOpen} onClick={() => navigate("/pagamento")} type="button">
+            Abrir pagamentos
           </Button>
           <Button onClick={() => navigate("/faturas")} type="button" variant="secondary">
             Ver faturas
           </Button>
         </div>
+        {!paymentAccess.canOpen ? <p className="text-sm text-slate-500">{paymentAccess.reason}</p> : null}
       </Card>
 
       <Card className="space-y-4">
@@ -131,7 +124,6 @@ export function BillingPlanPage() {
           </Button>
         </div>
 
-        {startCheckoutError ? <p className="text-sm text-rose-600">{startCheckoutError.message}</p> : null}
         {reactivateSubscriptionError ? (
           <p className="text-sm text-rose-600">{reactivateSubscriptionError.message}</p>
         ) : null}

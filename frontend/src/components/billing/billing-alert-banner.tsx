@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useBillingOverviewQuery } from "@/hooks/use-billing-query";
 import { formatDateBR } from "@/utils/date";
-import { getSubscriptionStatusLabel } from "@/utils/billing";
+import { getBillingPaymentAccessFromOverview, getSubscriptionStatusLabel } from "@/utils/billing";
 
 function differenceInDays(dateValue?: string | null) {
   if (!dateValue || !/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
@@ -20,6 +20,7 @@ function differenceInDays(dateValue?: string | null) {
 export function BillingAlertBanner() {
   const navigate = useNavigate();
   const { data: overview } = useBillingOverviewQuery();
+  const paymentAccess = getBillingPaymentAccessFromOverview(overview?.access, overview?.currentCharge);
   const dueDate = overview?.currentCharge?.dueDate ?? overview?.access.dueDate ?? null;
   const dueInDays = differenceInDays(dueDate);
   const currentChargeStatus = overview?.currentCharge?.status ?? null;
@@ -30,7 +31,7 @@ export function BillingAlertBanner() {
       dueInDays !== null &&
       dueInDays <= alertWindowDays);
 
-  if (!overview || !shouldShowWarning) {
+  if (!overview || !shouldShowWarning || !paymentAccess.canOpen) {
     return null;
   }
 
@@ -57,7 +58,7 @@ export function BillingAlertBanner() {
             Meu plano
           </Button>
           <Button onClick={() => navigate("/pagamento")} type="button">
-            Regularizar
+            Abrir pagamentos
           </Button>
         </div>
       </div>
