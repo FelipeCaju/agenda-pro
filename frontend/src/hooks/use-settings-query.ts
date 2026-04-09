@@ -10,7 +10,7 @@ export function useSettingsQuery() {
   return useQuery({
     queryKey: settingsKeys.current(),
     queryFn: () => settingsService.get(),
-    staleTime: 60_000,
+    staleTime: 300_000,
     placeholderData: (previousData) => previousData,
     refetchOnWindowFocus: false,
   });

@@ -13,7 +13,7 @@ export function useBillingOverviewQuery() {
   return useQuery({
     queryKey: billingKeys.overview(),
     queryFn: () => billingService.getOverview(),
-    staleTime: 30_000,
+    staleTime: 60_000,
     placeholderData: (previousData) => previousData,
     refetchOnWindowFocus: false,
   });
@@ -23,7 +23,7 @@ export function useBillingSubscriptionQuery() {
   return useQuery({
     queryKey: billingKeys.subscription(),
     queryFn: () => billingService.getSubscription(),
-    staleTime: 30_000,
+    staleTime: 60_000,
     placeholderData: (previousData) => previousData,
     refetchOnWindowFocus: false,
   });
@@ -33,7 +33,7 @@ export function useBillingInvoicesQuery() {
   return useQuery({
     queryKey: billingKeys.invoices(),
     queryFn: () => billingService.listInvoices(),
-    staleTime: 30_000,
+    staleTime: 60_000,
     placeholderData: (previousData) => previousData,
     refetchOnWindowFocus: false,
   });
@@ -43,7 +43,7 @@ export function useBillingCurrentChargeQuery() {
   return useQuery({
     queryKey: billingKeys.currentCharge(),
     queryFn: () => billingService.getCurrentCharge(),
-    staleTime: 30_000,
+    staleTime: 60_000,
     placeholderData: (previousData) => previousData,
     refetchOnWindowFocus: false,
   });

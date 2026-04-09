@@ -10,7 +10,7 @@ export function useProfessionalsQuery() {
   return useQuery({
     queryKey: professionalKeys.list(),
     queryFn: () => professionalService.list(),
-    staleTime: 60_000,
+    staleTime: 300_000,
     placeholderData: (previousData) => previousData,
     refetchOnWindowFocus: false,
   });

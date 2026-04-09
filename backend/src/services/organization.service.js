@@ -4,8 +4,9 @@ import {
   listUsersByOrganization,
   updateOrganizationById,
 } from "../lib/data.js";
+import { getOrganizationBillingAggregate } from "../repositories/billing.repository.js";
 import { isValidSubscriptionStatus } from "../lib/subscription.js";
-import { getCurrentCharge, resolveOrganizationBillingAccess } from "./billing.service.js";
+import { resolveOrganizationBillingAccess } from "./billing.service.js";
 
 function normalizeString(value) {
   return typeof value === "string" ? value.trim() : "";
@@ -35,8 +36,11 @@ function isValidCityIbge(value) {
 }
 
 async function buildOrganizationPayload(organization) {
-  const latestPayment = await getCurrentCharge({ organizationId: organization.id });
-  const access = await resolveOrganizationBillingAccess(organization.id);
+  const [aggregate, access] = await Promise.all([
+    getOrganizationBillingAggregate(organization.id),
+    resolveOrganizationBillingAccess(organization.id),
+  ]);
+  const latestPayment = aggregate.currentTransaction;
 
   return {
     id: organization.id,

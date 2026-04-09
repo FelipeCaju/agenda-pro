@@ -43,8 +43,24 @@ import {
   upsertOrganizationAccessLock,
 } from "../repositories/billing.repository.js";
 
+const BILLING_SYNC_TTL_MS = 90_000;
+const recentBillingSyncBySubscription = new Map();
+
 function getTodayDate() {
   return new Date().toISOString().slice(0, 10);
+}
+
+function getRecentSyncKey(subscription) {
+  return String(subscription?.gateway_subscription_id ?? subscription?.id ?? "").trim();
+}
+
+function getTimestamp(value) {
+  if (!value) {
+    return null;
+  }
+
+  const timestamp = new Date(value).getTime();
+  return Number.isFinite(timestamp) ? timestamp : null;
 }
 
 function normalizeDateOnly(value) {
@@ -368,7 +384,41 @@ async function refreshAsaasPayments(subscription, plan) {
     localTransactions.push(transaction);
   }
 
+  const syncKey = getRecentSyncKey(subscription);
+
+  if (syncKey) {
+    recentBillingSyncBySubscription.set(syncKey, Date.now());
+  }
+
   return localTransactions;
+}
+
+function shouldRefreshAsaasPayments(subscription, currentTransaction = null) {
+  if (!subscription?.gateway_subscription_id) {
+    return false;
+  }
+
+  if (!currentTransaction) {
+    return true;
+  }
+
+  const syncKey = getRecentSyncKey(subscription);
+  const now = Date.now();
+  const lastInMemorySync = syncKey ? recentBillingSyncBySubscription.get(syncKey) ?? null : null;
+
+  if (lastInMemorySync && now - lastInMemorySync < BILLING_SYNC_TTL_MS) {
+    return false;
+  }
+
+  const transactionUpdatedAt = getTimestamp(
+    currentTransaction?.updated_at ?? currentTransaction?.confirmed_at ?? currentTransaction?.created_at,
+  );
+
+  if (transactionUpdatedAt && now - transactionUpdatedAt < BILLING_SYNC_TTL_MS) {
+    return false;
+  }
+
+  return true;
 }
 
 function compareDueDateAsc(left, right) {
@@ -706,7 +756,11 @@ export async function getBillingOverview({ organizationId }) {
     throw error;
   }
 
-  if (aggregate.subscription?.gateway_subscription_id && aggregate.plan) {
+  if (
+    aggregate.subscription?.gateway_subscription_id &&
+    aggregate.plan &&
+    shouldRefreshAsaasPayments(aggregate.subscription, aggregate.currentTransaction)
+  ) {
     await refreshAsaasPayments(aggregate.subscription, aggregate.plan);
   }
 
@@ -745,7 +799,15 @@ export async function listBillingInvoices({ organizationId }) {
   const subscription = await getOrganizationSubscriptionByOrganizationId(organizationId);
   const plan = await getSubscriptionPlanByCode();
 
-  if (subscription?.gateway_subscription_id && plan) {
+  const currentTransaction = subscription
+    ? await getCurrentBillingTransactionBySubscriptionId(subscription.id)
+    : null;
+
+  if (
+    subscription?.gateway_subscription_id &&
+    plan &&
+    shouldRefreshAsaasPayments(subscription, currentTransaction)
+  ) {
     await refreshAsaasPayments(subscription, plan);
   }
 
@@ -763,12 +825,17 @@ export async function getCurrentCharge({ organizationId }) {
 
   const plan = await getSubscriptionPlanByCode();
 
-  if (subscription.gateway_subscription_id && plan) {
+  const currentTransaction = await getCurrentBillingTransactionBySubscriptionId(subscription.id);
+  const shouldRefresh = shouldRefreshAsaasPayments(subscription, currentTransaction);
+
+  if (subscription.gateway_subscription_id && plan && shouldRefresh) {
     await refreshAsaasPayments(subscription, plan);
   }
 
-  const currentTransaction = await getCurrentBillingTransactionBySubscriptionId(subscription.id);
-  return enrichTransactionWithPix(currentTransaction);
+  const latestCurrentTransaction = shouldRefresh
+    ? await getCurrentBillingTransactionBySubscriptionId(subscription.id)
+    : currentTransaction;
+  return enrichTransactionWithPix(latestCurrentTransaction);
 }
 
 export async function startBillingCheckout({ organizationId }) {

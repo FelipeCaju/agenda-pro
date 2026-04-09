@@ -22,5 +22,8 @@ export function useBlockedSlotsQuery({
   return useQuery({
     queryKey: blockedSlotKeys.list(date, view, professionalId),
     queryFn: () => blockedSlotService.list({ date, view, professionalId }),
+    staleTime: 60_000,
+    placeholderData: (previousData) => previousData,
+    refetchOnWindowFocus: false,
   });
 }

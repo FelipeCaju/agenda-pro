@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FullscreenState } from "@/components/ui/fullscreen-state";
 import { useBillingMutations } from "@/hooks/use-billing-mutations";
-import { useBillingCurrentChargeQuery, useBillingOverviewQuery } from "@/hooks/use-billing-query";
+import { useBillingOverviewQuery } from "@/hooks/use-billing-query";
 import { formatDateBR } from "@/utils/date";
 import { getBillingPaymentAccessFromOverview, getSubscriptionStatusLabel } from "@/utils/billing";
 
@@ -49,11 +49,6 @@ export function PaymentPage() {
   const hasPreparedPixChargeRef = useRef(false);
   const { data: overview, error, isError, isLoading } = useBillingOverviewQuery();
   const {
-    data: currentCharge,
-    error: currentChargeError,
-    isError: isCurrentChargeError,
-  } = useBillingCurrentChargeQuery();
-  const {
     startCheckout,
     startCardCheckout,
     isStartingCheckout,
@@ -63,7 +58,8 @@ export function PaymentPage() {
   } = useBillingMutations();
   const [copyMessage, setCopyMessage] = useState("");
   const checkoutState = new URLSearchParams(location.search).get("checkout");
-  const paymentAccess = getBillingPaymentAccessFromOverview(overview?.access, currentCharge ?? overview?.currentCharge);
+  const currentCharge = overview?.currentCharge ?? null;
+  const paymentAccess = getBillingPaymentAccessFromOverview(overview?.access, currentCharge);
   const needsPixPreparation =
     !currentCharge ||
     currentCharge.paymentMethod !== "pix" ||
@@ -85,7 +81,6 @@ export function PaymentPage() {
       hasPreparedPixChargeRef.current ||
       !overview ||
       isError ||
-      isCurrentChargeError ||
       !paymentAccess.canOpen
     ) {
       return;
@@ -102,7 +97,6 @@ export function PaymentPage() {
     });
   }, [
     currentCharge,
-    isCurrentChargeError,
     isError,
     isLoading,
     isStartingCheckout,
@@ -148,12 +142,12 @@ export function PaymentPage() {
     );
   }
 
-  if ((isError && !overview) || isCurrentChargeError) {
+  if (isError && !overview) {
     return (
       <FullscreenState
         eyebrow="Pagamento"
         title="Nao foi possivel abrir o pagamento"
-        description={error?.message ?? currentChargeError?.message ?? "Falha ao carregar billing."}
+        description={error?.message ?? "Falha ao carregar billing."}
         action={
           <Button onClick={() => navigate("/meu-plano")} type="button">
             Voltar para meu plano
