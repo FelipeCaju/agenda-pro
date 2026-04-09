@@ -374,7 +374,10 @@ export function TimeGrid({
             );
           })}
 
-          <div className="sticky left-0 z-20 border-r border-slate-200/80 bg-slate-50/95 xl:bg-slate-50/85" style={{ height: gridHeight }}>
+          <div
+            className="sticky left-0 z-40 border-r border-slate-200/80 bg-slate-50/95 shadow-[8px_0_18px_rgba(248,250,252,0.95)] xl:bg-slate-50/85"
+            style={{ height: gridHeight }}
+          >
             {hourMarks.slice(0, -1).map((minute) => {
               const top = ((minute - rangeStart) / totalMinutes) * 100;
               return (
