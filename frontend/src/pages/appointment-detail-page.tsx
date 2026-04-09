@@ -11,6 +11,7 @@ import { useClientsQuery } from "@/hooks/use-clients-query";
 import { useProfessionalsQuery } from "@/hooks/use-professionals-query";
 import { useServicesQuery } from "@/hooks/use-services-query";
 import type {
+  AppointmentDeleteScope,
   AppointmentInput,
   AppointmentPaymentStatus,
 } from "@/services/appointmentService";
@@ -88,16 +89,21 @@ export function AppointmentDetailPage() {
     }
   }
 
-  async function handleDelete() {
+  async function handleDelete(scope: AppointmentDeleteScope) {
     if (!appointmentId) {
       return;
     }
 
     try {
-      await deleteAppointment(appointmentId);
+      await deleteAppointment({ appointmentId, scope });
       navigate("/agenda", {
         replace: true,
-        state: { successMessage: "Agendamento excluido com sucesso." },
+        state: {
+          successMessage:
+            scope === "series"
+              ? "Serie de agendamentos excluida com sucesso."
+              : "Agendamento excluido com sucesso.",
+        },
       });
     } catch {
       return;

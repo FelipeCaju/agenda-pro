@@ -156,6 +156,7 @@ export async function deleteAppointmentController(request, response) {
     await removeAppointment({
       organizationId: organization.id,
       appointmentId: request.params.appointmentId,
+      scope: request.query.scope ?? request.query.deleteScope,
     });
 
     response.status(204).send();

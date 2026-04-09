@@ -31,6 +31,9 @@ export type Appointment = {
   respostaWhatsapp: string | null;
   quoteId: string | null;
   serviceOrderId: string | null;
+  recurrenceSeriesId: string | null;
+  recurrenceType: "none" | "weekly" | "biweekly" | "monthly";
+  recurrenceIndex: number;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -50,10 +53,12 @@ export type AppointmentInput = {
   quoteId?: string | null;
   serviceOrderId?: string | null;
   recurrence?: {
-    type: "none" | "weekly" | "monthly";
+    type: "none" | "weekly" | "biweekly" | "monthly";
     count: number;
   };
 };
+
+export type AppointmentDeleteScope = "single" | "series";
 
 export type AppointmentFilters = {
   date: string;
@@ -97,6 +102,9 @@ type AppointmentApiModel = {
   resposta_whatsapp: string | null;
   quote_id: string | null;
   service_order_id: string | null;
+  recurrence_series_id?: string | null;
+  recurrence_type?: "none" | "weekly" | "biweekly" | "monthly";
+  recurrence_index?: number;
   created_at?: string;
   updated_at?: string;
 };
@@ -128,6 +136,9 @@ function fromApi(model: AppointmentApiModel): Appointment {
     respostaWhatsapp: model.resposta_whatsapp ?? null,
     quoteId: model.quote_id ?? null,
     serviceOrderId: model.service_order_id ?? null,
+    recurrenceSeriesId: model.recurrence_series_id ?? null,
+    recurrenceType: model.recurrence_type ?? "none",
+    recurrenceIndex: Number(model.recurrence_index ?? 0),
     createdAt: model.created_at,
     updatedAt: model.updated_at,
   };
@@ -258,10 +269,14 @@ export const appointmentService = {
       },
     );
   },
-  async remove(appointmentId: string) {
+  async remove(appointmentId: string, scope: AppointmentDeleteScope = "single") {
     return executeServiceCall(
       async () => {
-        await apiClient.delete<void>(`/agenda/${appointmentId}`);
+        await apiClient.delete<void>(`/agenda/${appointmentId}`, {
+          query: {
+            scope,
+          },
+        });
       },
       {
         errorMessage: "Nao foi possivel remover o agendamento.",

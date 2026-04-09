@@ -595,6 +595,9 @@ function mapAppointment(row) {
     resposta_whatsapp: row.resposta_whatsapp,
     quote_id: row.quote_id ?? null,
     service_order_id: row.service_order_id ?? null,
+    recurrence_series_id: row.recurrence_series_id ?? null,
+    recurrence_type: row.recurrence_type ?? "none",
+    recurrence_index: Number(row.recurrence_index ?? 0),
     created_at: normalizeDateTime(row.created_at),
     updated_at: normalizeDateTime(row.updated_at),
   };
@@ -1085,6 +1088,27 @@ async function ensureQuotesInfrastructure() {
         ADD COLUMN service_order_id CHAR(36) NULL AFTER quote_id`,
     );
   }
+
+  if (!(await hasColumn("appointments", "recurrence_series_id"))) {
+    await execute(
+      `ALTER TABLE appointments
+        ADD COLUMN recurrence_series_id CHAR(36) NULL AFTER service_order_id`,
+    );
+  }
+
+  if (!(await hasColumn("appointments", "recurrence_type"))) {
+    await execute(
+      `ALTER TABLE appointments
+        ADD COLUMN recurrence_type VARCHAR(24) NOT NULL DEFAULT 'none' AFTER recurrence_series_id`,
+    );
+  }
+
+  if (!(await hasColumn("appointments", "recurrence_index"))) {
+    await execute(
+      `ALTER TABLE appointments
+        ADD COLUMN recurrence_index INT NOT NULL DEFAULT 0 AFTER recurrence_type`,
+    );
+  }
 }
 
 async function ensurePerformanceIndexes() {
@@ -1114,6 +1138,13 @@ async function ensurePerformanceIndexes() {
     "idx_appointments_org_servico_data",
     `CREATE INDEX idx_appointments_org_servico_data
       ON appointments (organization_id, servico_id, data)`,
+  );
+
+  await ensureIndex(
+    "appointments",
+    "idx_appointments_org_recurrence_series",
+    `CREATE INDEX idx_appointments_org_recurrence_series
+      ON appointments (organization_id, recurrence_series_id, data)`,
   );
 
   await ensureIndex(
@@ -2367,8 +2398,8 @@ export async function createAppointmentForOrganization(organizationId, input) {
       data, horario_inicial, horario_final,
       valor, status, payment_status, observacoes, confirmacao_cliente, lembrete_enviado,
       lembrete_confirmado, lembrete_cancelado, data_envio_lembrete, resposta_whatsapp,
-      quote_id, service_order_id
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)` ,
+      quote_id, service_order_id, recurrence_series_id, recurrence_type, recurrence_index
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)` ,
     [
       id,
       organizationId,
@@ -2395,6 +2426,9 @@ export async function createAppointmentForOrganization(organizationId, input) {
       input.resposta_whatsapp || null,
       input.quote_id || null,
       input.service_order_id || null,
+      input.recurrence_series_id || null,
+      input.recurrence_type || "none",
+      Number(input.recurrence_index ?? 0),
     ],
   );
 
@@ -2432,6 +2466,11 @@ export async function updateAppointmentForOrganization(organizationId, appointme
       quote_id: input.quote_id === undefined ? undefined : input.quote_id || null,
       service_order_id:
         input.service_order_id === undefined ? undefined : input.service_order_id || null,
+      recurrence_series_id:
+        input.recurrence_series_id === undefined ? undefined : input.recurrence_series_id || null,
+      recurrence_type: input.recurrence_type,
+      recurrence_index:
+        input.recurrence_index === undefined ? undefined : Number(input.recurrence_index),
     },
     [
       "cliente_id",
@@ -2457,6 +2496,9 @@ export async function updateAppointmentForOrganization(organizationId, appointme
       "resposta_whatsapp",
       "quote_id",
       "service_order_id",
+      "recurrence_series_id",
+      "recurrence_type",
+      "recurrence_index",
     ],
   );
 
@@ -2474,6 +2516,21 @@ export async function removeAppointmentForOrganization(organizationId, appointme
   await ensureInitialized();
   const result = await execute("DELETE FROM appointments WHERE organization_id = ? AND id = ?", [organizationId, appointmentId]);
   return result.affectedRows > 0;
+}
+
+export async function removeAppointmentSeriesForOrganization(organizationId, recurrenceSeriesId) {
+  await ensureInitialized();
+
+  if (!normalizeOptionalString(recurrenceSeriesId)) {
+    return 0;
+  }
+
+  const result = await execute(
+    "DELETE FROM appointments WHERE organization_id = ? AND recurrence_series_id = ?",
+    [organizationId, recurrenceSeriesId],
+  );
+
+  return Number(result.affectedRows ?? 0);
 }
 
 export async function listBlockedSlotsByOrganization(

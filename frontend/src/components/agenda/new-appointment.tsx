@@ -25,7 +25,7 @@ type NewAppointmentValues = {
   observacoes: string;
   quoteId: string;
   serviceOrderId: string;
-  repetir: string;
+  repetir: "nao_repetir" | "semanal" | "quinzenal" | "mensal";
 };
 
 type NewAppointmentProps = {
@@ -290,12 +290,30 @@ export function NewAppointment({
       quoteId: values.quoteId || null,
       serviceOrderId: values.serviceOrderId || null,
       recurrence:
-        values.repetir === "toda_semana"
-          ? { type: "weekly", count: 4 }
-          : values.repetir === "todo_mes"
-            ? { type: "monthly", count: 3 }
+        values.repetir === "semanal"
+          ? { type: "weekly", count: 1 }
+          : values.repetir === "quinzenal"
+            ? { type: "biweekly", count: 1 }
+            : values.repetir === "mensal"
+              ? { type: "monthly", count: 1 }
             : undefined,
     });
+  }
+
+  function getRecurrenceSummary() {
+    if (values.repetir === "semanal") {
+      return "Semanal por 6 meses";
+    }
+
+    if (values.repetir === "quinzenal") {
+      return "Quinzenal por 6 meses";
+    }
+
+    if (values.repetir === "mensal") {
+      return "Mensal por 6 meses";
+    }
+
+    return "Nao repetir";
   }
 
   return (
@@ -455,12 +473,18 @@ export function NewAppointment({
           <div className="relative">
             <select
               className="app-select appearance-none pr-10 text-base"
-              onChange={(event) => updateField("repetir", event.target.value)}
+              onChange={(event) =>
+                updateField(
+                  "repetir",
+                  event.target.value as NewAppointmentValues["repetir"],
+                )
+              }
               value={values.repetir}
             >
               <option value="nao_repetir">Nao repetir</option>
-              <option value="toda_semana">Toda semana (4x)</option>
-              <option value="todo_mes">Todo mes (3x)</option>
+              <option value="semanal">Semanal (mesmo dia por 6 meses)</option>
+              <option value="quinzenal">Quinzenal (a cada 15 dias por 6 meses)</option>
+              <option value="mensal">Mensal (mesmo dia por 6 meses)</option>
             </select>
             <ChevronDownIcon className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           </div>
@@ -483,7 +507,7 @@ export function NewAppointment({
           <p>Status: Pendente</p>
           <p>Pagamento: Pendente</p>
           {allowRecurrence && values.repetir !== "nao_repetir" ? (
-            <p>Repeticao: {values.repetir === "todo_mes" ? "Todo mes (3x)" : "Toda semana (4x)"}</p>
+            <p>Repeticao: {getRecurrenceSummary()}</p>
           ) : null}
           <p>Data: {formatSummaryDate(values.data)}</p>
           {values.professionalId ? (

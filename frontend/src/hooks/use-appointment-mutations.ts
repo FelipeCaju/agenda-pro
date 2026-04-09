@@ -3,6 +3,7 @@ import { agendaKeys } from "@/hooks/use-agenda-query";
 import { dashboardKeys } from "@/hooks/use-dashboard-summary";
 import {
   appointmentService,
+  type AppointmentDeleteScope,
   type AppointmentInput,
   type AppointmentPaymentStatus,
   type AppointmentStatus,
@@ -43,7 +44,13 @@ export function useAppointmentMutations() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (appointmentId: string) => appointmentService.remove(appointmentId),
+    mutationFn: ({
+      appointmentId,
+      scope,
+    }: {
+      appointmentId: string;
+      scope?: AppointmentDeleteScope;
+    }) => appointmentService.remove(appointmentId, scope),
     onSuccess: async () => {
       await Promise.all([invalidateAgenda(), invalidateDashboard()]);
     },

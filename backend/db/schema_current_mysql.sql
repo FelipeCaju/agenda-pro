@@ -181,6 +181,9 @@ CREATE TABLE IF NOT EXISTS appointments (
   resposta_whatsapp TEXT NULL,
   quote_id CHAR(36) NULL,
   service_order_id CHAR(36) NULL,
+  recurrence_series_id CHAR(36) NULL,
+  recurrence_type VARCHAR(24) NOT NULL DEFAULT 'none',
+  recurrence_index INT NOT NULL DEFAULT 0,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
@@ -190,6 +193,7 @@ CREATE TABLE IF NOT EXISTS appointments (
   KEY idx_appointments_org_payment_status_data (organization_id, payment_status, data),
   KEY idx_appointments_org_lembrete (organization_id, lembrete_enviado, data_envio_lembrete),
   KEY idx_appointments_org_profissional_data (organization_id, profissional_id, data, horario_inicial),
+  KEY idx_appointments_org_recurrence_series (organization_id, recurrence_series_id, data),
   CONSTRAINT fk_appointments_organization
     FOREIGN KEY (organization_id)
     REFERENCES organizations (id)

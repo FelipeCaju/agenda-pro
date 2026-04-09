@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import {
   autoCancelStaleAppointmentsForOrganization,
   createAppointmentForOrganization,
@@ -11,6 +12,7 @@ import {
   listUpcomingAppointmentsByOrganization,
   listProfessionalsByService,
   removeAppointmentForOrganization,
+  removeAppointmentSeriesForOrganization,
   updateAppointmentForOrganization,
 } from "../lib/data.js";
 import { linkQuoteToAppointment } from "./quote.service.js";
@@ -24,7 +26,8 @@ function buildError(message, statusCode) {
 const VALID_STATUS = ["pendente", "confirmado", "concluido", "cancelado"];
 const VALID_PAYMENT_STATUS = ["pendente", "pago"];
 const VALID_CONFIRMATION = ["pendente", "confirmado", "cancelado", "sem_resposta"];
-const VALID_RECURRENCE_TYPES = ["none", "weekly", "monthly"];
+const VALID_RECURRENCE_TYPES = ["none", "weekly", "biweekly", "monthly"];
+const VALID_DELETE_SCOPES = ["single", "series"];
 
 function normalizeString(value) {
   return typeof value === "string" ? value.trim() : "";
@@ -118,11 +121,15 @@ function addMonthsToDate(date, amount) {
   return value.toISOString().slice(0, 10);
 }
 
+function isDateBeforeOrEqual(leftDate, rightDate) {
+  return new Date(`${leftDate}T12:00:00`).getTime() <= new Date(`${rightDate}T12:00:00`).getTime();
+}
+
 function normalizeRecurrence(input) {
   const recurrence = input.recurrence ?? null;
 
   if (!recurrence) {
-    return { type: "none", count: 1 };
+    return { type: "none", count: 1, monthsWindow: 0 };
   }
 
   const type = recurrence.type ?? "none";
@@ -136,7 +143,45 @@ function normalizeRecurrence(input) {
     throw buildError("Quantidade de repeticoes invalida.", 400);
   }
 
-  return { type, count };
+  return { type, count, monthsWindow: type === "none" ? 0 : 6 };
+}
+
+function buildRecurrenceDates(baseDate, recurrence) {
+  if (recurrence.type === "none") {
+    return [baseDate];
+  }
+
+  const dates = [];
+  const limitDate = addMonthsToDate(baseDate, recurrence.monthsWindow);
+  let index = 0;
+
+  while (true) {
+    const occurrenceDate =
+      recurrence.type === "weekly"
+        ? addDaysToDate(baseDate, index * 7)
+        : recurrence.type === "biweekly"
+          ? addDaysToDate(baseDate, index * 15)
+          : addMonthsToDate(baseDate, index);
+
+    if (!isDateBeforeOrEqual(occurrenceDate, limitDate)) {
+      break;
+    }
+
+    dates.push(occurrenceDate);
+    index += 1;
+  }
+
+  return dates;
+}
+
+function normalizeDeleteScope(scope) {
+  const normalized = normalizeString(scope) || "single";
+
+  if (!VALID_DELETE_SCOPES.includes(normalized)) {
+    throw buildError("Escopo de exclusao invalido.", 400);
+  }
+
+  return normalized;
 }
 
 function buildPayload({ client, service, professional, input }) {
@@ -164,6 +209,9 @@ function buildPayload({ client, service, professional, input }) {
     resposta_whatsapp: input.resposta_whatsapp ?? null,
     quote_id: input.quote_id ?? null,
     service_order_id: input.service_order_id ?? null,
+    recurrence_series_id: input.recurrence_series_id ?? null,
+    recurrence_type: input.recurrence_type ?? "none",
+    recurrence_index: Number(input.recurrence_index ?? 0),
   };
 }
 
@@ -342,21 +390,23 @@ export async function getAppointment({ organizationId, appointmentId }) {
 
 export async function createAppointment({ organizationId, input }) {
   const recurrence = normalizeRecurrence(input);
+  const occurrenceDates = buildRecurrenceDates(input.data, recurrence);
   const createdAppointments = [];
+  const recurrenceSeriesId = recurrence.type === "none" ? null : randomUUID();
 
-  for (let index = 0; index < recurrence.count; index += 1) {
-    const occurrenceDate =
-      recurrence.type === "weekly"
-        ? addDaysToDate(input.data, index * 7)
-        : recurrence.type === "monthly"
-          ? addMonthsToDate(input.data, index)
-          : input.data;
+  for (let index = 0; index < occurrenceDates.length; index += 1) {
+    const occurrenceDate = occurrenceDates[index];
     const occurrenceInput = {
       ...input,
       data: occurrenceDate,
     };
     const { payload } = await validateAppointmentInput({ organizationId, input: occurrenceInput });
-    const created = await createAppointmentForOrganization(organizationId, payload);
+    const created = await createAppointmentForOrganization(organizationId, {
+      ...payload,
+      recurrence_series_id: recurrenceSeriesId,
+      recurrence_type: recurrence.type,
+      recurrence_index: index,
+    });
     if (payload.quote_id) {
       await linkQuoteToAppointment({
         organizationId,
@@ -463,8 +513,23 @@ export async function updateAppointmentPaymentStatus({
   return updated;
 }
 
-export async function removeAppointment({ organizationId, appointmentId }) {
-  const removed = await removeAppointmentForOrganization(organizationId, appointmentId);
+export async function removeAppointment({ organizationId, appointmentId, scope = "single" }) {
+  const current = await getAppointmentByIdForOrganization(organizationId, appointmentId);
+
+  if (!current) {
+    throw buildError("Agendamento nao encontrado.", 404);
+  }
+
+  const deleteScope = normalizeDeleteScope(scope);
+  const shouldDeleteSeries =
+    deleteScope === "series" &&
+    current.recurrence_series_id &&
+    current.recurrence_type &&
+    current.recurrence_type !== "none";
+
+  const removed = shouldDeleteSeries
+    ? await removeAppointmentSeriesForOrganization(organizationId, current.recurrence_series_id)
+    : await removeAppointmentForOrganization(organizationId, appointmentId);
 
   if (!removed) {
     throw buildError("Agendamento nao encontrado.", 404);

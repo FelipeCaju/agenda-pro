@@ -84,6 +84,9 @@ type AppointmentApiModel = {
   resposta_whatsapp: string | null;
   quote_id?: string | null;
   service_order_id?: string | null;
+  recurrence_series_id?: string | null;
+  recurrence_type?: "none" | "weekly" | "biweekly" | "monthly";
+  recurrence_index?: number;
   created_at?: string;
   updated_at?: string;
 };
@@ -155,6 +158,9 @@ function mapAppointment(model: AppointmentApiModel): Appointment {
     respostaWhatsapp: model.resposta_whatsapp ?? null,
     quoteId: model.quote_id ?? null,
     serviceOrderId: model.service_order_id ?? null,
+    recurrenceSeriesId: model.recurrence_series_id ?? null,
+    recurrenceType: model.recurrence_type ?? "none",
+    recurrenceIndex: Number(model.recurrence_index ?? 0),
     createdAt: model.created_at,
     updatedAt: model.updated_at,
   };
