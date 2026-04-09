@@ -1,6 +1,5 @@
 import {
   getOrganizationById,
-  getLatestOrganizationPayment,
   listOrganizationPayments,
   listUsersByOrganization,
   updateOrganizationById,
@@ -37,31 +36,11 @@ function isValidCityIbge(value) {
 }
 
 async function buildOrganizationPayload(organization) {
-  let access;
-
-  try {
-    access = await resolveOrganizationBillingAccess(organization.id);
-  } catch (error) {
-    access = {
-      subscriptionStatus: organization.subscription_status ?? null,
-      canAccess: true,
-      isBlocked: false,
-      blockReason: null,
-      dueDate: organization.due_date ?? null,
-      trialEndsAt: organization.trial_end ?? null,
-      graceUntil: null,
-      paymentNoticeVisible: false,
-    };
-  }
-
-  let latestPayment = null;
-
-  try {
-    const aggregate = await getOrganizationBillingAggregate(organization.id);
-    latestPayment = aggregate.currentTransaction ?? null;
-  } catch {
-    latestPayment = await getLatestOrganizationPayment(organization.id).catch(() => null);
-  }
+  const [aggregate, access] = await Promise.all([
+    getOrganizationBillingAggregate(organization.id),
+    resolveOrganizationBillingAccess(organization.id),
+  ]);
+  const latestPayment = aggregate.currentTransaction;
 
   return {
     id: organization.id,
@@ -135,11 +114,7 @@ export async function listCurrentOrganizationPayments({ organizationId }) {
     throw error;
   }
 
-  try {
-    return await listOrganizationPayments(organizationId);
-  } catch {
-    return [];
-  }
+  return listOrganizationPayments(organizationId);
 }
 
 export async function updateCurrentOrganization({ organizationId, input }) {
