@@ -50,6 +50,11 @@ function getTodayDate() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function logBillingRefreshFailure(scope, error) {
+  console.error(`[billing] Falha ao sincronizar pagamentos no escopo ${scope}.`);
+  console.error(error?.message ?? error);
+}
+
 function getRecentSyncKey(subscription) {
   return String(subscription?.gateway_subscription_id ?? subscription?.id ?? "").trim();
 }
@@ -391,6 +396,15 @@ async function refreshAsaasPayments(subscription, plan) {
   }
 
   return localTransactions;
+}
+
+async function refreshAsaasPaymentsSafely(scope, subscription, plan) {
+  try {
+    return await refreshAsaasPayments(subscription, plan);
+  } catch (error) {
+    logBillingRefreshFailure(scope, error);
+    return [];
+  }
 }
 
 function shouldRefreshAsaasPayments(subscription, currentTransaction = null) {
@@ -761,7 +775,7 @@ export async function getBillingOverview({ organizationId }) {
     aggregate.plan &&
     shouldRefreshAsaasPayments(aggregate.subscription, aggregate.currentTransaction)
   ) {
-    await refreshAsaasPayments(aggregate.subscription, aggregate.plan);
+    await refreshAsaasPaymentsSafely("overview", aggregate.subscription, aggregate.plan);
   }
 
   const refreshedAggregate = await getOrganizationBillingAggregate(organizationId);
@@ -808,7 +822,7 @@ export async function listBillingInvoices({ organizationId }) {
     plan &&
     shouldRefreshAsaasPayments(subscription, currentTransaction)
   ) {
-    await refreshAsaasPayments(subscription, plan);
+    await refreshAsaasPaymentsSafely("invoices", subscription, plan);
   }
 
   const invoices = await listBillingTransactionsByOrganizationId(organizationId);
@@ -829,7 +843,7 @@ export async function getCurrentCharge({ organizationId }) {
   const shouldRefresh = shouldRefreshAsaasPayments(subscription, currentTransaction);
 
   if (subscription.gateway_subscription_id && plan && shouldRefresh) {
-    await refreshAsaasPayments(subscription, plan);
+    await refreshAsaasPaymentsSafely("current-charge", subscription, plan);
   }
 
   const latestCurrentTransaction = shouldRefresh
