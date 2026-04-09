@@ -1,7 +1,6 @@
 import type {
   Appointment,
   AppointmentPaymentStatus,
-  AppointmentStatus,
 } from "@/services/appointmentService";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -11,20 +10,16 @@ type AppointmentDetailProps = {
   appointment: Appointment;
   isDeleting?: boolean;
   isUpdatingPaymentStatus?: boolean;
-  isUpdatingStatus?: boolean;
   onDelete: () => Promise<void>;
   onPaymentStatusChange: (paymentStatus: AppointmentPaymentStatus) => Promise<void>;
-  onStatusChange: (status: AppointmentStatus) => Promise<void>;
 };
 
 export function AppointmentDetail({
   appointment,
   isDeleting = false,
   isUpdatingPaymentStatus = false,
-  isUpdatingStatus = false,
   onDelete,
   onPaymentStatusChange,
-  onStatusChange,
 }: AppointmentDetailProps) {
   return (
     <Card>
@@ -38,41 +33,28 @@ export function AppointmentDetail({
         {formatDateBR(appointment.data)} - {appointment.horarioInicial} - {appointment.horarioFinal}
       </p>
 
-      <div className="mt-4">
-        <p className="text-sm font-semibold text-ink">Status de pagamento</p>
-        <div className="mt-2 grid grid-cols-2 gap-2">
-          {(["pendente", "pago"] as AppointmentPaymentStatus[]).map((paymentStatus) => (
-            <Button
-              className="w-full"
-              disabled={isUpdatingPaymentStatus}
-              key={paymentStatus}
-              onClick={() => void onPaymentStatusChange(paymentStatus)}
-              type="button"
-              variant={appointment.paymentStatus === paymentStatus ? "primary" : "secondary"}
-            >
-              {paymentStatus === "pago" ? "Pago" : "Pendente"}
-            </Button>
-          ))}
-        </div>
+      <div className="mt-4 space-y-2 rounded-2xl border border-slate-100 bg-slate-50/80 px-4 py-4">
+        <p className="text-sm font-semibold text-ink">Situacao atual</p>
+        <p className="text-sm text-slate-600">
+          Pagamento: <strong className="text-ink">{appointment.paymentStatus === "pago" ? "Pago" : "Pendente"}</strong>
+        </p>
+        <p className="text-sm text-slate-600">
+          Atendimento: <strong className="text-ink">{appointment.status}</strong>
+        </p>
       </div>
 
-      <p className="mt-4 text-sm font-semibold text-ink">Status do atendimento</p>
-      <div className="mt-4 grid grid-cols-2 gap-2">
-        {(["pendente", "confirmado", "concluido", "cancelado"] as AppointmentStatus[]).map(
-          (status) => (
-            <Button
-              className="w-full"
-              disabled={isUpdatingStatus}
-              key={status}
-              onClick={() => void onStatusChange(status)}
-              type="button"
-              variant={appointment.status === status ? "primary" : "secondary"}
-            >
-              {status}
-            </Button>
-          ),
-        )}
-      </div>
+      <Button
+        className="mt-4 w-full"
+        disabled={isUpdatingPaymentStatus || appointment.paymentStatus === "pago"}
+        onClick={() => void onPaymentStatusChange("pago")}
+        type="button"
+      >
+        {appointment.paymentStatus === "pago"
+          ? "Pagamento ja realizado"
+          : isUpdatingPaymentStatus
+            ? "Registrando pagamento..."
+            : "Pagamento realizado"}
+      </Button>
 
       <Button
         className="mt-4 w-full"

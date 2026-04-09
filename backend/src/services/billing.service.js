@@ -47,6 +47,70 @@ function getTodayDate() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function normalizeDateOnly(value) {
+  return formatDateForDatabase(value);
+}
+
+function differenceFromTodayInDays(value) {
+  const normalized = normalizeDateOnly(value);
+
+  if (!normalized) {
+    return null;
+  }
+
+  const today = new Date(`${getTodayDate()}T12:00:00`);
+  const target = new Date(`${normalized}T12:00:00`);
+
+  if (Number.isNaN(today.getTime()) || Number.isNaN(target.getTime())) {
+    return null;
+  }
+
+  return Math.round((target.getTime() - today.getTime()) / 86_400_000);
+}
+
+function resolveChargeAmountCents({ organization = null, subscription = null, plan = null }) {
+  const organizationAmount = Number(organization?.monthly_amount ?? 0);
+
+  if (Number.isFinite(organizationAmount) && organizationAmount > 0) {
+    return Math.round(organizationAmount * 100);
+  }
+
+  const subscriptionAmount = Number(subscription?.amount_cents ?? 0);
+
+  if (Number.isFinite(subscriptionAmount) && subscriptionAmount > 0) {
+    return Math.round(subscriptionAmount);
+  }
+
+  return Math.round(Number(plan?.price_cents ?? 0));
+}
+
+function finalizeBillingAccess({ access, currentTransaction = null, platformSettings = null }) {
+  if (!access) {
+    return access;
+  }
+
+  if (access.isBlocked || access.subscriptionStatus !== "active") {
+    return access;
+  }
+
+  const transactionStatus = currentTransaction?.status ?? access.currentChargeStatus ?? null;
+  const dueDate = currentTransaction?.due_date ?? access.dueDate ?? null;
+  const alertDays = Number(platformSettings?.payment_alert_days ?? 5);
+  const dueInDays = differenceFromTodayInDays(dueDate);
+  const isOverdue = transactionStatus === "overdue" || (dueInDays !== null && dueInDays < 0);
+  const shouldShowPendingNotice =
+    transactionStatus === "pending" &&
+    dueInDays !== null &&
+    dueInDays <= alertDays;
+
+  return {
+    ...access,
+    dueDate,
+    graceUntil: isOverdue ? access.graceUntil : null,
+    paymentNoticeVisible: Boolean(isOverdue || shouldShowPendingNotice),
+  };
+}
+
 function resolveCheckoutDueDate(trialEnd) {
   const today = getTodayDate();
 
@@ -319,12 +383,19 @@ async function syncAsaasCustomerProfile({ organization, customerId }) {
 }
 
 async function ensureLocalPendingSubscription({
+  organization,
   organizationId,
   plan,
   customerId,
   existingSubscription,
   connection = null,
 }) {
+  const chargeAmountCents = resolveChargeAmountCents({
+    organization,
+    subscription: existingSubscription,
+    plan,
+  });
+
   if (existingSubscription) {
     return updateOrganizationSubscription(
       existingSubscription.id,
@@ -332,7 +403,7 @@ async function ensureLocalPendingSubscription({
         plan_id: plan.id,
         gateway_customer_id: customerId,
         billing_cycle: plan.billing_cycle,
-        amount_cents: plan.price_cents,
+        amount_cents: chargeAmountCents,
         currency: plan.currency,
         status: existingSubscription.status === "active" ? "active" : "pending_payment",
         cancelled_at: null,
@@ -352,7 +423,7 @@ async function ensureLocalPendingSubscription({
       gateway_customer_id: customerId,
       status: "pending_payment",
       billing_cycle: plan.billing_cycle,
-      amount_cents: plan.price_cents,
+      amount_cents: chargeAmountCents,
       currency: plan.currency,
       last_status_change_at: getNowIsoDateTime(),
     },
@@ -362,7 +433,7 @@ async function ensureLocalPendingSubscription({
 
 async function persistCompatibilityCache({ organizationId, plan, subscription }) {
   await updateOrganizationBillingCache(organizationId, {
-    monthly_amount_cents: subscription?.amount_cents ?? plan?.price_cents ?? 0,
+    monthly_amount_cents: resolveChargeAmountCents({ subscription, plan }),
     subscription_status: subscription?.status ?? "pending_payment",
     subscription_plan: plan?.code ?? null,
     due_date: subscription?.next_due_date ?? null,
@@ -424,6 +495,8 @@ async function reconcileAccessState(aggregate) {
 }
 
 function buildOverviewPayload({ organization, plan, subscription, currentTransaction, access }) {
+  const resolvedAmountCents = resolveChargeAmountCents({ organization, subscription, plan });
+
   return {
     organization_id: organization?.id ?? null,
     plan: plan
@@ -432,7 +505,7 @@ function buildOverviewPayload({ organization, plan, subscription, currentTransac
           name: plan.name,
           code: plan.code,
           description: plan.description,
-          price_cents: plan.price_cents,
+          price_cents: resolvedAmountCents,
           currency: plan.currency,
           billing_cycle: plan.billing_cycle,
           trial_days: plan.trial_days,
@@ -444,7 +517,7 @@ function buildOverviewPayload({ organization, plan, subscription, currentTransac
           id: subscription.id,
           status: subscription.status,
           billing_cycle: subscription.billing_cycle,
-          amount_cents: subscription.amount_cents,
+          amount_cents: resolvedAmountCents,
           currency: subscription.currency,
           gateway_customer_id: subscription.gateway_customer_id,
           gateway_subscription_id: subscription.gateway_subscription_id,
@@ -501,7 +574,12 @@ export async function resolveOrganizationBillingAccess(organizationId) {
     };
   }
 
-  return reconcileAccessState(aggregate);
+  const access = await reconcileAccessState(aggregate);
+  return finalizeBillingAccess({
+    access,
+    currentTransaction: aggregate.currentTransaction,
+    platformSettings: await getPlatformSettings(),
+  });
 }
 
 export async function getBillingOverview({ organizationId }) {
@@ -519,9 +597,16 @@ export async function getBillingOverview({ organizationId }) {
   }
 
   const refreshedAggregate = await getOrganizationBillingAggregate(organizationId);
-  const access = refreshedAggregate.subscription
+  const rawAccess = refreshedAggregate.subscription
     ? await reconcileAccessState(refreshedAggregate)
     : await getLegacyAccessSnapshot(refreshedAggregate.organization);
+  const access = refreshedAggregate.subscription
+    ? finalizeBillingAccess({
+        access: rawAccess,
+        currentTransaction: refreshedAggregate.currentTransaction,
+        platformSettings: await getPlatformSettings(),
+      })
+    : rawAccess;
 
   return buildOverviewPayload({
     organization: refreshedAggregate.organization,
@@ -598,6 +683,7 @@ export async function startBillingCheckout({ organizationId }) {
   }
 
   const existingSubscription = await getOrganizationSubscriptionByOrganizationId(organizationId);
+  const chargeAmountCents = resolveChargeAmountCents({ organization, subscription: existingSubscription, plan });
 
   if (existingSubscription?.gateway_subscription_id) {
     const currentCharge = await getCurrentCharge({ organizationId });
@@ -622,7 +708,7 @@ export async function startBillingCheckout({ organizationId }) {
   const remoteSubscription = await createAsaasSubscription({
     customer: customer.id,
     billingType: "PIX",
-    value: formatCurrencyCentsToValue(plan.price_cents),
+    value: formatCurrencyCentsToValue(chargeAmountCents),
     nextDueDate,
     cycle: mapCycleToAsaas(plan.billing_cycle),
     description: plan.name,
@@ -641,7 +727,7 @@ export async function startBillingCheckout({ organizationId }) {
             gateway_subscription_id: remoteSubscription.id,
             status: "pending_payment",
             billing_cycle: plan.billing_cycle,
-            amount_cents: plan.price_cents,
+            amount_cents: chargeAmountCents,
             currency: plan.currency,
             current_period_start: getNowIsoDateTime(),
             next_due_date: remoteSubscription.nextDueDate ?? nextDueDate,
@@ -662,7 +748,7 @@ export async function startBillingCheckout({ organizationId }) {
             gateway_subscription_id: remoteSubscription.id,
             status: "pending_payment",
             billing_cycle: plan.billing_cycle,
-            amount_cents: plan.price_cents,
+            amount_cents: chargeAmountCents,
             currency: plan.currency,
             current_period_start: getNowIsoDateTime(),
             next_due_date: remoteSubscription.nextDueDate ?? nextDueDate,
@@ -675,7 +761,7 @@ export async function startBillingCheckout({ organizationId }) {
     await updateOrganizationBillingCache(
       organizationId,
       {
-        monthly_amount_cents: plan.price_cents,
+        monthly_amount_cents: chargeAmountCents,
         subscription_status: "pending_payment",
         subscription_plan: plan.code,
         due_date: remoteSubscription.nextDueDate ?? nextDueDate,
@@ -731,6 +817,7 @@ export async function startHostedCardCheckout({ organizationId, frontendOrigin =
   validateHostedCheckoutProfile(organization);
 
   const existingSubscription = await getOrganizationSubscriptionByOrganizationId(organizationId);
+  const chargeAmountCents = resolveChargeAmountCents({ organization, subscription: existingSubscription, plan });
   const customer = await ensureAsaasCustomer({ organization, existingSubscription });
   await syncAsaasCustomerProfile({ organization, customerId: customer.id });
 
@@ -744,6 +831,7 @@ export async function startHostedCardCheckout({ organizationId, frontendOrigin =
 
   await runBillingTransaction(async (connection) => {
     await ensureLocalPendingSubscription({
+      organization,
       organizationId,
       plan,
       customerId: customer.id,
@@ -759,7 +847,7 @@ export async function startHostedCardCheckout({ organizationId, frontendOrigin =
     callback: buildCheckoutCallbacks(frontendOrigin),
     subscription: {
       cycle: mapCycleToAsaas(plan.billing_cycle),
-      value: formatCurrencyCentsToValue(plan.price_cents),
+      value: formatCurrencyCentsToValue(chargeAmountCents),
       nextDueDate: resolveCheckoutDueDate(organization.trial_end),
       description: plan.name,
     },
@@ -768,7 +856,7 @@ export async function startHostedCardCheckout({ organizationId, frontendOrigin =
         name: plan.name,
         description: plan.description ?? "Assinatura mensal do AgendaPro",
         quantity: 1,
-        value: formatCurrencyCentsToValue(plan.price_cents),
+        value: formatCurrencyCentsToValue(chargeAmountCents),
       },
     ],
   });
@@ -954,7 +1042,7 @@ async function applyPaymentWebhookEvent({
       await updateOrganizationBillingCache(
         organizationId,
         {
-          monthly_amount_cents: plan.price_cents,
+          monthly_amount_cents: resolveChargeAmountCents({ subscription, plan }),
           subscription_status: "active",
           subscription_plan: plan.code,
           due_date: resolvedNextDueDate,
@@ -991,7 +1079,7 @@ async function applyPaymentWebhookEvent({
       await updateOrganizationBillingCache(
         organizationId,
         {
-          monthly_amount_cents: plan.price_cents,
+          monthly_amount_cents: resolveChargeAmountCents({ subscription, plan }),
           subscription_status: "past_due",
           subscription_plan: plan.code,
           due_date: payment.dueDate ?? subscription.next_due_date,
@@ -1026,7 +1114,7 @@ async function applyPaymentWebhookEvent({
       await updateOrganizationBillingCache(
         organizationId,
         {
-          monthly_amount_cents: plan.price_cents,
+          monthly_amount_cents: resolveChargeAmountCents({ subscription, plan }),
           subscription_status: "cancelled",
           subscription_plan: plan.code,
           due_date: payment.dueDate ?? subscription.next_due_date,

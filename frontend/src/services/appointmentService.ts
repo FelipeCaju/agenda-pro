@@ -142,7 +142,7 @@ function toApi(input: AppointmentInput) {
     horario_inicial: input.horarioInicial,
     horario_final: input.horarioFinal,
     valor: input.valor,
-    status: input.status ?? "confirmado",
+    status: input.status ?? "pendente",
     payment_status: input.paymentStatus ?? "pendente",
     observacoes: input.observacoes ?? "",
     confirmacao_cliente: input.confirmacaoCliente ?? "pendente",

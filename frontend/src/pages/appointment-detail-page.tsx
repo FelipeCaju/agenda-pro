@@ -13,7 +13,6 @@ import { useServicesQuery } from "@/hooks/use-services-query";
 import type {
   AppointmentInput,
   AppointmentPaymentStatus,
-  AppointmentStatus,
 } from "@/services/appointmentService";
 
 export function AppointmentDetailPage() {
@@ -45,12 +44,9 @@ export function AppointmentDetailPage() {
     isDeleting,
     isUpdatingPaymentStatus,
     isUpdating,
-    isUpdatingStatus,
     paymentStatusError,
-    statusError,
     updateAppointment,
     updateAppointmentPaymentStatus,
-    updateAppointmentStatus,
     updateError,
   } = useAppointmentMutations();
 
@@ -63,7 +59,7 @@ export function AppointmentDetailPage() {
       horarioInicial: appointment?.horarioInicial ?? "",
       horarioFinal: appointment?.horarioFinal ?? "",
       valor: appointment ? String(appointment.valor) : "",
-      status: appointment?.status ?? "confirmado",
+      status: appointment?.status ?? "pendente",
       paymentStatus: appointment?.paymentStatus ?? "pendente",
       observacoes: appointment?.observacoes ?? "",
       quoteId: appointment?.quoteId ?? "",
@@ -103,19 +99,6 @@ export function AppointmentDetailPage() {
         replace: true,
         state: { successMessage: "Agendamento excluido com sucesso." },
       });
-    } catch {
-      return;
-    }
-  }
-
-  async function handleStatusChange(status: AppointmentStatus) {
-    if (!appointmentId) {
-      return;
-    }
-
-    try {
-      await updateAppointmentStatus({ appointmentId, status });
-      setSuccessMessage("Status atualizado com sucesso.");
     } catch {
       return;
     }
@@ -182,10 +165,8 @@ export function AppointmentDetailPage() {
         appointment={appointment}
         isDeleting={isDeleting}
         isUpdatingPaymentStatus={isUpdatingPaymentStatus}
-        isUpdatingStatus={isUpdatingStatus}
         onDelete={handleDelete}
         onPaymentStatusChange={handlePaymentStatusChange}
-        onStatusChange={handleStatusChange}
       />
 
       <NewAppointment
@@ -194,7 +175,6 @@ export function AppointmentDetailPage() {
         errorMessage={
           updateError?.message ??
           deleteError?.message ??
-          statusError?.message ??
           paymentStatusError?.message ??
           null
         }

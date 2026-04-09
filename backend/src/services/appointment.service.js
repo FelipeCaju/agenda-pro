@@ -1,4 +1,5 @@
 import {
+  autoCancelStaleAppointmentsForOrganization,
   createAppointmentForOrganization,
   getAppSettingsByOrganization,
   getAppointmentByIdForOrganization,
@@ -152,7 +153,7 @@ function buildPayload({ client, service, professional, input }) {
     horario_inicial: input.horario_inicial,
     horario_final: input.horario_final,
     valor: input.valor === undefined ? service.valor_padrao : Number(input.valor),
-    status: input.status ?? "confirmado",
+    status: input.status ?? "pendente",
     payment_status: input.payment_status ?? "pendente",
     observacoes: input.observacoes ?? "",
     confirmacao_cliente: input.confirmacao_cliente ?? "pendente",
@@ -310,10 +311,12 @@ async function validateAppointmentInput({ organizationId, input, appointmentId }
 }
 
 export async function listAppointments({ organizationId, date, view, professionalId }) {
+  await autoCancelStaleAppointmentsForOrganization(organizationId);
   return listAppointmentsByOrganization(organizationId, { date, view, professionalId });
 }
 
 export async function listUpcomingAppointments({ organizationId, daysAhead, professionalId }) {
+  await autoCancelStaleAppointmentsForOrganization(organizationId);
   const normalizedDaysAhead = Number(daysAhead ?? 45);
 
   if (!Number.isFinite(normalizedDaysAhead) || normalizedDaysAhead < 1 || normalizedDaysAhead > 90) {
@@ -327,6 +330,7 @@ export async function listUpcomingAppointments({ organizationId, daysAhead, prof
 }
 
 export async function getAppointment({ organizationId, appointmentId }) {
+  await autoCancelStaleAppointmentsForOrganization(organizationId);
   const appointment = await getAppointmentByIdForOrganization(organizationId, appointmentId);
 
   if (!appointment) {
@@ -449,6 +453,7 @@ export async function updateAppointmentPaymentStatus({
 
   const updated = await updateAppointmentForOrganization(organizationId, appointmentId, {
     payment_status: paymentStatus,
+    status: paymentStatus === "pago" ? "concluido" : "pendente",
   });
 
   if (!updated) {

@@ -655,6 +655,69 @@ function mapOrganizationPayment(row) {
   };
 }
 
+function getOrganizationPaymentPriority(payment) {
+  if (!payment) {
+    return -1;
+  }
+
+  if (payment.status === "paid") return 4;
+  if (payment.status === "overdue") return 3;
+  if (payment.status === "pending") return 2;
+  if (payment.status === "canceled") return 1;
+  return 0;
+}
+
+function getOrganizationPaymentTimestamp(payment) {
+  return (
+    payment?.paid_at ??
+    payment?.customer_notified_paid_at ??
+    payment?.updated_at ??
+    payment?.created_at ??
+    payment?.due_date ??
+    ""
+  );
+}
+
+function chooseMostRelevantOrganizationPayment(currentPayment, nextPayment) {
+  if (!currentPayment) {
+    return nextPayment;
+  }
+
+  const priorityDiff =
+    getOrganizationPaymentPriority(nextPayment) - getOrganizationPaymentPriority(currentPayment);
+
+  if (priorityDiff !== 0) {
+    return priorityDiff > 0 ? nextPayment : currentPayment;
+  }
+
+  const nextTimestamp = String(getOrganizationPaymentTimestamp(nextPayment));
+  const currentTimestamp = String(getOrganizationPaymentTimestamp(currentPayment));
+
+  return nextTimestamp.localeCompare(currentTimestamp) >= 0 ? nextPayment : currentPayment;
+}
+
+function deduplicateOrganizationPayments(payments) {
+  const grouped = new Map();
+
+  payments.forEach((payment) => {
+    const key = payment.reference_month || payment.id;
+    const selected = chooseMostRelevantOrganizationPayment(grouped.get(key) ?? null, payment);
+    grouped.set(key, selected);
+  });
+
+  return Array.from(grouped.values()).sort((left, right) => {
+    const monthDiff = String(right.reference_month ?? "").localeCompare(String(left.reference_month ?? ""));
+
+    if (monthDiff !== 0) {
+      return monthDiff;
+    }
+
+    return String(getOrganizationPaymentTimestamp(right)).localeCompare(
+      String(getOrganizationPaymentTimestamp(left)),
+    );
+  });
+}
+
 function mapPlatformSettings(row) {
   if (!row) {
     return {
@@ -1509,7 +1572,7 @@ export async function listOrganizationPayments(organizationId) {
     [organizationId],
   );
 
-  return rows.map(mapOrganizationPayment);
+  return deduplicateOrganizationPayments(rows.map(mapOrganizationPayment));
 }
 
 export async function getLatestOrganizationPayment(organizationId) {
@@ -2271,6 +2334,26 @@ export async function getAppointmentByIdForOrganization(organizationId, appointm
   await ensureInitialized();
   const rows = await query("SELECT * FROM appointments WHERE organization_id = ? AND id = ? LIMIT 1", [organizationId, appointmentId]);
   return mapAppointment(rows[0]);
+}
+
+export async function autoCancelStaleAppointmentsForOrganization(organizationId) {
+  await ensureInitialized();
+
+  const today = new Date();
+  const localToday = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 12, 0, 0)
+    .toISOString()
+    .slice(0, 10);
+
+  await execute(
+    `UPDATE appointments
+      SET status = 'cancelado',
+          updated_at = CURRENT_TIMESTAMP
+      WHERE organization_id = ?
+        AND data < ?
+        AND status IN ('pendente', 'confirmado')
+        AND payment_status = 'pendente'`,
+    [organizationId, localToday],
+  );
 }
 
 export async function createAppointmentForOrganization(organizationId, input) {

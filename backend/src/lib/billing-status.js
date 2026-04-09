@@ -194,6 +194,7 @@ export function buildBillingAccessSnapshot({
   accessLock = null,
 }) {
   const today = toIsoDate(startOfToday());
+  const currentChargeDueDate = currentTransaction?.due_date ?? currentTransaction?.dueDate ?? null;
 
   if (!subscription) {
     return {
@@ -289,7 +290,7 @@ export function buildBillingAccessSnapshot({
       isBlocked: true,
       blockReason: "payment_required",
       trialEndsAt,
-      dueDate,
+      dueDate: currentChargeDueDate ?? dueDate,
       graceUntil,
       currentChargeStatus: chargeStatus,
       paymentNoticeVisible: true,
@@ -306,7 +307,7 @@ export function buildBillingAccessSnapshot({
       isBlocked: !isInsideGraceWindow,
       blockReason: "payment_overdue",
       trialEndsAt,
-      dueDate,
+      dueDate: currentChargeDueDate ?? dueDate,
       graceUntil,
       currentChargeStatus: chargeStatus ?? "overdue",
       paymentNoticeVisible: true,
@@ -320,8 +321,8 @@ export function buildBillingAccessSnapshot({
     isBlocked: false,
     blockReason: null,
     trialEndsAt,
-    dueDate,
-    graceUntil,
+    dueDate: currentChargeDueDate ?? dueDate,
+    graceUntil: chargeStatus === "overdue" ? graceUntil : null,
     currentChargeStatus: chargeStatus,
     paymentNoticeVisible: Boolean(chargeStatus === "pending" || chargeStatus === "overdue"),
     legacyStatus: "active",

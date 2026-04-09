@@ -672,12 +672,15 @@ export function SettingsPage() {
 
       <Card>
         <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Cobranca</p>
-        <h3 className="mt-1 text-lg font-semibold text-ink">Historico da organizacao</h3>
+        <h3 className="mt-1 text-lg font-semibold text-ink">Ultima cobranca da organizacao</h3>
 
         {organization?.pixKey ? (
-          <div className="mt-4">
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
             <Button onClick={() => navigate("/pagamento")} type="button">
               {organization.subscriptionStatus === "trial" ? "Comprar sistema" : "Abrir pagamento Pix"}
+            </Button>
+            <Button onClick={() => navigate("/faturas")} type="button" variant="secondary">
+              Ver faturas
             </Button>
           </div>
         ) : null}
@@ -716,32 +719,30 @@ export function SettingsPage() {
         ) : null}
 
         <div className="mt-4 space-y-3">
-          {payments.length ? (
-            payments.map((payment) => (
-              <div
-                className="flex items-start justify-between gap-3 rounded-2xl border border-slate-100 bg-slate-50/80 px-3 py-3"
-                key={payment.id}
-              >
-                <div className="min-w-0">
-                  <p className="font-medium text-ink">{formatMonthYearBR(payment.referenceMonth)}</p>
-                  <p className="text-sm text-slate-500">Vencimento {formatDateBR(payment.dueDate)}</p>
-                  {payment.paidAt ? (
-                    <p className="text-sm text-slate-500">
-                      Pago em {formatDateBR(payment.paidAt)}
-                    </p>
-                  ) : null}
-                  {payment.customerNotifiedPaidAt ? (
-                    <p className="text-sm text-amber-700">Cliente ja avisou que fez o pagamento.</p>
-                  ) : null}
-                </div>
-                <div className="text-right">
-                  <p className="font-semibold text-ink">{formatCurrency(payment.amount)}</p>
-                  <p className="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-brand-600">
-                    {getPaymentStatusLabel(payment.status)}
+          {latestPayment ? (
+            <div
+              className="flex items-start justify-between gap-3 rounded-2xl border border-slate-100 bg-slate-50/80 px-3 py-3"
+              key={latestPayment.id}
+            >
+              <div className="min-w-0">
+                <p className="font-medium text-ink">{formatMonthYearBR(latestPayment.referenceMonth)}</p>
+                <p className="text-sm text-slate-500">Vencimento {formatDateBR(latestPayment.dueDate)}</p>
+                {latestPayment.paidAt ? (
+                  <p className="text-sm text-slate-500">
+                    Pago em {formatDateBR(latestPayment.paidAt)}
                   </p>
-                </div>
+                ) : null}
+                {latestPayment.customerNotifiedPaidAt ? (
+                  <p className="text-sm text-amber-700">Cliente ja avisou que fez o pagamento.</p>
+                ) : null}
               </div>
-            ))
+              <div className="text-right">
+                <p className="font-semibold text-ink">{formatCurrency(latestPayment.amount)}</p>
+                <p className="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-brand-600">
+                  {getPaymentStatusLabel(latestPayment.status)}
+                </p>
+              </div>
+            </div>
           ) : (
             <p className="text-sm text-slate-500">Nenhum pagamento registrado para esta organizacao.</p>
           )}

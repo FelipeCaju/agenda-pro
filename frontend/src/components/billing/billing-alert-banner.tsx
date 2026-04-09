@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useBillingOverviewQuery } from "@/hooks/use-billing-query";
+import { formatDateBR } from "@/utils/date";
 import { getSubscriptionStatusLabel } from "@/utils/billing";
 
 export function BillingAlertBanner() {
@@ -25,8 +26,8 @@ export function BillingAlertBanner() {
           </p>
           <p className={`mt-1 text-sm ${textClass}`}>
             Status {getSubscriptionStatusLabel(overview.access.subscriptionStatus)}.
-            {overview.access.dueDate ? ` Vencimento em ${overview.access.dueDate}.` : ""}
-            {overview.access.graceUntil ? ` Tolerancia ate ${overview.access.graceUntil}.` : ""}
+            {overview.access.dueDate ? ` Vencimento em ${formatDateBR(overview.access.dueDate)}.` : ""}
+            {overview.access.graceUntil ? ` Tolerancia ate ${formatDateBR(overview.access.graceUntil)}.` : ""}
           </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">

@@ -240,36 +240,37 @@ export function ManagementPage() {
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Pagamentos</p>
-                  <h3 className="mt-1 text-lg font-semibold text-ink">Historico de cobranca</h3>
+                  <h3 className="mt-1 text-lg font-semibold text-ink">Ultima cobranca</h3>
                 </div>
+                <Button onClick={() => navigate("/faturas")} type="button" variant="secondary">
+                  Ver faturas
+                </Button>
               </div>
 
               <div className="mt-4 space-y-3">
-                {payments.length ? (
-                  payments.map((payment) => (
-                    <div
-                      className="flex items-start justify-between gap-3 rounded-2xl border border-slate-100 bg-slate-50/80 px-3 py-3"
-                      key={payment.id}
-                    >
-                      <div className="min-w-0">
-                        <p className="font-medium text-ink">{formatMonthYearBR(payment.referenceMonth)}</p>
+                {latestPayment ? (
+                  <div
+                    className="flex items-start justify-between gap-3 rounded-2xl border border-slate-100 bg-slate-50/80 px-3 py-3"
+                    key={latestPayment.id}
+                  >
+                    <div className="min-w-0">
+                      <p className="font-medium text-ink">{formatMonthYearBR(latestPayment.referenceMonth)}</p>
+                      <p className="text-sm text-slate-500">
+                        Vence em {formatDateBR(latestPayment.dueDate)}
+                      </p>
+                      {latestPayment.paidAt ? (
                         <p className="text-sm text-slate-500">
-                          Vence em {formatDateBR(payment.dueDate)}
+                          Pago em {formatDateBR(latestPayment.paidAt)}
                         </p>
-                        {payment.paidAt ? (
-                          <p className="text-sm text-slate-500">
-                            Pago em {formatDateBR(payment.paidAt)}
-                          </p>
-                        ) : null}
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-ink">{formatCurrency(payment.amount)}</p>
-                        <p className="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-brand-600">
-                          {getPaymentStatusLabel(payment.status)}
-                        </p>
-                      </div>
+                      ) : null}
                     </div>
-                  ))
+                    <div className="text-right">
+                      <p className="font-semibold text-ink">{formatCurrency(latestPayment.amount)}</p>
+                      <p className="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-brand-600">
+                        {getPaymentStatusLabel(latestPayment.status)}
+                      </p>
+                    </div>
+                  </div>
                 ) : (
                   <p className="text-sm text-slate-500">Nenhum pagamento registrado ainda.</p>
                 )}

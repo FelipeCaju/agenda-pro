@@ -52,7 +52,7 @@ const EMPTY_VALUES: NewAppointmentValues = {
   horarioInicial: "",
   horarioFinal: "",
   valor: "",
-  status: "confirmado",
+  status: "pendente",
   paymentStatus: "pendente",
   observacoes: "",
   quoteId: "",
@@ -433,23 +433,6 @@ export function NewAppointment({
         </label>
       </div>
 
-      <label className="block space-y-2">
-        <span className="text-sm font-medium text-ink">Status de pagamento</span>
-        <div className="relative">
-          <select
-            className="app-select appearance-none pr-10 text-base"
-            onChange={(event) =>
-              updateField("paymentStatus", event.target.value as AppointmentPaymentStatus)
-            }
-            value={values.paymentStatus}
-          >
-            <option value="pendente">Pendente</option>
-            <option value="pago">Pago</option>
-          </select>
-          <ChevronDownIcon className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-        </div>
-      </label>
-
       {allowRecurrence ? (
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-sm font-medium text-ink">
@@ -497,8 +480,8 @@ export function NewAppointment({
       <Card className="rounded-[18px] border border-brand-100 bg-brand-50 px-4 py-4 shadow-none">
         <p className="text-sm font-medium text-brand-700">Resumo</p>
         <div className="mt-3 space-y-2 text-sm text-brand-700">
-          <p>Status: Confirmado</p>
-          <p>Pagamento: {values.paymentStatus === "pago" ? "Pago" : "Pendente"}</p>
+          <p>Status: Pendente</p>
+          <p>Pagamento: Pendente</p>
           {allowRecurrence && values.repetir !== "nao_repetir" ? (
             <p>Repeticao: {values.repetir === "todo_mes" ? "Todo mes (3x)" : "Toda semana (4x)"}</p>
           ) : null}

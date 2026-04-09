@@ -87,7 +87,7 @@ export function PlatformAdminPage() {
   const [initialPassword, setInitialPassword] = useState("");
   const [telefone, setTelefone] = useState("");
   const [cpfCnpj, setCpfCnpj] = useState("");
-  const [monthlyAmount, setMonthlyAmount] = useState("149,90");
+  const [monthlyAmount, setMonthlyAmount] = useState("29,90");
   const [subscriptionPlan, setSubscriptionPlan] = useState<"trial" | "pro">("trial");
   const [trialDays, setTrialDays] = useState("5");
   const [successMessage, setSuccessMessage] = useState("");
@@ -151,7 +151,7 @@ export function PlatformAdminPage() {
       setInitialPassword("");
       setTelefone("");
       setCpfCnpj("");
-      setMonthlyAmount("149,90");
+      setMonthlyAmount("29,90");
       setSubscriptionPlan("trial");
       setTrialDays("5");
       navigate(`/admin/organizacoes/${created.organization.id}`);
