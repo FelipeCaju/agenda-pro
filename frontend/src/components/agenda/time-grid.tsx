@@ -281,7 +281,7 @@ export function TimeGrid({
   }
 
   return (
-    <Card className="overflow-hidden border-slate-200/80 bg-white/90 p-0 shadow-[0_20px_45px_rgba(15,23,42,0.08)]">
+    <Card className="mb-24 overflow-hidden border-slate-200/80 bg-white/90 p-0 shadow-[0_20px_45px_rgba(15,23,42,0.08)] xl:mb-0">
       {!hasAppointments && emptyState ? (
         <div className="border-b border-slate-100 bg-slate-50/70 px-4 py-3 text-sm text-slate-500">{emptyState}</div>
       ) : null}
