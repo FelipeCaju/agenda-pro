@@ -15,6 +15,10 @@ function isTrustedMobileAppOrigin(origin) {
   );
 }
 
+function isTrustedWebAppOrigin(origin) {
+  return /^https:\/\/agenda-pro(?:-[a-z0-9-]+)*\.vercel\.app$/i.test(origin);
+}
+
 function getClientIp(request) {
   const forwardedFor = request.headers["x-forwarded-for"];
 
@@ -42,6 +46,11 @@ export function buildCorsOptions() {
       }
 
       if (isTrustedMobileAppOrigin(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      if (isTrustedWebAppOrigin(origin)) {
         callback(null, true);
         return;
       }
