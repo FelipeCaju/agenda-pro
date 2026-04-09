@@ -10,6 +10,7 @@ import { ChevronDownIcon } from "@/components/ui/icons";
 import { useAgendaQuery } from "@/hooks/use-agenda-query";
 import { useBlockedSlotsQuery } from "@/hooks/use-blocked-slots-query";
 import { useProfessionalsQuery } from "@/hooks/use-professionals-query";
+import { useSettingsQuery } from "@/hooks/use-settings-query";
 import type { AgendaView, Appointment } from "@/services/appointmentService";
 import { addDays, formatAgendaHeroDate, getTodayDate } from "@/utils/agenda";
 import { formatDateBR } from "@/utils/date";
@@ -72,6 +73,7 @@ export function AgendaPage() {
     locationState?.notificationAppointmentIds ?? [],
   );
   const { data: professionals = [] } = useProfessionalsQuery();
+  const { data: settings } = useSettingsQuery();
   const { data = [], error, isLoading, isError, isFetching, refetch } = useAgendaQuery({
     date: selectedDate,
     view,
@@ -141,6 +143,26 @@ export function AgendaPage() {
 
   const heroDateLabel = useMemo(() => formatAgendaHeroDate(selectedDate), [selectedDate]);
   const isToday = selectedDate === getTodayDate();
+  const agendaStartHour = settings?.horaInicioAgenda ?? "08:00";
+  const agendaEndHour = settings?.horaFimAgenda ?? "18:00";
+  const agendaTimezoneLabel = useMemo(() => {
+    const timezone = settings?.timezone;
+
+    if (!timezone) {
+      return "GMT-03";
+    }
+
+    try {
+      const parts = new Intl.DateTimeFormat("en-US", {
+        timeZone: timezone,
+        timeZoneName: "shortOffset",
+      }).formatToParts(new Date());
+      const zonePart = parts.find((part) => part.type === "timeZoneName")?.value;
+      return zonePart?.replace("GMT", "GMT") ?? timezone;
+    } catch {
+      return timezone;
+    }
+  }, [settings?.timezone]);
 
   function navigateDate(direction: "prev" | "next") {
     const amount = direction === "next" ? 1 : -1;
@@ -233,21 +255,11 @@ export function AgendaPage() {
         ) : null}
 
         {blockedSlots.length ? (
-          <Card>
-            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Bloqueios</p>
-            <div className="mt-3 space-y-2">
-              {blockedSlots.map((slot) => (
-                <div
-                  className="rounded-2xl border border-slate-100 bg-slate-50/80 px-3 py-3"
-                  key={slot.id}
-                >
-                  <p className="font-medium text-ink">
-                    {formatDateBR(slot.data)} - {slot.horarioInicial} - {slot.horarioFinal}
-                  </p>
-                  <p className="text-sm text-slate-500">{slot.motivo || "Horario bloqueado"}</p>
-                </div>
-              ))}
-            </div>
+          <Card className="border-amber-100 bg-amber-50/60">
+            <p className="text-xs uppercase tracking-[0.18em] text-amber-700">Bloqueios na visualizacao</p>
+            <p className="mt-2 text-sm text-amber-900/80">
+              Os horarios bloqueados agora aparecem diretamente na grade. Ha {blockedSlots.length} bloqueio(s) no periodo exibido.
+            </p>
           </Card>
         ) : null}
 
@@ -266,17 +278,25 @@ export function AgendaPage() {
           view === "day" ? (
             <DayView
               appointments={data}
+              blockedSlots={blockedSlots}
+              endHour={agendaEndHour}
               highlightedAppointmentIds={highlightedAppointmentIds}
               onOpenAppointment={openAppointment}
               selectedDate={selectedDate}
+              startHour={agendaStartHour}
+              timezoneLabel={agendaTimezoneLabel}
             />
           ) : view === "week" ? (
             <WeekView
               appointments={data}
+              blockedSlots={blockedSlots}
+              endHour={agendaEndHour}
               highlightedAppointmentIds={highlightedAppointmentIds}
               onOpenAppointment={openAppointment}
               onSelectDate={(date) => startTransition(() => setSelectedDate(date))}
               selectedDate={selectedDate}
+              startHour={agendaStartHour}
+              timezoneLabel={agendaTimezoneLabel}
             />
           ) : (
             <MonthView

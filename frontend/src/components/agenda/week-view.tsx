@@ -1,11 +1,15 @@
 import type { Appointment } from "@/services/appointmentService";
-import { formatAgendaDate, getWeekDates, groupAppointmentsByDate } from "@/utils/agenda";
-import { AppointmentCard } from "@/components/agenda/appointment-card";
-import { Card } from "@/components/ui/card";
+import type { BlockedSlot } from "@/services/blockedSlotService";
+import { getWeekDates } from "@/utils/agenda";
+import { TimeGrid } from "@/components/agenda/time-grid";
 
 type WeekViewProps = {
   appointments: Appointment[];
+  blockedSlots?: BlockedSlot[];
   selectedDate: string;
+  startHour: string;
+  endHour: string;
+  timezoneLabel: string;
   onOpenAppointment: (appointment: Appointment) => void;
   onSelectDate: (date: string) => void;
   highlightedAppointmentIds?: string[];
@@ -13,42 +17,30 @@ type WeekViewProps = {
 
 export function WeekView({
   appointments,
+  blockedSlots = [],
   selectedDate,
+  startHour,
+  endHour,
+  timezoneLabel,
   onOpenAppointment,
   onSelectDate,
   highlightedAppointmentIds = [],
 }: WeekViewProps) {
   const dates = getWeekDates(selectedDate);
-  const grouped = groupAppointmentsByDate(appointments);
-  const highlightedIds = new Set(highlightedAppointmentIds);
 
   return (
-    <div className="space-y-3">
-      {dates.map((date) => (
-        <Card className={date === selectedDate ? "border-brand-100 bg-white" : "bg-white/[0.86]"} key={date}>
-          <button
-            className="w-full text-left"
-            onClick={() => onSelectDate(date)}
-            type="button"
-          >
-            <p className="text-sm font-semibold text-ink">{formatAgendaDate(date)}</p>
-          </button>
-          <div className="mt-3 space-y-2">
-            {(grouped[date] ?? []).length ? (
-              (grouped[date] ?? []).map((appointment) => (
-                <AppointmentCard
-                  appointment={appointment}
-                  isHighlighted={highlightedIds.has(appointment.id)}
-                  key={appointment.id}
-                  onOpen={onOpenAppointment}
-                />
-              ))
-            ) : (
-              <p className="text-sm text-slate-500">Sem agendamentos.</p>
-            )}
-          </div>
-        </Card>
-      ))}
-    </div>
+    <TimeGrid
+      appointments={appointments}
+      blockedSlots={blockedSlots}
+      dates={dates}
+      emptyState="Semana sem atendimentos ainda. A grade horaria completa fica visivel para apoiar o planejamento."
+      endHour={endHour}
+      highlightedAppointmentIds={highlightedAppointmentIds}
+      onOpenAppointment={onOpenAppointment}
+      onSelectDate={onSelectDate}
+      selectedDate={selectedDate}
+      startHour={startHour}
+      timezoneLabel={timezoneLabel}
+    />
   );
 }
