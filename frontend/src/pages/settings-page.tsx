@@ -86,9 +86,6 @@ export function SettingsPage() {
     isLoading: isLoadingSettings,
   } = useSettingsQuery();
   const {
-    isNotifyingPaymentPaid,
-    notifyPaymentPaid,
-    notifyPaymentPaidError,
     isUpdatingOrganization,
     updateOrganization,
     updateOrganizationError,
@@ -334,19 +331,6 @@ export function SettingsPage() {
       });
     } finally {
       setIsDeletingAccount(false);
-    }
-  }
-
-  async function handleNotifyPaymentPaid() {
-    if (!organization?.latestPaymentId) {
-      return;
-    }
-
-    try {
-      await notifyPaymentPaid({ paymentId: organization.latestPaymentId });
-      setSuccessMessage("Aviso de pagamento enviado ao administrador.");
-    } catch {
-      return;
     }
   }
 
@@ -697,31 +681,12 @@ export function SettingsPage() {
           <div className="mt-4 space-y-3 rounded-2xl border border-amber-100 bg-amber-50/80 px-4 py-4">
             <p className="text-sm font-semibold text-amber-800">Pagamento disponivel</p>
             <p className="text-sm text-amber-700">
-              A notificacao segue visivel ate a baixa do pagamento pela administracao.
+              Quando o gateway confirmar o pagamento, a assinatura e liberada automaticamente.
             </p>
             {organization.pixKey ? (
               <Button disabled={!paymentAccess.canOpen} onClick={() => navigate("/pagamento")} type="button">
                 Abrir pagamentos
               </Button>
-            ) : null}
-            <Button
-              disabled={
-                isNotifyingPaymentPaid ||
-                !organization.latestPaymentId ||
-                Boolean(latestPayment?.customerNotifiedPaidAt)
-              }
-              onClick={() => void handleNotifyPaymentPaid()}
-              type="button"
-              variant="secondary"
-            >
-              {latestPayment?.customerNotifiedPaidAt
-                ? "Administrador ja avisado"
-                : isNotifyingPaymentPaid
-                  ? "Enviando aviso..."
-                  : "Ja paguei, avisar administrador"}
-            </Button>
-            {notifyPaymentPaidError ? (
-              <p className="text-sm text-rose-600">{notifyPaymentPaidError.message}</p>
             ) : null}
           </div>
         ) : null}
@@ -739,9 +704,6 @@ export function SettingsPage() {
                   <p className="text-sm text-slate-500">
                     Pago em {formatDateBR(latestPayment.paidAt)}
                   </p>
-                ) : null}
-                {latestPayment.customerNotifiedPaidAt ? (
-                  <p className="text-sm text-amber-700">Cliente ja avisou que fez o pagamento.</p>
                 ) : null}
               </div>
               <div className="text-right">

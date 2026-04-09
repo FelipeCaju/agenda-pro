@@ -207,9 +207,7 @@ export function getBillingAlert(
       hasAlert: true,
       tone: "warning" as const,
       title: "Pagamento pendente",
-      description: latestPayment.customerNotifiedPaidAt
-        ? "Voce ja avisou o administrador sobre este pagamento. A notificacao segue visivel ate a baixa."
-        : "Existe um pagamento pendente no historico mais recente.",
+      description: "Existe um pagamento pendente no historico mais recente.",
     };
   }
 
