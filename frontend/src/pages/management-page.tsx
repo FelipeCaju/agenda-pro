@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { MobilePageHeader } from "@/components/layout/mobile-page-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -15,6 +15,7 @@ import {
   getSubscriptionStatusLabel,
 } from "@/utils/billing";
 import { formatDateBR, formatMonthYearBR } from "@/utils/date";
+import { buildNavigationState } from "@/utils/navigation";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("pt-BR", {
@@ -25,6 +26,7 @@ function formatCurrency(value: number) {
 
 export function ManagementPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { data: organization, error: organizationError, isLoading: isLoadingOrganization } =
     useOrganizationQuery();
   const {
@@ -149,7 +151,7 @@ export function ManagementPage() {
                   <Button
                     className="mt-4 w-full sm:w-auto"
                     disabled={!paymentAccess.canOpen}
-                    onClick={() => navigate("/pagamento")}
+                    onClick={() => navigate("/pagamento", { state: buildNavigationState(location.pathname) })}
                     type="button"
                   >
                     Abrir pagamentos
@@ -169,7 +171,11 @@ export function ManagementPage() {
                     Quando o gateway confirmar o pagamento, a assinatura e liberada automaticamente.
                   </p>
                   {organization.pixKey ? (
-                    <Button disabled={!paymentAccess.canOpen} onClick={() => navigate("/pagamento")} type="button">
+                    <Button
+                      disabled={!paymentAccess.canOpen}
+                      onClick={() => navigate("/pagamento", { state: buildNavigationState(location.pathname) })}
+                      type="button"
+                    >
                       Abrir pagamentos
                     </Button>
                   ) : null}
@@ -184,13 +190,25 @@ export function ManagementPage() {
                 <Button onClick={() => navigate("/funcionarios")} type="button">
                   Abrir funcionarios
                 </Button>
-                <Button onClick={() => navigate("/meu-plano")} type="button" variant="secondary">
+                <Button
+                  onClick={() => navigate("/meu-plano", { state: buildNavigationState(location.pathname) })}
+                  type="button"
+                  variant="secondary"
+                >
                   Abrir meu plano
                 </Button>
-                <Button onClick={() => navigate("/faturas")} type="button" variant="secondary">
+                <Button
+                  onClick={() => navigate("/faturas", { state: buildNavigationState(location.pathname) })}
+                  type="button"
+                  variant="secondary"
+                >
                   Abrir faturas
                 </Button>
-                <Button onClick={() => navigate("/bloqueios")} type="button" variant="secondary">
+                <Button
+                  onClick={() => navigate("/bloqueios", { state: buildNavigationState(location.pathname) })}
+                  type="button"
+                  variant="secondary"
+                >
                   Abrir bloqueios
                 </Button>
               </div>
@@ -204,7 +222,11 @@ export function ManagementPage() {
                   <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Pagamentos</p>
                   <h3 className="mt-1 text-lg font-semibold text-ink">Ultima cobranca</h3>
                 </div>
-                <Button onClick={() => navigate("/faturas")} type="button" variant="secondary">
+                <Button
+                  onClick={() => navigate("/faturas", { state: buildNavigationState(location.pathname) })}
+                  type="button"
+                  variant="secondary"
+                >
                   Ver faturas
                 </Button>
               </div>

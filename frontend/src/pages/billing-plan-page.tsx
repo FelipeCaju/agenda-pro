@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { MobilePageHeader } from "@/components/layout/mobile-page-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -7,6 +7,7 @@ import { useBillingMutations } from "@/hooks/use-billing-mutations";
 import { useBillingOverviewQuery } from "@/hooks/use-billing-query";
 import { getBillingPaymentAccessFromOverview, getSubscriptionStatusLabel } from "@/utils/billing";
 import { formatDateBR } from "@/utils/date";
+import { buildNavigationState, resolveBackPath } from "@/utils/navigation";
 
 function formatCurrencyFromCents(value: number) {
   return new Intl.NumberFormat("pt-BR", {
@@ -17,6 +18,7 @@ function formatCurrencyFromCents(value: number) {
 
 export function BillingPlanPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { data: overview, error, isError, isLoading } = useBillingOverviewQuery();
   const {
     cancelSubscription,
@@ -48,12 +50,15 @@ export function BillingPlanPage() {
   }
 
   const paymentAccess = getBillingPaymentAccessFromOverview(overview.access, overview.currentCharge);
+  const backPath = resolveBackPath(location, "/gestao");
+  const canReactivate =
+    overview.access.subscriptionStatus !== "active" && overview.access.subscriptionStatus !== "trialing";
 
   return (
     <section className="space-y-4">
       <MobilePageHeader
         action={
-          <Button onClick={() => navigate("/gestao")} type="button" variant="secondary">
+          <Button onClick={() => navigate(backPath)} type="button" variant="secondary">
             Voltar
           </Button>
         }
@@ -94,10 +99,18 @@ export function BillingPlanPage() {
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row">
-          <Button disabled={!paymentAccess.canOpen} onClick={() => navigate("/pagamento")} type="button">
+          <Button
+            disabled={!paymentAccess.canOpen}
+            onClick={() => navigate("/pagamento", { state: buildNavigationState(location.pathname) })}
+            type="button"
+          >
             Abrir pagamentos
           </Button>
-          <Button onClick={() => navigate("/faturas")} type="button" variant="secondary">
+          <Button
+            onClick={() => navigate("/faturas", { state: buildNavigationState(location.pathname) })}
+            type="button"
+            variant="secondary"
+          >
             Ver faturas
           </Button>
         </div>
@@ -107,13 +120,15 @@ export function BillingPlanPage() {
       <Card className="space-y-4">
         <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Gerenciar assinatura</p>
         <div className="flex flex-col gap-3 sm:flex-row">
-          <Button
-            disabled={isReactivatingSubscription}
-            onClick={() => void reactivateSubscription()}
-            type="button"
-          >
-            {isReactivatingSubscription ? "Reativando..." : "Reativar assinatura"}
-          </Button>
+          {canReactivate ? (
+            <Button
+              disabled={isReactivatingSubscription}
+              onClick={() => void reactivateSubscription()}
+              type="button"
+            >
+              {isReactivatingSubscription ? "Reativando..." : "Reativar assinatura"}
+            </Button>
+          ) : null}
           <Button
             disabled={isCancellingSubscription}
             onClick={() => void cancelSubscription()}

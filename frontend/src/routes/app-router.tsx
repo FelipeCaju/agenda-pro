@@ -138,16 +138,21 @@ export const router = createBrowserRouter([
         element: <ProtectedRoute allowBlocked allowActiveAccess />,
         children: [
           {
-            path: "/meu-plano",
-            element: withRouteSuspense(<BillingPlanPage />),
-          },
-          {
-            path: "/faturas",
-            element: withRouteSuspense(<BillingInvoicesPage />),
-          },
-          {
-            path: "/pagamento",
-            element: withRouteSuspense(<PaymentPage />),
+            element: <AppShell />,
+            children: [
+              {
+                path: "/meu-plano",
+                element: withRouteSuspense(<BillingPlanPage />),
+              },
+              {
+                path: "/faturas",
+                element: withRouteSuspense(<BillingInvoicesPage />),
+              },
+              {
+                path: "/pagamento",
+                element: withRouteSuspense(<PaymentPage />),
+              },
+            ],
           },
         ],
       },

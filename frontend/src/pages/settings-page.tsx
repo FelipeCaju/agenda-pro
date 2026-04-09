@@ -16,6 +16,7 @@ import { useSettingsQuery } from "@/hooks/use-settings-query";
 import { isValidCep, lookupCep, normalizeCep } from "@/services/cepService";
 import { getBillingAlert, getBillingPaymentAccessFromOrganization } from "@/utils/billing";
 import { formatDateBR, formatMonthYearBR } from "@/utils/date";
+import { buildNavigationState } from "@/utils/navigation";
 
 type SettingsLocationState = {
   successMessage?: string;
@@ -664,10 +665,18 @@ export function SettingsPage() {
 
         {organization?.pixKey ? (
           <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-            <Button disabled={!paymentAccess.canOpen} onClick={() => navigate("/pagamento")} type="button">
+            <Button
+              disabled={!paymentAccess.canOpen}
+              onClick={() => navigate("/pagamento", { state: buildNavigationState(location.pathname) })}
+              type="button"
+            >
               Abrir pagamentos
             </Button>
-            <Button onClick={() => navigate("/faturas")} type="button" variant="secondary">
+            <Button
+              onClick={() => navigate("/faturas", { state: buildNavigationState(location.pathname) })}
+              type="button"
+              variant="secondary"
+            >
               Ver faturas
             </Button>
           </div>
@@ -684,7 +693,11 @@ export function SettingsPage() {
               Quando o gateway confirmar o pagamento, a assinatura e liberada automaticamente.
             </p>
             {organization.pixKey ? (
-              <Button disabled={!paymentAccess.canOpen} onClick={() => navigate("/pagamento")} type="button">
+              <Button
+                disabled={!paymentAccess.canOpen}
+                onClick={() => navigate("/pagamento", { state: buildNavigationState(location.pathname) })}
+                type="button"
+              >
                 Abrir pagamentos
               </Button>
             ) : null}

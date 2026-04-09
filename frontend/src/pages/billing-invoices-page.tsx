@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { MobilePageHeader } from "@/components/layout/mobile-page-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -6,6 +6,7 @@ import { FullscreenState } from "@/components/ui/fullscreen-state";
 import { useBillingInvoicesQuery, useBillingOverviewQuery } from "@/hooks/use-billing-query";
 import { getBillingPaymentAccessFromOverview, getPaymentStatusLabel } from "@/utils/billing";
 import { formatDateBR, formatMonthYearBR } from "@/utils/date";
+import { resolveBackPath } from "@/utils/navigation";
 
 function formatCurrencyFromCents(value: number) {
   return new Intl.NumberFormat("pt-BR", {
@@ -16,9 +17,11 @@ function formatCurrencyFromCents(value: number) {
 
 export function BillingInvoicesPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { data: invoices = [], error, isError, isLoading } = useBillingInvoicesQuery();
   const { data: overview } = useBillingOverviewQuery();
   const paymentAccess = getBillingPaymentAccessFromOverview(overview?.access, overview?.currentCharge);
+  const backPath = resolveBackPath(location, "/meu-plano");
 
   if (isLoading && !invoices.length) {
     return (
@@ -44,7 +47,7 @@ export function BillingInvoicesPage() {
     <section className="space-y-4">
       <MobilePageHeader
         action={
-          <Button onClick={() => navigate("/meu-plano")} type="button" variant="secondary">
+          <Button onClick={() => navigate(backPath)} type="button" variant="secondary">
             Voltar
           </Button>
         }

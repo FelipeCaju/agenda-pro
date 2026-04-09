@@ -8,6 +8,7 @@ import { useBillingMutations } from "@/hooks/use-billing-mutations";
 import { useBillingOverviewQuery } from "@/hooks/use-billing-query";
 import { formatDateBR } from "@/utils/date";
 import { getBillingPaymentAccessFromOverview, getSubscriptionStatusLabel } from "@/utils/billing";
+import { resolveBackPath } from "@/utils/navigation";
 
 function formatCurrencyFromCents(value: number) {
   return new Intl.NumberFormat("pt-BR", {
@@ -60,6 +61,7 @@ export function PaymentPage() {
   const checkoutState = new URLSearchParams(location.search).get("checkout");
   const currentCharge = overview?.currentCharge ?? null;
   const paymentAccess = getBillingPaymentAccessFromOverview(overview?.access, currentCharge);
+  const backPath = resolveBackPath(location, "/meu-plano");
   const needsPixPreparation =
     !currentCharge ||
     currentCharge.paymentMethod !== "pix" ||
@@ -149,7 +151,7 @@ export function PaymentPage() {
         title="Nao foi possivel abrir o pagamento"
         description={error?.message ?? "Falha ao carregar billing."}
         action={
-          <Button onClick={() => navigate("/meu-plano")} type="button">
+          <Button onClick={() => navigate(backPath)} type="button">
             Voltar para meu plano
           </Button>
         }
@@ -164,8 +166,8 @@ export function PaymentPage() {
         title="Pagamento indisponivel agora"
         description={paymentAccess.reason}
         action={
-          <Button onClick={() => navigate("/meu-plano")} type="button">
-            Voltar para meu plano
+          <Button onClick={() => navigate(backPath)} type="button">
+            Voltar
           </Button>
         }
       />
@@ -188,7 +190,7 @@ export function PaymentPage() {
     <section className="space-y-4 pb-8 xl:space-y-5">
       <MobilePageHeader
         action={
-          <Button onClick={() => navigate("/meu-plano")} type="button" variant="secondary">
+          <Button onClick={() => navigate(backPath)} type="button" variant="secondary">
             Voltar
           </Button>
         }

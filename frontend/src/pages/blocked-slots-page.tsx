@@ -1,17 +1,19 @@
 import { FormEvent, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { MobilePageHeader } from "@/components/layout/mobile-page-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ChevronLeftIcon, ChevronDownIcon } from "@/components/ui/icons";
+import { ChevronDownIcon } from "@/components/ui/icons";
 import { useBlockedSlotMutations } from "@/hooks/use-blocked-slot-mutations";
 import { useBlockedSlotsQuery } from "@/hooks/use-blocked-slots-query";
 import { useProfessionalsQuery } from "@/hooks/use-professionals-query";
 import { getTodayDate } from "@/utils/agenda";
 import { formatDateBR } from "@/utils/date";
+import { resolveBackPath } from "@/utils/navigation";
 
 export function BlockedSlotsPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [selectedDate, setSelectedDate] = useState(getTodayDate());
   const [professionalId, setProfessionalId] = useState("");
   const [horarioInicial, setHorarioInicial] = useState("");
@@ -32,6 +34,7 @@ export function BlockedSlotsPage() {
     isCreatingBlockedSlot,
     isDeletingBlockedSlot,
   } = useBlockedSlotMutations();
+  const backPath = resolveBackPath(location, "/agenda");
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -65,10 +68,10 @@ export function BlockedSlotsPage() {
   return (
     <section className="space-y-4">
       <MobilePageHeader
-        leading={
-          <button className="text-slate-500" onClick={() => navigate("/agenda")} type="button">
-            <ChevronLeftIcon className="h-5 w-5" />
-          </button>
+        action={
+          <Button onClick={() => navigate(backPath)} type="button" variant="secondary">
+            Voltar
+          </Button>
         }
         subtitle="Impedir agendamentos em horarios indisponiveis"
         title="Bloqueios"
