@@ -294,7 +294,7 @@ export function AgendaPage() {
           </div>
         </div>
 
-        <Card className="hidden border-slate-200/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(244,248,252,0.96))] p-7 shadow-[0_26px_55px_rgba(15,23,42,0.08)] xl:block">
+        <Card className="mt-0 hidden border-slate-200/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(244,248,252,0.96))] p-7 shadow-[0_26px_55px_rgba(15,23,42,0.08)] xl:block xl:mt-0">
           <div className="flex items-start justify-between gap-8">
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-brand-700">Agenda de trabalho</p>
