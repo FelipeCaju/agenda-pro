@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/utils/cn";
 import type { BlockedSlot } from "@/services/blockedSlotService";
@@ -229,6 +229,8 @@ export function TimeGrid({
   timezoneLabel,
   emptyState,
 }: TimeGridProps) {
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  const [mobileCardHeight, setMobileCardHeight] = useState<number | null>(null);
   const rangeStart = roundHourStart(startHour);
   const rangeEnd = Math.max(roundHourEnd(endHour), rangeStart + 60);
   const totalMinutes = rangeEnd - rangeStart;
@@ -262,6 +264,41 @@ export function TimeGrid({
   const today = getTodayDate();
   const hasAppointments = appointments.length > 0;
 
+  useEffect(() => {
+    function updateAvailableHeight() {
+      if (typeof window === "undefined") {
+        return;
+      }
+
+      if (window.innerWidth >= 1280) {
+        setMobileCardHeight(null);
+        return;
+      }
+
+      const rect = cardRef.current?.getBoundingClientRect();
+
+      if (!rect) {
+        return;
+      }
+
+      const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+      const mobileNavReserve = 96;
+      const bottomGap = 12;
+      const availableHeight = Math.floor(viewportHeight - rect.top - mobileNavReserve - bottomGap);
+
+      setMobileCardHeight(Math.max(320, availableHeight));
+    }
+
+    updateAvailableHeight();
+    window.addEventListener("resize", updateAvailableHeight);
+    window.visualViewport?.addEventListener("resize", updateAvailableHeight);
+
+    return () => {
+      window.removeEventListener("resize", updateAvailableHeight);
+      window.visualViewport?.removeEventListener("resize", updateAvailableHeight);
+    };
+  }, []);
+
   function handleCreateAppointment(date: string, event: React.MouseEvent<HTMLButtonElement>) {
     if (!onCreateAppointment) {
       return;
@@ -281,12 +318,16 @@ export function TimeGrid({
   }
 
   return (
-    <Card className="mb-24 overflow-hidden border-slate-200/80 bg-white/90 p-0 shadow-[0_20px_45px_rgba(15,23,42,0.08)] xl:mb-0">
+    <Card
+      className="mb-24 flex min-h-0 flex-col overflow-hidden border-slate-200/80 bg-white/90 p-0 shadow-[0_20px_45px_rgba(15,23,42,0.08)] xl:mb-0"
+      ref={cardRef}
+      style={mobileCardHeight ? { height: `${mobileCardHeight}px` } : undefined}
+    >
       {!hasAppointments && emptyState ? (
         <div className="border-b border-slate-100 bg-slate-50/70 px-4 py-3 text-sm text-slate-500">{emptyState}</div>
       ) : null}
 
-      <div className="max-h-[min(72vh,920px)] overflow-auto overscroll-contain">
+      <div className="min-h-0 flex-1 overflow-auto overscroll-contain">
         <div
           className="grid min-w-fit"
           style={{ gridTemplateColumns }}
