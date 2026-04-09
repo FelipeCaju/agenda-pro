@@ -232,6 +232,8 @@ export function TimeGrid({
   const rangeStart = roundHourStart(startHour);
   const rangeEnd = Math.max(roundHourEnd(endHour), rangeStart + 60);
   const totalMinutes = rangeEnd - rangeStart;
+  const gridTemplateColumns = `${TIME_COLUMN_WIDTH}px repeat(${dates.length}, minmax(180px, 1fr))`;
+  const gridHeight = `${(totalMinutes / 60) * HOUR_ROW_HEIGHT}px`;
   const hourMarks = Array.from(
     { length: Math.max(Math.ceil(totalMinutes / 60) + 1, 2) },
     (_, index) => rangeStart + index * 60,
@@ -280,12 +282,16 @@ export function TimeGrid({
 
   return (
     <Card className="overflow-hidden border-slate-200/80 bg-white/90 p-0 shadow-[0_20px_45px_rgba(15,23,42,0.08)]">
-      <div className="border-b border-slate-200/80 bg-[linear-gradient(180deg,rgba(248,250,252,0.96),rgba(255,255,255,0.9))]">
+      {!hasAppointments && emptyState ? (
+        <div className="border-b border-slate-100 bg-slate-50/70 px-4 py-3 text-sm text-slate-500">{emptyState}</div>
+      ) : null}
+
+      <div className="max-h-[min(72vh,920px)] overflow-auto overscroll-contain">
         <div
-          className="grid items-stretch"
-          style={{ gridTemplateColumns: `${TIME_COLUMN_WIDTH}px repeat(${dates.length}, minmax(180px, 1fr))` }}
+          className="grid min-w-fit"
+          style={{ gridTemplateColumns }}
         >
-          <div className="border-r border-slate-200/80 px-3 py-4">
+          <div className="sticky left-0 top-0 z-40 border-b border-r border-slate-200/80 bg-[linear-gradient(180deg,rgba(248,250,252,0.98),rgba(255,255,255,0.96))] px-3 py-4">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Fuso</p>
             <p className="mt-1 text-sm font-semibold text-slate-500">{getTimezoneLabel(timezoneLabel)}</p>
           </div>
@@ -297,8 +303,10 @@ export function TimeGrid({
             return (
               <button
                 className={cn(
-                  "flex min-w-0 flex-col items-center justify-center gap-1 border-r border-slate-200/80 px-3 py-3 text-center transition last:border-r-0",
-                  isSelected ? "bg-brand-50/80" : "bg-transparent hover:bg-slate-50/80",
+                  "sticky top-0 z-30 flex min-w-0 flex-col items-center justify-center gap-1 border-b border-r border-slate-200/80 px-3 py-3 text-center transition last:border-r-0",
+                  isSelected
+                    ? "bg-[linear-gradient(180deg,rgba(239,246,255,0.98),rgba(255,255,255,0.96))]"
+                    : "bg-[linear-gradient(180deg,rgba(248,250,252,0.98),rgba(255,255,255,0.96))] hover:bg-slate-50/95",
                 )}
                 key={date}
                 onClick={() => onSelectDate?.(date)}
@@ -322,19 +330,8 @@ export function TimeGrid({
               </button>
             );
           })}
-        </div>
-      </div>
 
-      {!hasAppointments && emptyState ? (
-        <div className="border-b border-slate-100 bg-slate-50/70 px-4 py-3 text-sm text-slate-500">{emptyState}</div>
-      ) : null}
-
-      <div className="overflow-x-auto">
-        <div
-          className="grid min-w-fit"
-          style={{ gridTemplateColumns: `${TIME_COLUMN_WIDTH}px repeat(${dates.length}, minmax(180px, 1fr))` }}
-        >
-          <div className="relative border-r border-slate-200/80 bg-slate-50/70">
+          <div className="sticky left-0 z-20 border-r border-slate-200/80 bg-slate-50/95" style={{ height: gridHeight }}>
             {hourMarks.slice(0, -1).map((minute) => {
               const top = ((minute - rangeStart) / totalMinutes) * 100;
               return (
@@ -374,7 +371,7 @@ export function TimeGrid({
                   date === selectedDate && "bg-[linear-gradient(180deg,rgba(239,246,255,0.86),rgba(255,255,255,0.98))]",
                 )}
                 key={date}
-                style={{ height: `${(totalMinutes / 60) * HOUR_ROW_HEIGHT}px` }}
+                style={{ height: gridHeight }}
               >
                 {onCreateAppointment ? (
                   <button

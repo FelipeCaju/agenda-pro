@@ -61,6 +61,7 @@ type BillingAccessApiModel = {
   due_date: string | null;
   grace_until: string | null;
   payment_notice_visible: boolean;
+  alert_window_days?: number;
   trial_ends_at: string | null;
 };
 
@@ -141,6 +142,7 @@ export type BillingAccess = {
   dueDate: string | null;
   graceUntil: string | null;
   paymentNoticeVisible: boolean;
+  alertWindowDays: number;
   trialEndsAt: string | null;
 };
 
@@ -234,6 +236,7 @@ function mapAccess(model: BillingAccessApiModel): BillingAccess {
     dueDate: model.due_date,
     graceUntil: model.grace_until,
     paymentNoticeVisible: Boolean(model.payment_notice_visible),
+    alertWindowDays: Number(model.alert_window_days ?? 5),
     trialEndsAt: model.trial_ends_at,
   };
 }

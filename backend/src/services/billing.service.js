@@ -89,25 +89,30 @@ function finalizeBillingAccess({ access, currentTransaction = null, platformSett
     return access;
   }
 
+  const alertWindowDays = Number(platformSettings?.payment_alert_days ?? 5);
+
   if (access.isBlocked || access.subscriptionStatus !== "active") {
-    return access;
+    return {
+      ...access,
+      alertWindowDays,
+    };
   }
 
   const transactionStatus = currentTransaction?.status ?? access.currentChargeStatus ?? null;
   const dueDate = currentTransaction?.due_date ?? access.dueDate ?? null;
-  const alertDays = Number(platformSettings?.payment_alert_days ?? 5);
   const dueInDays = differenceFromTodayInDays(dueDate);
   const isOverdue = transactionStatus === "overdue" || (dueInDays !== null && dueInDays < 0);
   const shouldShowPendingNotice =
     transactionStatus === "pending" &&
     dueInDays !== null &&
-    dueInDays <= alertDays;
+    dueInDays <= alertWindowDays;
 
   return {
     ...access,
     dueDate,
     graceUntil: isOverdue ? access.graceUntil : null,
     paymentNoticeVisible: Boolean(isOverdue || shouldShowPendingNotice),
+    alertWindowDays,
   };
 }
 
@@ -543,6 +548,7 @@ function buildOverviewPayload({ organization, plan, subscription, currentTransac
       due_date: access.dueDate,
       grace_until: access.graceUntil,
       payment_notice_visible: access.paymentNoticeVisible,
+      alert_window_days: access.alertWindowDays ?? 5,
       trial_ends_at: access.trialEndsAt ?? null,
     },
     current_charge: currentTransaction,
@@ -552,6 +558,7 @@ function buildOverviewPayload({ organization, plan, subscription, currentTransac
 export async function resolveOrganizationBillingAccess(organizationId) {
   await ensureBillingInfrastructure();
   const aggregate = await getOrganizationBillingAggregate(organizationId);
+  const platformSettings = await getPlatformSettings();
 
   if (!aggregate.organization) {
     const error = new Error("Organizacao nao encontrada.");
@@ -571,6 +578,7 @@ export async function resolveOrganizationBillingAccess(organizationId) {
       trialEndsAt: aggregate.organization.trial_end ?? null,
       paymentNoticeVisible: legacyAccess.shouldShowPaymentNotice ?? false,
       currentChargeStatus: legacyAccess.latestPaymentStatus ?? null,
+      alertWindowDays: Number(platformSettings?.payment_alert_days ?? 5),
     };
   }
 
@@ -578,7 +586,7 @@ export async function resolveOrganizationBillingAccess(organizationId) {
   return finalizeBillingAccess({
     access,
     currentTransaction: aggregate.currentTransaction,
-    platformSettings: await getPlatformSettings(),
+    platformSettings,
   });
 }
 

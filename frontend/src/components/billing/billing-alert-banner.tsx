@@ -4,11 +4,33 @@ import { useBillingOverviewQuery } from "@/hooks/use-billing-query";
 import { formatDateBR } from "@/utils/date";
 import { getSubscriptionStatusLabel } from "@/utils/billing";
 
+function differenceInDays(dateValue?: string | null) {
+  if (!dateValue || !/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+    return null;
+  }
+
+  const [year, month, day] = dateValue.split("-").map(Number);
+  const target = new Date(year, month - 1, day);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  return Math.round((target.getTime() - today.getTime()) / 86_400_000);
+}
+
 export function BillingAlertBanner() {
   const navigate = useNavigate();
   const { data: overview } = useBillingOverviewQuery();
+  const dueDate = overview?.currentCharge?.dueDate ?? overview?.access.dueDate ?? null;
+  const dueInDays = differenceInDays(dueDate);
+  const currentChargeStatus = overview?.currentCharge?.status ?? null;
+  const alertWindowDays = Number(overview?.access.alertWindowDays ?? 5);
+  const shouldShowWarning =
+    overview?.access.isBlocked ||
+    ((currentChargeStatus === "pending" || currentChargeStatus === "overdue") &&
+      dueInDays !== null &&
+      dueInDays <= alertWindowDays);
 
-  if (!overview?.access.paymentNoticeVisible && !overview?.access.isBlocked) {
+  if (!overview || !shouldShowWarning) {
     return null;
   }
 
