@@ -234,7 +234,8 @@ export function TimeGrid({
   const rangeStart = roundHourStart(startHour);
   const rangeEnd = Math.max(roundHourEnd(endHour), rangeStart + 60);
   const totalMinutes = rangeEnd - rangeStart;
-  const gridTemplateColumns = `${TIME_COLUMN_WIDTH}px repeat(${dates.length}, minmax(180px, 1fr))`;
+  const dayColumnMinWidth = dates.length === 1 ? 320 : 220;
+  const gridTemplateColumns = `${TIME_COLUMN_WIDTH}px repeat(${dates.length}, minmax(${dayColumnMinWidth}px, 1fr))`;
   const gridHeight = `${(totalMinutes / 60) * HOUR_ROW_HEIGHT}px`;
   const hourMarks = Array.from(
     { length: Math.max(Math.ceil(totalMinutes / 60) + 1, 2) },
@@ -319,7 +320,7 @@ export function TimeGrid({
 
   return (
     <Card
-      className="mb-24 flex min-h-0 flex-col overflow-hidden border-slate-200/80 bg-white/90 p-0 shadow-[0_20px_45px_rgba(15,23,42,0.08)] xl:mb-0"
+      className="mb-24 flex min-h-0 flex-col overflow-hidden border-slate-200/80 bg-white/90 p-0 shadow-[0_20px_45px_rgba(15,23,42,0.08)] xl:mb-0 xl:h-[calc(100vh-17.5rem)] xl:min-h-[760px] xl:rounded-[30px] xl:border-slate-200/70 xl:bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.96))] xl:shadow-[0_28px_60px_rgba(15,23,42,0.10)]"
       ref={cardRef}
       style={mobileCardHeight ? { height: `${mobileCardHeight}px` } : undefined}
     >
@@ -327,12 +328,12 @@ export function TimeGrid({
         <div className="border-b border-slate-100 bg-slate-50/70 px-4 py-3 text-sm text-slate-500">{emptyState}</div>
       ) : null}
 
-      <div className="min-h-0 flex-1 overflow-auto overscroll-contain">
+      <div className="min-h-0 flex-1 overflow-auto overscroll-contain xl:[scrollbar-gutter:stable]">
         <div
           className="grid min-w-fit"
           style={{ gridTemplateColumns }}
         >
-          <div className="sticky left-0 top-0 z-40 border-b border-r border-slate-200/80 bg-[linear-gradient(180deg,rgba(248,250,252,0.98),rgba(255,255,255,0.96))] px-3 py-4">
+          <div className="sticky left-0 top-0 z-40 border-b border-r border-slate-200/80 bg-[linear-gradient(180deg,rgba(248,250,252,0.98),rgba(255,255,255,0.96))] px-3 py-4 xl:px-4 xl:py-5">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Fuso</p>
             <p className="mt-1 text-sm font-semibold text-slate-500">{getTimezoneLabel(timezoneLabel)}</p>
           </div>
@@ -344,7 +345,7 @@ export function TimeGrid({
             return (
               <button
                 className={cn(
-                  "sticky top-0 z-30 flex min-w-0 flex-col items-center justify-center gap-1 border-b border-r border-slate-200/80 px-3 py-3 text-center transition last:border-r-0",
+                  "sticky top-0 z-30 flex min-w-0 flex-col items-center justify-center gap-1 border-b border-r border-slate-200/80 px-3 py-3 text-center transition last:border-r-0 xl:px-4 xl:py-4",
                   isSelected
                     ? "bg-[linear-gradient(180deg,rgba(239,246,255,0.98),rgba(255,255,255,0.96))]"
                     : "bg-[linear-gradient(180deg,rgba(248,250,252,0.98),rgba(255,255,255,0.96))] hover:bg-slate-50/95",
@@ -359,6 +360,7 @@ export function TimeGrid({
                 <span
                   className={cn(
                     "inline-flex h-11 w-11 items-center justify-center rounded-full text-[1.45rem] font-semibold tracking-[-0.04em]",
+                    "xl:h-12 xl:w-12 xl:text-[1.6rem]",
                     isToday
                       ? "bg-brand-600 text-white shadow-[0_10px_24px_rgba(29,140,248,0.28)]"
                       : isSelected
@@ -372,7 +374,7 @@ export function TimeGrid({
             );
           })}
 
-          <div className="sticky left-0 z-20 border-r border-slate-200/80 bg-slate-50/95" style={{ height: gridHeight }}>
+          <div className="sticky left-0 z-20 border-r border-slate-200/80 bg-slate-50/95 xl:bg-slate-50/85" style={{ height: gridHeight }}>
             {hourMarks.slice(0, -1).map((minute) => {
               const top = ((minute - rangeStart) / totalMinutes) * 100;
               return (
@@ -382,7 +384,7 @@ export function TimeGrid({
                   style={{ top: `${top}%`, height: `${(60 / totalMinutes) * 100}%` }}
                 >
                   <div className="absolute inset-x-0 top-0 border-t border-slate-200/90" />
-                  <div className="px-2 pt-1 text-right text-xs font-medium text-slate-400">
+                  <div className="px-2 pt-1 text-right text-xs font-medium text-slate-400 xl:px-3 xl:text-[12px]">
                     {formatHour(minute)}
                   </div>
                 </div>
@@ -410,6 +412,7 @@ export function TimeGrid({
                 className={cn(
                   "relative border-r border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.92))] last:border-r-0",
                   date === selectedDate && "bg-[linear-gradient(180deg,rgba(239,246,255,0.86),rgba(255,255,255,0.98))]",
+                  "xl:bg-[linear-gradient(180deg,rgba(255,255,255,0.99),rgba(248,250,252,0.94))]",
                 )}
                 key={date}
                 style={{ height: gridHeight }}
@@ -489,9 +492,12 @@ export function TimeGrid({
         </div>
       </div>
 
-      <div className="border-t border-slate-200/80 bg-slate-50/70 px-4 py-3">
+      <div className="border-t border-slate-200/80 bg-slate-50/70 px-4 py-3 xl:flex xl:items-center xl:justify-between xl:px-6">
         <p className="text-sm text-slate-500">
           {dates.length === 1 ? formatShortDate(dates[0]) : "Arraste a leitura pela grade para localizar horarios livres com mais rapidez."}
+        </p>
+        <p className="hidden text-xs font-medium uppercase tracking-[0.18em] text-slate-400 xl:block">
+          Grade visual para leitura rapida de disponibilidade
         </p>
       </div>
     </Card>
