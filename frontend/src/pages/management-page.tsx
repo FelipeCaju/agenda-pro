@@ -24,6 +24,9 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
+const SYSTEM_VERSION = "1.0.0.1";
+const SYSTEM_UPDATED_AT = "09/04/2026";
+
 export function ManagementPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -295,6 +298,16 @@ export function ManagementPage() {
                 )}
               </div>
             </Card>
+          </div>
+
+          <div className="flex justify-center xl:justify-end">
+            <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-white/80 px-4 py-2 text-xs text-slate-500 shadow-[0_10px_24px_rgba(15,23,42,0.05)]">
+              <span className="font-semibold uppercase tracking-[0.18em] text-slate-400">Sistema</span>
+              <span className="text-slate-300">•</span>
+              <span className="font-medium text-slate-600">V {SYSTEM_VERSION}</span>
+              <span className="text-slate-300">•</span>
+              <span>Atualizado em {SYSTEM_UPDATED_AT}</span>
+            </div>
           </div>
         </>
       ) : null}
