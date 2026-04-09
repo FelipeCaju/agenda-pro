@@ -367,64 +367,6 @@ async function getLegacyAccessSnapshot(organization) {
   return evaluateSubscriptionAccess(organization, latestPayment, platformSettings);
 }
 
-function logBillingFallback(scope, error) {
-  console.error(`[billing] Fallback legado acionado no escopo ${scope}.`);
-  console.error(error?.message ?? error);
-}
-
-async function buildLegacyBillingAccessFallback(organizationId, sourceError, scope = "access") {
-  logBillingFallback(scope, sourceError);
-
-  const organization = await getBillingOrganizationSummary(organizationId);
-
-  if (!organization) {
-    throw sourceError;
-  }
-
-  const [legacyAccess, platformSettings] = await Promise.all([
-    getLegacyAccessSnapshot(organization),
-    getPlatformSettings(),
-  ]);
-
-  return {
-    subscriptionStatus: legacyAccess.subscriptionStatus,
-    canAccess: legacyAccess.canAccess,
-    isBlocked: legacyAccess.isBlocked,
-    blockReason: legacyAccess.blockReason,
-    dueDate: legacyAccess.dueDate ?? organization.due_date ?? null,
-    graceUntil: legacyAccess.graceUntil ?? null,
-    trialEndsAt: organization.trial_end ?? null,
-    paymentNoticeVisible: legacyAccess.shouldShowPaymentNotice ?? false,
-    currentChargeStatus: legacyAccess.latestPaymentStatus ?? null,
-    alertWindowDays: Number(platformSettings?.payment_alert_days ?? legacyAccess.alertDays ?? 5),
-  };
-}
-
-async function buildLegacyBillingOverviewFallback(organizationId, sourceError) {
-  logBillingFallback("overview", sourceError);
-
-  const organization = await getBillingOrganizationSummary(organizationId);
-
-  if (!organization) {
-    throw sourceError;
-  }
-
-  const plan = await getSubscriptionPlanByCode().catch(() => null);
-  const subscription = await getOrganizationSubscriptionByOrganizationId(organizationId).catch(() => null);
-  const currentTransaction = subscription
-    ? await getCurrentBillingTransactionBySubscriptionId(subscription.id).catch(() => null)
-    : null;
-  const access = await buildLegacyBillingAccessFallback(organizationId, sourceError, "overview-access");
-
-  return buildOverviewPayload({
-    organization,
-    plan,
-    subscription,
-    currentTransaction,
-    access,
-  });
-}
-
 async function refreshAsaasPayments(subscription, plan) {
   if (!subscription?.gateway_subscription_id) {
     return [];
@@ -784,85 +726,77 @@ function buildOverviewPayload({ organization, plan, subscription, currentTransac
 }
 
 export async function resolveOrganizationBillingAccess(organizationId) {
-  try {
-    await ensureBillingInfrastructure();
-    const aggregate = await getOrganizationBillingAggregate(organizationId);
-    const platformSettings = await getPlatformSettings();
+  await ensureBillingInfrastructure();
+  const aggregate = await getOrganizationBillingAggregate(organizationId);
+  const platformSettings = await getPlatformSettings();
 
-    if (!aggregate.organization) {
-      const error = new Error("Organizacao nao encontrada.");
-      error.statusCode = 404;
-      throw error;
-    }
-
-    if (!aggregate.subscription) {
-      const legacyAccess = await getLegacyAccessSnapshot(aggregate.organization);
-      return {
-        subscriptionStatus: legacyAccess.subscriptionStatus,
-        canAccess: legacyAccess.canAccess,
-        isBlocked: legacyAccess.isBlocked,
-        blockReason: legacyAccess.blockReason,
-        dueDate: legacyAccess.dueDate ?? aggregate.organization.due_date ?? null,
-        graceUntil: legacyAccess.graceUntil ?? null,
-        trialEndsAt: aggregate.organization.trial_end ?? null,
-        paymentNoticeVisible: legacyAccess.shouldShowPaymentNotice ?? false,
-        currentChargeStatus: legacyAccess.latestPaymentStatus ?? null,
-        alertWindowDays: Number(platformSettings?.payment_alert_days ?? 5),
-      };
-    }
-
-    const access = await reconcileAccessState(aggregate);
-    return finalizeBillingAccess({
-      access,
-      currentTransaction: aggregate.currentTransaction,
-      platformSettings,
-    });
-  } catch (error) {
-    return buildLegacyBillingAccessFallback(organizationId, error, "resolve-access");
+  if (!aggregate.organization) {
+    const error = new Error("Organizacao nao encontrada.");
+    error.statusCode = 404;
+    throw error;
   }
+
+  if (!aggregate.subscription) {
+    const legacyAccess = await getLegacyAccessSnapshot(aggregate.organization);
+    return {
+      subscriptionStatus: legacyAccess.subscriptionStatus,
+      canAccess: legacyAccess.canAccess,
+      isBlocked: legacyAccess.isBlocked,
+      blockReason: legacyAccess.blockReason,
+      dueDate: legacyAccess.dueDate ?? aggregate.organization.due_date ?? null,
+      graceUntil: legacyAccess.graceUntil ?? null,
+      trialEndsAt: aggregate.organization.trial_end ?? null,
+      paymentNoticeVisible: legacyAccess.shouldShowPaymentNotice ?? false,
+      currentChargeStatus: legacyAccess.latestPaymentStatus ?? null,
+      alertWindowDays: Number(platformSettings?.payment_alert_days ?? 5),
+    };
+  }
+
+  const access = await reconcileAccessState(aggregate);
+  return finalizeBillingAccess({
+    access,
+    currentTransaction: aggregate.currentTransaction,
+    platformSettings,
+  });
 }
 
 export async function getBillingOverview({ organizationId }) {
-  try {
-    await ensureBillingInfrastructure();
-    const aggregate = await getOrganizationBillingAggregate(organizationId);
+  await ensureBillingInfrastructure();
+  const aggregate = await getOrganizationBillingAggregate(organizationId);
 
-    if (!aggregate.organization) {
-      const error = new Error("Organizacao nao encontrada.");
-      error.statusCode = 404;
-      throw error;
-    }
-
-    if (
-      aggregate.subscription?.gateway_subscription_id &&
-      aggregate.plan &&
-      shouldRefreshAsaasPayments(aggregate.subscription, aggregate.currentTransaction)
-    ) {
-      await refreshAsaasPaymentsSafely("overview", aggregate.subscription, aggregate.plan);
-    }
-
-    const refreshedAggregate = await getOrganizationBillingAggregate(organizationId);
-    const rawAccess = refreshedAggregate.subscription
-      ? await reconcileAccessState(refreshedAggregate)
-      : await getLegacyAccessSnapshot(refreshedAggregate.organization);
-    const access = refreshedAggregate.subscription
-      ? finalizeBillingAccess({
-          access: rawAccess,
-          currentTransaction: refreshedAggregate.currentTransaction,
-          platformSettings: await getPlatformSettings(),
-        })
-      : rawAccess;
-
-    return buildOverviewPayload({
-      organization: refreshedAggregate.organization,
-      plan: refreshedAggregate.plan,
-      subscription: refreshedAggregate.subscription,
-      currentTransaction: refreshedAggregate.currentTransaction,
-      access,
-    });
-  } catch (error) {
-    return buildLegacyBillingOverviewFallback(organizationId, error);
+  if (!aggregate.organization) {
+    const error = new Error("Organizacao nao encontrada.");
+    error.statusCode = 404;
+    throw error;
   }
+
+  if (
+    aggregate.subscription?.gateway_subscription_id &&
+    aggregate.plan &&
+    shouldRefreshAsaasPayments(aggregate.subscription, aggregate.currentTransaction)
+  ) {
+    await refreshAsaasPaymentsSafely("overview", aggregate.subscription, aggregate.plan);
+  }
+
+  const refreshedAggregate = await getOrganizationBillingAggregate(organizationId);
+  const rawAccess = refreshedAggregate.subscription
+    ? await reconcileAccessState(refreshedAggregate)
+    : await getLegacyAccessSnapshot(refreshedAggregate.organization);
+  const access = refreshedAggregate.subscription
+    ? finalizeBillingAccess({
+        access: rawAccess,
+        currentTransaction: refreshedAggregate.currentTransaction,
+        platformSettings: await getPlatformSettings(),
+      })
+    : rawAccess;
+
+  return buildOverviewPayload({
+    organization: refreshedAggregate.organization,
+    plan: refreshedAggregate.plan,
+    subscription: refreshedAggregate.subscription,
+    currentTransaction: refreshedAggregate.currentTransaction,
+    access,
+  });
 }
 
 export async function getBillingSubscription({ organizationId }) {
