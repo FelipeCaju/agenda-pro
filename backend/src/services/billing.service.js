@@ -340,6 +340,73 @@ function compareDueDateAsc(left, right) {
   return leftValue.localeCompare(rightValue);
 }
 
+function getInvoiceDisplayPriority(transaction) {
+  const status = String(transaction?.status ?? "");
+
+  if (status === "received") return 5;
+  if (status === "confirmed") return 4;
+  if (status === "pending") return 3;
+  if (status === "overdue") return 2;
+  if (status === "refunded") return 1;
+  if (status === "failed") return 0;
+  if (status === "cancelled") return -1;
+  return -2;
+}
+
+function getInvoiceReferenceKey(transaction) {
+  const dueDate = String(transaction?.due_date ?? "").trim();
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) {
+    return dueDate.slice(0, 7);
+  }
+
+  return transaction?.id ?? `invoice-${Math.random()}`;
+}
+
+function dedupeInvoicesForDisplay(invoices) {
+  const bestByReference = new Map();
+
+  invoices.forEach((invoice) => {
+    const key = getInvoiceReferenceKey(invoice);
+    const current = bestByReference.get(key);
+
+    if (!current) {
+      bestByReference.set(key, invoice);
+      return;
+    }
+
+    const priorityDiff = getInvoiceDisplayPriority(invoice) - getInvoiceDisplayPriority(current);
+
+    if (priorityDiff > 0) {
+      bestByReference.set(key, invoice);
+      return;
+    }
+
+    if (priorityDiff < 0) {
+      return;
+    }
+
+    const invoiceDate = String(invoice?.updated_at ?? invoice?.created_at ?? "");
+    const currentDate = String(current?.updated_at ?? current?.created_at ?? "");
+
+    if (invoiceDate > currentDate) {
+      bestByReference.set(key, invoice);
+    }
+  });
+
+  return Array.from(bestByReference.values()).sort((left, right) => {
+    const monthDiff = String(right?.due_date ?? "").localeCompare(String(left?.due_date ?? ""));
+
+    if (monthDiff !== 0) {
+      return monthDiff;
+    }
+
+    return String(right?.updated_at ?? right?.created_at ?? "").localeCompare(
+      String(left?.updated_at ?? left?.created_at ?? ""),
+    );
+  });
+}
+
 function resolveNextOpenCharge(payments, currentPaymentId = "") {
   return (
     payments
@@ -644,7 +711,7 @@ export async function listBillingInvoices({ organizationId }) {
   }
 
   const invoices = await listBillingTransactionsByOrganizationId(organizationId);
-  return invoices;
+  return dedupeInvoicesForDisplay(invoices);
 }
 
 export async function getCurrentCharge({ organizationId }) {
