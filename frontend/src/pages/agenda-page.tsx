@@ -18,6 +18,7 @@ import { formatDateBR } from "@/utils/date";
 type AgendaLocationState = {
   successMessage?: string;
   selectedDate?: string;
+  selectedTime?: string;
   notificationSlotKey?: string;
   notificationAppointmentIds?: string[];
 };
@@ -177,6 +178,15 @@ export function AgendaPage() {
     navigate(`/agenda/${appointment.id}`);
   }
 
+  function openNewAppointmentFromGrid(payload: { date: string; time: string }) {
+    navigate("/agenda/novo", {
+      state: {
+        selectedDate: payload.date,
+        selectedTime: payload.time,
+      },
+    });
+  }
+
   return (
     <PullToRefresh isRefreshing={isFetching} onRefresh={refetch}>
       <section className="space-y-4 pb-2 xl:space-y-5">
@@ -281,6 +291,7 @@ export function AgendaPage() {
               blockedSlots={blockedSlots}
               endHour={agendaEndHour}
               highlightedAppointmentIds={highlightedAppointmentIds}
+              onCreateAppointment={openNewAppointmentFromGrid}
               onOpenAppointment={openAppointment}
               selectedDate={selectedDate}
               startHour={agendaStartHour}
@@ -292,6 +303,7 @@ export function AgendaPage() {
               blockedSlots={blockedSlots}
               endHour={agendaEndHour}
               highlightedAppointmentIds={highlightedAppointmentIds}
+              onCreateAppointment={openNewAppointmentFromGrid}
               onOpenAppointment={openAppointment}
               onSelectDate={(date) => startTransition(() => setSelectedDate(date))}
               selectedDate={selectedDate}

@@ -13,6 +13,7 @@ import { getTodayDate } from "@/utils/agenda";
 
 type NewAppointmentLocationState = {
   selectedDate?: string;
+  selectedTime?: string;
   prefillFromQuote?: {
     quoteId: string;
     clientId: string;
@@ -28,6 +29,7 @@ export function NewAppointmentPage() {
   const location = useLocation();
   const locationState = location.state as NewAppointmentLocationState | null;
   const selectedDate = locationState?.selectedDate ?? getTodayDate();
+  const selectedTime = locationState?.selectedTime ?? "";
   const quoteDraft = locationState?.prefillFromQuote ?? null;
   const {
     data: clients = [],
@@ -105,6 +107,7 @@ export function NewAppointmentPage() {
         formId={FORM_ID}
         initialValues={{
           data: selectedDate,
+          horarioInicial: selectedTime,
           clienteId: quoteDraft?.clientId ?? "",
           servicoId: quoteDraft?.serviceId ?? "",
           observacoes: quoteDraft?.notes ?? "",

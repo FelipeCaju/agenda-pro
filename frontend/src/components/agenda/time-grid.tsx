@@ -14,6 +14,7 @@ type TimeGridProps = {
   blockedSlots?: BlockedSlot[];
   highlightedAppointmentIds?: string[];
   onOpenAppointment: (appointment: Appointment) => void;
+  onCreateAppointment?: (payload: { date: string; time: string }) => void;
   onSelectDate?: (date: string) => void;
   selectedDate: string;
   startHour: string;
@@ -50,6 +51,13 @@ function roundHourEnd(time: string) {
 function formatHour(minutes: number) {
   const hours = Math.floor(minutes / 60);
   return `${String(hours).padStart(2, "0")}:00`;
+}
+
+function formatTime(minutes: number) {
+  const normalized = Math.max(0, minutes);
+  const hours = Math.floor(normalized / 60);
+  const valueMinutes = normalized % 60;
+  return `${String(hours).padStart(2, "0")}:${String(valueMinutes).padStart(2, "0")}`;
 }
 
 function formatDayLabel(date: string) {
@@ -167,7 +175,8 @@ function AppointmentBlock({
 }) {
   const width = `calc(${100 / laneCount}% - 6px)`;
   const left = `calc(${(100 / laneCount) * lane}% + 3px)`;
-  const isCompact = position.height < 8;
+  const isTiny = position.height < 5.6;
+  const isCompact = position.height < 9;
 
   return (
     <button
@@ -188,16 +197,19 @@ function AppointmentBlock({
       }}
       type="button"
     >
-      <div className="flex h-full min-h-0 flex-col">
-        <p className="truncate text-sm font-semibold text-white">{appointment.servicoNome}</p>
+      <div className="flex h-full min-h-0 flex-col justify-between gap-1">
+        <div className="min-h-0">
+          <p className="truncate text-sm font-semibold text-white">{appointment.servicoNome}</p>
+          {!isTiny ? (
+            <p className="truncate text-[12px] font-medium text-white/92">{appointment.clienteNome}</p>
+          ) : null}
+        </div>
+
         {!isCompact ? (
-          <>
-            <p className="truncate text-[12px] font-medium text-white/90">{appointment.clienteNome}</p>
-            <p className="mt-auto text-[12px] font-semibold text-white">{formatTimeRange(appointment)}</p>
-          </>
-        ) : (
-          <p className="truncate text-[12px] font-semibold text-white">{appointment.horarioInicial}</p>
-        )}
+          <p className="truncate text-[12px] font-semibold text-white/95">{formatTimeRange(appointment)}</p>
+        ) : !isTiny ? (
+          <p className="truncate text-[12px] font-semibold text-white/95">{appointment.horarioInicial}</p>
+        ) : null}
       </div>
     </button>
   );
@@ -209,6 +221,7 @@ export function TimeGrid({
   blockedSlots = [],
   highlightedAppointmentIds = [],
   onOpenAppointment,
+  onCreateAppointment,
   onSelectDate,
   selectedDate,
   startHour,
@@ -246,6 +259,24 @@ export function TimeGrid({
   }, {});
   const today = getTodayDate();
   const hasAppointments = appointments.length > 0;
+
+  function handleCreateAppointment(date: string, event: React.MouseEvent<HTMLButtonElement>) {
+    if (!onCreateAppointment) {
+      return;
+    }
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    const offsetY = event.clientY - rect.top;
+    const minutesFromTop = (offsetY / rect.height) * totalMinutes;
+    const rawMinutes = rangeStart + minutesFromTop;
+    const roundedMinutes = Math.round(rawMinutes / 15) * 15;
+    const clampedMinutes = Math.max(rangeStart, Math.min(rangeEnd - 15, roundedMinutes));
+
+    onCreateAppointment({
+      date,
+      time: formatTime(clampedMinutes),
+    });
+  }
 
   return (
     <Card className="overflow-hidden border-slate-200/80 bg-white/90 p-0 shadow-[0_20px_45px_rgba(15,23,42,0.08)]">
@@ -345,12 +376,21 @@ export function TimeGrid({
                 key={date}
                 style={{ height: `${(totalMinutes / 60) * HOUR_ROW_HEIGHT}px` }}
               >
+                {onCreateAppointment ? (
+                  <button
+                    aria-label={`Novo agendamento em ${date}`}
+                    className="absolute inset-0 z-0 cursor-copy transition hover:bg-brand-50/18"
+                    onClick={(event) => handleCreateAppointment(date, event)}
+                    type="button"
+                  />
+                ) : null}
+
                 {hourMarks.slice(0, -1).map((minute) => {
                   const top = ((minute - rangeStart) / totalMinutes) * 100;
                   const halfTop = (((minute + 30) - rangeStart) / totalMinutes) * 100;
 
                   return (
-                    <div className="absolute inset-x-0" key={minute} style={{ top: `${top}%` }}>
+                    <div className="pointer-events-none absolute inset-x-0" key={minute} style={{ top: `${top}%` }}>
                       <div className="border-t border-slate-200/90" />
                       {minute + 30 < rangeEnd ? (
                         <div
@@ -367,7 +407,7 @@ export function TimeGrid({
 
                   return (
                     <div
-                      className="absolute inset-x-1 z-10 overflow-hidden rounded-[18px] border border-amber-200/80 bg-[repeating-linear-gradient(-45deg,rgba(251,191,36,0.10),rgba(251,191,36,0.10)_12px,rgba(251,191,36,0.18)_12px,rgba(251,191,36,0.18)_24px)]"
+                      className="pointer-events-none absolute inset-x-1 z-10 overflow-hidden rounded-[18px] border border-amber-200/80 bg-[repeating-linear-gradient(-45deg,rgba(251,191,36,0.10),rgba(251,191,36,0.10)_12px,rgba(251,191,36,0.18)_12px,rgba(251,191,36,0.18)_24px)]"
                       key={slot.id}
                       style={{ top: `${position.top}%`, height: `${position.height}%` }}
                     >
@@ -380,7 +420,7 @@ export function TimeGrid({
 
                 {showNowLine ? (
                   <div
-                    className="absolute inset-x-0 z-30"
+                    className="pointer-events-none absolute inset-x-0 z-30"
                     style={{ top: `${((nowMinutes - rangeStart) / totalMinutes) * 100}%` }}
                   >
                     <div className="relative border-t-2 border-rose-400">

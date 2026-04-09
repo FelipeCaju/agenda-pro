@@ -132,6 +132,11 @@ export const router = createBrowserRouter([
             path: "/assinatura-bloqueada",
             element: withRouteSuspense(<SubscriptionBlockedPage />),
           },
+        ],
+      },
+      {
+        element: <ProtectedRoute allowBlocked allowActiveAccess />,
+        children: [
           {
             path: "/meu-plano",
             element: withRouteSuspense(<BillingPlanPage />),

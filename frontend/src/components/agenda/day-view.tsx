@@ -10,6 +10,7 @@ type DayViewProps = {
   endHour: string;
   timezoneLabel: string;
   onOpenAppointment: (appointment: Appointment) => void;
+  onCreateAppointment?: (payload: { date: string; time: string }) => void;
   highlightedAppointmentIds?: string[];
 };
 
@@ -21,6 +22,7 @@ export function DayView({
   endHour,
   timezoneLabel,
   onOpenAppointment,
+  onCreateAppointment,
   highlightedAppointmentIds = [],
 }: DayViewProps) {
   return (
@@ -31,6 +33,7 @@ export function DayView({
       emptyState="Nenhum agendamento neste dia. A grade continua visivel para facilitar novos encaixes."
       endHour={endHour}
       highlightedAppointmentIds={highlightedAppointmentIds}
+      onCreateAppointment={onCreateAppointment}
       onOpenAppointment={onOpenAppointment}
       selectedDate={selectedDate}
       startHour={startHour}

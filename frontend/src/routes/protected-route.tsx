@@ -5,11 +5,13 @@ import { useAuth } from "@/hooks/use-auth";
 type ProtectedRouteProps = {
   allowBlocked?: boolean;
   allowOnboarding?: boolean;
+  allowActiveAccess?: boolean;
 };
 
 export function ProtectedRoute({
   allowBlocked = false,
   allowOnboarding = false,
+  allowActiveAccess = false,
 }: ProtectedRouteProps) {
   const location = useLocation();
   const {
@@ -51,7 +53,7 @@ export function ProtectedRoute({
     return <Navigate replace to="/assinatura-bloqueada" />;
   }
 
-  if (!isSubscriptionBlocked && allowBlocked && !allowOnboarding) {
+  if (!isSubscriptionBlocked && allowBlocked && !allowOnboarding && !allowActiveAccess) {
     return <Navigate replace to="/" />;
   }
 
