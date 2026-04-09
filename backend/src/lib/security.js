@@ -19,6 +19,52 @@ function isTrustedWebAppOrigin(origin) {
   return /^https:\/\/agenda-pro(?:-[a-z0-9-]+)*\.vercel\.app$/i.test(origin);
 }
 
+const CORS_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"];
+const CORS_ALLOWED_HEADERS = ["Content-Type", "Authorization"];
+
+export function resolveAllowedCorsOrigin(origin) {
+  if (!origin) {
+    return null;
+  }
+
+  const configuredOrigins = parseAllowedOrigins();
+  const allowAnyOrigin = configuredOrigins.includes("*");
+
+  if (allowAnyOrigin || configuredOrigins.includes(origin)) {
+    return origin;
+  }
+
+  if (isTrustedMobileAppOrigin(origin)) {
+    return origin;
+  }
+
+  if (isTrustedWebAppOrigin(origin)) {
+    return origin;
+  }
+
+  if (process.env.NODE_ENV !== "production" && isLocalDevelopmentOrigin(origin)) {
+    return origin;
+  }
+
+  return null;
+}
+
+export function applyCorsHeaders(request, response) {
+  const allowedOrigin = resolveAllowedCorsOrigin(request.headers.origin);
+
+  if (!allowedOrigin) {
+    return false;
+  }
+
+  response.setHeader("Access-Control-Allow-Origin", allowedOrigin);
+  response.setHeader("Vary", "Origin");
+  response.setHeader("Access-Control-Allow-Methods", CORS_METHODS.join(","));
+  response.setHeader("Access-Control-Allow-Headers", CORS_ALLOWED_HEADERS.join(","));
+  response.setHeader("Access-Control-Max-Age", "86400");
+
+  return true;
+}
+
 function getClientIp(request) {
   const forwardedFor = request.headers["x-forwarded-for"];
 
@@ -30,9 +76,6 @@ function getClientIp(request) {
 }
 
 export function buildCorsOptions() {
-  const configuredOrigins = parseAllowedOrigins();
-  const allowAnyOrigin = configuredOrigins.includes("*");
-
   return {
     origin(origin, callback) {
       if (!origin) {
@@ -40,30 +83,15 @@ export function buildCorsOptions() {
         return;
       }
 
-      if (allowAnyOrigin || configuredOrigins.includes(origin)) {
-        callback(null, true);
-        return;
-      }
-
-      if (isTrustedMobileAppOrigin(origin)) {
-        callback(null, true);
-        return;
-      }
-
-      if (isTrustedWebAppOrigin(origin)) {
-        callback(null, true);
-        return;
-      }
-
-      if (process.env.NODE_ENV !== "production" && isLocalDevelopmentOrigin(origin)) {
+      if (resolveAllowedCorsOrigin(origin)) {
         callback(null, true);
         return;
       }
 
       callback(new Error("Origem nao autorizada pelo CORS."));
     },
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    methods: CORS_METHODS,
+    allowedHeaders: CORS_ALLOWED_HEADERS,
   };
 }
 

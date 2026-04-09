@@ -1,6 +1,7 @@
 import cors from "cors";
 import express from "express";
 import {
+  applyCorsHeaders,
   buildCorsOptions,
   createLoginProtectionMiddleware,
   createRateLimitMiddleware,
@@ -13,6 +14,16 @@ export const app = express();
 app.disable("x-powered-by");
 app.set("trust proxy", 1);
 app.use(securityHeadersMiddleware);
+app.use((request, response, next) => {
+  applyCorsHeaders(request, response);
+
+  if (request.method === "OPTIONS") {
+    response.status(204).end();
+    return;
+  }
+
+  next();
+});
 app.use(cors(buildCorsOptions()));
 app.use(
   express.json({

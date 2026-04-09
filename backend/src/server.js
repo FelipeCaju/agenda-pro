@@ -40,7 +40,12 @@ async function startServer() {
   try {
     await verifyDatabaseConnection();
     await initDataStore();
-    await ensureBillingInfrastructure();
+    try {
+      await ensureBillingInfrastructure();
+    } catch (error) {
+      console.error("Falha ao garantir a infraestrutura de billing no startup. O backend vai continuar usando a estrutura ja existente.");
+      console.error(error.message ?? error);
+    }
 
     app.listen(PORT, () => {
       const target = describeDatabaseTarget();
