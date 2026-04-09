@@ -43,7 +43,7 @@ export function PullToRefresh({
 
   return (
     <div onTouchEnd={handleTouchEnd} onTouchMove={handleTouchMove} onTouchStart={handleTouchStart}>
-      <div className="flex h-8 items-center justify-center text-xs text-slate-400">
+      <div className="flex h-8 items-center justify-center text-xs text-slate-400 xl:hidden">
         {isRefreshing ? "Atualizando agenda..." : distance >= 70 ? "Solte para atualizar" : "Puxe para atualizar"}
       </div>
       {children}
