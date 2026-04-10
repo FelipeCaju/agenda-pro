@@ -140,7 +140,7 @@ function buildReminderMessage({ appointment, settings }) {
     .replaceAll("{{servico_nome}}", appointment.servico_nome)
     .replaceAll("{{horario}}", appointment.horario_inicial)
     .replaceAll("{{data}}", appointment.data)
-    .concat("\n\nResponda com 1 para confirmar ou 2 para cancelar.");
+    .concat("\n\nConfirmar agendamento?\nResponda com Sim ou Nao.");
 }
 
 function isReminderDue({ appointment, settings, now }) {
@@ -300,21 +300,19 @@ export async function registerReminderReply({
 function parseReplyStatusFromText(message) {
   const normalized = String(message ?? "")
     .trim()
-    .toLowerCase();
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
 
   if (!normalized) {
     return null;
   }
 
-  if (
-    ["1", "confirmar", "confirmado", "confirmo", "sim", "ok"].includes(normalized)
-  ) {
+  if (["1", "confirmar", "confirmado", "confirmo", "sim", "ok"].includes(normalized)) {
     return "confirmado";
   }
 
-  if (
-    ["2", "cancelar", "cancelado", "cancelo", "nao", "não"].includes(normalized)
-  ) {
+  if (["2", "cancelar", "cancelado", "cancelo", "nao"].includes(normalized)) {
     return "cancelado";
   }
 
