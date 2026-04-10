@@ -158,7 +158,7 @@ async function request<T>(
     throw new ApiError({
       message: isLocalApi
         ? "Nao foi possivel conectar ao servidor. Verifique se o backend esta rodando em http://localhost:3333."
-        : "Nao foi possivel conectar ao servidor da API.",
+        : "Servidor indisponivel no momento. Tente novamente em alguns segundos.",
       status: 0,
       code: "NETWORK_ERROR",
       details: error,

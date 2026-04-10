@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { agendaKeys } from "@/hooks/use-agenda-query";
 import { appointmentService } from "@/services/appointmentService";
+import { shouldRetryTransientQuery } from "@/utils/query";
 
 export function useAppointmentQuery(appointmentId: string | undefined) {
   const enabled = Boolean(appointmentId);
@@ -15,6 +16,7 @@ export function useAppointmentQuery(appointmentId: string | undefined) {
       return appointmentService.getById(appointmentId);
     },
     enabled,
-    retry: false,
+    retry: (failureCount, error) => shouldRetryTransientQuery(error, failureCount),
+    retryDelay: 1500,
   });
 }

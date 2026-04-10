@@ -3,6 +3,7 @@ import {
   appointmentService,
   type AgendaView,
 } from "@/services/appointmentService";
+import { shouldRetryTransientQuery } from "@/utils/query";
 import { getTodayDate } from "@/utils/agenda";
 
 export const agendaKeys = {
@@ -28,6 +29,8 @@ export function useAgendaQuery({
     queryFn: () => appointmentService.list({ date, view, professionalId }),
     staleTime: 30_000,
     refetchOnWindowFocus: false,
+    retry: (failureCount, error) => shouldRetryTransientQuery(error, failureCount),
+    retryDelay: 1500,
     placeholderData: (previousData) => previousData,
   });
 }
