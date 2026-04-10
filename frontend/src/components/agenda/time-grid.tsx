@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { cn } from "@/utils/cn";
 import type { BlockedSlot } from "@/services/blockedSlotService";
 import type { Appointment } from "@/services/appointmentService";
-import { getAppointmentServiceLabel } from "@/utils/appointment";
+import { getAppointmentServiceColor, getAppointmentServiceLabel } from "@/utils/appointment";
 import { formatTimeRange, getTodayDate } from "@/utils/agenda";
 
 const HOUR_ROW_HEIGHT = 76;
@@ -193,7 +193,7 @@ function AppointmentBlock({
         height: `${position.height}%`,
         left,
         width,
-        backgroundColor: appointment.servicoCor || "#1d8cf8",
+        backgroundColor: getAppointmentServiceColor(appointment),
         borderColor: "rgba(255,255,255,0.32)",
       }}
       type="button"

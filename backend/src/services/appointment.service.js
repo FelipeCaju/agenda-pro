@@ -33,6 +33,11 @@ function normalizeString(value) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function normalizeServiceColor(value) {
+  const normalized = normalizeString(value);
+  return normalized || "#1d8cf8";
+}
+
 function isValidDate(date) {
   return /^\d{4}-\d{2}-\d{2}$/.test(date);
 }
@@ -191,7 +196,7 @@ function buildPayload({ client, service, professional, input }) {
     cliente_email: client.email ?? null,
     servico_id: service.id,
     servico_nome: service.nome,
-    servico_cor: service.cor ?? "#1d8cf8",
+    servico_cor: normalizeServiceColor(service.cor),
     profissional_id: professional?.id ?? null,
     profissional_nome: professional?.nome ?? null,
     data: input.data,

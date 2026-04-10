@@ -1,6 +1,6 @@
 import type { Appointment } from "@/services/appointmentService";
 import { formatTimeRange } from "@/utils/agenda";
-import { getAppointmentServiceLabel } from "@/utils/appointment";
+import { getAppointmentServiceColor, getAppointmentServiceLabel } from "@/utils/appointment";
 import { Card } from "@/components/ui/card";
 
 type AppointmentCardProps = {
@@ -91,7 +91,7 @@ export function AppointmentCard({
         <span
           aria-hidden="true"
           className="absolute inset-y-4 left-0 w-1 rounded-full"
-          style={{ backgroundColor: appointment.servicoCor || "#1d8cf8" }}
+          style={{ backgroundColor: getAppointmentServiceColor(appointment) }}
         />
 
         <div className="space-y-3 px-5 py-4">

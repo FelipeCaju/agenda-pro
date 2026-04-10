@@ -3,6 +3,11 @@ import type { Reminder } from "@/services/reminderService";
 import { apiClient } from "@/services/apiClient";
 import { executeServiceCall } from "@/services/serviceHelpers";
 
+function normalizeServiceColor(value: string | null | undefined) {
+  const normalized = value?.trim();
+  return normalized || "#1d8cf8";
+}
+
 export type DashboardPeriod = "today" | "7d" | "30d";
 export type DashboardStatusFilter = "all" | AppointmentStatus;
 
@@ -140,7 +145,7 @@ function mapAppointment(model: AppointmentApiModel): Appointment {
     clienteEmail: model.cliente_email ?? null,
     servicoId: model.servico_id,
     servicoNome: model.servico_nome,
-    servicoCor: model.servico_cor ?? "#1d8cf8",
+    servicoCor: normalizeServiceColor(model.servico_cor),
     profissionalId: model.profissional_id ?? null,
     profissionalNome: model.profissional_nome ?? null,
     data: model.data,

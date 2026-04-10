@@ -11,15 +11,20 @@ import { useSettingsQuery } from "@/hooks/use-settings-query";
 const WHATSAPP_REMINDER_TEMPLATE =
   "Oie {{cliente_nome}}!\n\nAqui e a equipe da {{nome_organizacao}}.\n\nPassando para te lembrar do seu horario de {{servico_nome}}.\n\nData: {{data}}\nHorario: {{horario}}\n\nEstamos te aguardando por aqui.\n\nConfirmar agendamento?\nResponda com Sim ou Nao.";
 const WHATSAPP_CONFIRMATION_PROMPT = "Confirmar agendamento?\nResponda com Sim ou Nao.";
+const LEGACY_WHATSAPP_CONFIRMATION_PROMPT = "Responda com 1 para confirmar ou 2 para cancelar.";
 
 function appendConfirmationPrompt(template: string) {
-  const normalized = template.trim();
+  const normalized = template
+    .trim()
+    .replace(LEGACY_WHATSAPP_CONFIRMATION_PROMPT, "")
+    .replace(WHATSAPP_CONFIRMATION_PROMPT, "")
+    .trim();
 
   if (!normalized) {
     return WHATSAPP_REMINDER_TEMPLATE;
   }
 
-  return normalized.includes("Confirmar agendamento?") ? normalized : `${normalized}\n\n${WHATSAPP_CONFIRMATION_PROMPT}`;
+  return `${normalized}\n\n${WHATSAPP_CONFIRMATION_PROMPT}`;
 }
 
 function WhatsappBadgeIcon() {
@@ -82,7 +87,7 @@ function normalizeReminderTemplate(template?: string | null) {
     return WHATSAPP_REMINDER_TEMPLATE;
   }
 
-  return normalized;
+  return appendConfirmationPrompt(normalized);
 }
 
 export function WhatsappSettingsPage() {
