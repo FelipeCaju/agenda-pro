@@ -2064,7 +2064,23 @@ export async function updateServiceForOrganization(organizationId, serviceId, in
     );
   }
 
-  return getServiceByIdForOrganization(organizationId, serviceId);
+  const updatedService = await getServiceByIdForOrganization(organizationId, serviceId);
+
+  if (updatedService) {
+    await execute(
+      `UPDATE appointments
+        SET servico_nome = ?, servico_cor = ?
+        WHERE organization_id = ? AND servico_id = ?`,
+      [
+        updatedService.nome,
+        updatedService.cor || "#1d8cf8",
+        organizationId,
+        serviceId,
+      ],
+    );
+  }
+
+  return updatedService;
 }
 
 export async function removeServiceForOrganization(organizationId, serviceId) {
