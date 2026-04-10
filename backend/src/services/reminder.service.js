@@ -308,11 +308,11 @@ function parseReplyStatusFromText(message) {
     return null;
   }
 
-  if (["1", "confirmar", "confirmado", "confirmo", "sim", "ok"].includes(normalized)) {
+  if (["1", "confirmar", "confirmado", "confirmo", "sim", "s", "ok"].includes(normalized)) {
     return "confirmado";
   }
 
-  if (["2", "cancelar", "cancelado", "cancelo", "nao"].includes(normalized)) {
+  if (["2", "cancelar", "cancelado", "cancelo", "nao", "n"].includes(normalized)) {
     return "cancelado";
   }
 
