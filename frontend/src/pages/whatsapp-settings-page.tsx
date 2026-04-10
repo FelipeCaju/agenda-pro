@@ -9,7 +9,7 @@ import { useSettingsMutations } from "@/hooks/use-settings-mutations";
 import { useSettingsQuery } from "@/hooks/use-settings-query";
 
 const WHATSAPP_REMINDER_TEMPLATE =
-  "Oie {{cliente_nome}}!\n\nAqui e a equipe da {{nome_organizacao}}.\n\nPassando para te lembrar do seu horario de {{servico_nome}}.\n\nData: {{data}}\nHorario: {{horario}}\n\nEstamos te aguardando por aqui.";
+  "Oie {{cliente_nome}}!\n\nAqui e a equipe da {{nome_organizacao}}.\n\nPassando para te lembrar do seu horario de {{servico_nome}}.\n\nData: {{data}}\nHorario: {{horario}}\n\nEstamos te aguardando por aqui.\n\nConfirmar agendamento?\nResponda com Sim ou Nao.";
 
 function WhatsappBadgeIcon() {
   return (
