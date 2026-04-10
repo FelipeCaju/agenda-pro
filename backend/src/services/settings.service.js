@@ -4,7 +4,8 @@ import {
 } from "../lib/data.js";
 
 const DEFAULT_WHATSAPP_REMINDER_TEMPLATE =
-  "Oie {{cliente_nome}}! \u{1F44B}\n\nAqui e a equipe da {{nome_organizacao}}.\n\nPassando para te lembrar do seu horario de {{servico_nome}}.\n\n\u{1F4C5} Data: {{data}}\n\u23F0 Horario: {{horario}}\n\nEstamos te aguardando por aqui. \u{1F49A}";
+  "Oie {{cliente_nome}}! \u{1F44B}\n\nAqui e a equipe da {{nome_organizacao}}.\n\nPassando para te lembrar do seu horario de {{servico_nome}}.\n\n\u{1F4C5} Data: {{data}}\n\u23F0 Horario: {{horario}}\n\nEstamos te aguardando por aqui. \u{1F49A}\n\nConfirmar agendamento?\nResponda com Sim ou Nao.";
+const WHATSAPP_CONFIRMATION_PROMPT = "Confirmar agendamento?\nResponda com Sim ou Nao.";
 
 function normalizeString(value) {
   return typeof value === "string" ? value.trim() : "";
@@ -46,7 +47,13 @@ function normalizeReminderTemplate(value) {
     normalized.includes("{{data}}") &&
     normalized.includes("{{horario}}");
 
-  return hasRequiredVariables ? normalized : DEFAULT_WHATSAPP_REMINDER_TEMPLATE;
+  if (!hasRequiredVariables) {
+    return DEFAULT_WHATSAPP_REMINDER_TEMPLATE;
+  }
+
+  return normalized.includes("Confirmar agendamento?")
+    ? normalized
+    : `${normalized}\n\n${WHATSAPP_CONFIRMATION_PROMPT}`;
 }
 
 function buildSettingsPayload(settings) {

@@ -10,6 +10,17 @@ import { useSettingsQuery } from "@/hooks/use-settings-query";
 
 const WHATSAPP_REMINDER_TEMPLATE =
   "Oie {{cliente_nome}}!\n\nAqui e a equipe da {{nome_organizacao}}.\n\nPassando para te lembrar do seu horario de {{servico_nome}}.\n\nData: {{data}}\nHorario: {{horario}}\n\nEstamos te aguardando por aqui.\n\nConfirmar agendamento?\nResponda com Sim ou Nao.";
+const WHATSAPP_CONFIRMATION_PROMPT = "Confirmar agendamento?\nResponda com Sim ou Nao.";
+
+function appendConfirmationPrompt(template: string) {
+  const normalized = template.trim();
+
+  if (!normalized) {
+    return WHATSAPP_REMINDER_TEMPLATE;
+  }
+
+  return normalized.includes("Confirmar agendamento?") ? normalized : `${normalized}\n\n${WHATSAPP_CONFIRMATION_PROMPT}`;
+}
 
 function WhatsappBadgeIcon() {
   return (
@@ -50,7 +61,7 @@ function ShieldNoteIcon() {
 }
 
 function buildPreviewMessage(template: string, organizationName: string) {
-  return (template.trim() || WHATSAPP_REMINDER_TEMPLATE)
+  return appendConfirmationPrompt(template.trim() || WHATSAPP_REMINDER_TEMPLATE)
     .replace(/\{\{cliente_nome\}\}/g, "Cliente")
     .replace(/\{\{nome_organizacao\}\}/g, organizationName || "AgendaPro")
     .replace(/\{\{servico_nome\}\}/g, "Atendimento")
