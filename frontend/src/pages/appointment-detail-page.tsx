@@ -16,6 +16,20 @@ import type {
   AppointmentPaymentStatus,
 } from "@/services/appointmentService";
 
+function formatCurrencyValue(value?: number | string | null) {
+  const numericValue =
+    typeof value === "number" ? value : typeof value === "string" ? Number(value) : Number.NaN;
+
+  if (!Number.isFinite(numericValue)) {
+    return "";
+  }
+
+  return numericValue.toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
 export function AppointmentDetailPage() {
   const navigate = useNavigate();
   const { appointmentId } = useParams();
@@ -59,7 +73,7 @@ export function AppointmentDetailPage() {
       data: appointment?.data ?? "",
       horarioInicial: appointment?.horarioInicial ?? "",
       horarioFinal: appointment?.horarioFinal ?? "",
-      valor: appointment ? String(appointment.valor) : "",
+      valor: appointment ? formatCurrencyValue(appointment.valor) : "",
       status: appointment?.status ?? "pendente",
       paymentStatus: appointment?.paymentStatus ?? "pendente",
       observacoes: appointment?.observacoes ?? "",

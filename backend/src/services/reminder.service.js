@@ -12,7 +12,9 @@ import { sendWhatsappMessage } from "./whatsapp.service.js";
 
 const VALID_REPLY_STATUS = ["pendente", "confirmado", "cancelado", "sem_resposta"];
 const DEFAULT_WHATSAPP_REMINDER_TEMPLATE =
-  "Oie {{cliente_nome}}! \u{1F44B}\n\nAqui e a equipe da {{nome_organizacao}}.\n\nPassando para te lembrar do seu horario de {{servico_nome}}.\n\n\u{1F4C5} Data: {{data}}\n\u23F0 Horario: {{horario}}\n\nEstamos te aguardando por aqui. \u{1F49A}";
+  "Oie {{cliente_nome}}! \u{1F44B}\n\nAqui e a equipe da {{nome_organizacao}}.\n\nPassando para te lembrar do seu horario de {{servico_nome}}.\n\n\u{1F4C5} Data: {{data}}\n\u23F0 Horario: {{horario}}\n\nEstamos te aguardando por aqui. \u{1F49A}\n\nConfirmar agendamento?\nResponda com Sim ou Nao.";
+const WHATSAPP_CONFIRMATION_PROMPT = "Confirmar agendamento?\nResponda com Sim ou Nao.";
+const LEGACY_WHATSAPP_CONFIRMATION_PROMPT = "Responda com 1 para confirmar ou 2 para cancelar.";
 
 function buildError(message, statusCode) {
   const error = new Error(message);
@@ -42,6 +44,15 @@ function buildScheduledAt(appointment) {
   return `${appointment.data}T${appointment.horario_inicial}:00`;
 }
 
+function formatDateBR(date) {
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return date ?? "";
+  }
+
+  const [year, month, day] = date.split("-");
+  return `${day}/${month}/${year}`;
+}
+
 function normalizeReminderTemplate(template) {
   const normalized = typeof template === "string" ? template.trim() : "";
 
@@ -55,7 +66,16 @@ function normalizeReminderTemplate(template) {
     normalized.includes("{{data}}") &&
     normalized.includes("{{horario}}");
 
-  return hasRequiredVariables ? normalized : DEFAULT_WHATSAPP_REMINDER_TEMPLATE;
+  if (!hasRequiredVariables) {
+    return DEFAULT_WHATSAPP_REMINDER_TEMPLATE;
+  }
+
+  const withoutLegacyPrompt = normalized
+    .replace(LEGACY_WHATSAPP_CONFIRMATION_PROMPT, "")
+    .replace(WHATSAPP_CONFIRMATION_PROMPT, "")
+    .trim();
+
+  return `${withoutLegacyPrompt}\n\n${WHATSAPP_CONFIRMATION_PROMPT}`;
 }
 
 function buildReminderStatus(appointment) {
@@ -139,8 +159,7 @@ function buildReminderMessage({ appointment, settings }) {
     .replaceAll("{{nome_organizacao}}", organizationName)
     .replaceAll("{{servico_nome}}", appointment.servico_nome)
     .replaceAll("{{horario}}", appointment.horario_inicial)
-    .replaceAll("{{data}}", appointment.data)
-    .concat("\n\nConfirmar agendamento?\nResponda com Sim ou Nao.");
+    .replaceAll("{{data}}", formatDateBR(appointment.data));
 }
 
 function isReminderDue({ appointment, settings, now }) {

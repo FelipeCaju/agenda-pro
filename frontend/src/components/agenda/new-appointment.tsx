@@ -78,6 +78,20 @@ function formatCurrencyInput(value: string) {
   });
 }
 
+function formatCurrencyValue(value?: number | string | null) {
+  const numericValue =
+    typeof value === "number" ? value : typeof value === "string" ? Number(value) : Number.NaN;
+
+  if (!Number.isFinite(numericValue)) {
+    return "";
+  }
+
+  return numericValue.toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
 function parseCurrencyInput(value: string) {
   if (!value.trim()) {
     return undefined;
@@ -140,10 +154,17 @@ export function NewAppointment({
     [services, values.servicoId],
   );
   const availableProfessionals = useMemo(
-    () =>
-      values.servicoId
-        ? professionals.filter((professional) => professional.serviceIds.includes(values.servicoId))
-        : [],
+    () => {
+      if (!values.servicoId) {
+        return [];
+      }
+
+      const linkedProfessionals = professionals.filter((professional) =>
+        professional.serviceIds.includes(values.servicoId),
+      );
+
+      return linkedProfessionals.length ? linkedProfessionals : professionals;
+    },
     [professionals, values.servicoId],
   );
 
@@ -159,7 +180,7 @@ export function NewAppointment({
 
       return {
         ...current,
-        valor: formatCurrencyInput(String(selectedService.valorPadrao)),
+        valor: formatCurrencyValue(selectedService.valorPadrao),
       };
     });
   }, [selectedService]);
@@ -376,7 +397,7 @@ export function NewAppointment({
               value={values.professionalId}
             >
               {!availableProfessionals.length ? (
-                <option value="">Nenhum funcionario vinculado a este servico</option>
+                <option value="">Nenhum profissional cadastrado</option>
               ) : availableProfessionals.length === 1 ? (
                 <option value={availableProfessionals[0].id}>{availableProfessionals[0].nome}</option>
               ) : (
