@@ -643,10 +643,18 @@ export function SettingsPage() {
           </label>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            <Button onClick={() => navigate("/configuracoes/whatsapp")} type="button" variant="secondary">
+            <Button
+              className="border-emerald-600 bg-emerald-500 text-white hover:bg-emerald-600 focus:ring-emerald-100"
+              onClick={() => navigate("/configuracoes/whatsapp")}
+              type="button"
+            >
               Configurar WhatsApp
             </Button>
-            <Button onClick={() => navigate("/configuracoes/orcamentos")} type="button" variant="secondary">
+            <Button
+              className="border-slate-300 bg-slate-500 text-white hover:bg-slate-600 focus:ring-slate-200"
+              onClick={() => navigate("/configuracoes/orcamentos")}
+              type="button"
+            >
               Configurar orcamentos
             </Button>
           </div>
