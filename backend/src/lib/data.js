@@ -2457,10 +2457,11 @@ export async function updateAppointmentForOrganization(organizationId, appointme
     {
       cliente_id: input.cliente_id,
       cliente_nome: input.cliente_nome,
-      cliente_email: input.cliente_email || null,
+      cliente_email:
+        input.cliente_email === undefined ? undefined : input.cliente_email || null,
       servico_id: input.servico_id,
       servico_nome: input.servico_nome,
-      servico_cor: input.servico_cor || null,
+      servico_cor: input.servico_cor === undefined ? undefined : input.servico_cor || null,
       profissional_id: input.profissional_id === undefined ? undefined : input.profissional_id || null,
       profissional_nome: input.profissional_nome === undefined ? undefined : input.profissional_nome || null,
       data: input.data,
@@ -2469,7 +2470,7 @@ export async function updateAppointmentForOrganization(organizationId, appointme
       valor: input.valor === undefined ? undefined : Number(input.valor),
       status: input.status,
       payment_status: input.payment_status,
-      observacoes: input.observacoes || null,
+      observacoes: input.observacoes === undefined ? undefined : input.observacoes || null,
       confirmacao_cliente: input.confirmacao_cliente,
       lembrete_enviado: input.lembrete_enviado === undefined ? undefined : input.lembrete_enviado ? 1 : 0,
       lembrete_confirmado: input.lembrete_confirmado === undefined ? undefined : input.lembrete_confirmado ? 1 : 0,
@@ -2478,7 +2479,8 @@ export async function updateAppointmentForOrganization(organizationId, appointme
         input.data_envio_lembrete === undefined
           ? undefined
           : toMysqlDateTime(input.data_envio_lembrete),
-      resposta_whatsapp: input.resposta_whatsapp === undefined ? undefined : input.resposta_whatsapp || null,
+      resposta_whatsapp:
+        input.resposta_whatsapp === undefined ? undefined : input.resposta_whatsapp || null,
       quote_id: input.quote_id === undefined ? undefined : input.quote_id || null,
       service_order_id:
         input.service_order_id === undefined ? undefined : input.service_order_id || null,
