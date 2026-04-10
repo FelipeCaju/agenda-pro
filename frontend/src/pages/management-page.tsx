@@ -24,7 +24,7 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
-const SYSTEM_VERSION = "1.0.0.2";
+const SYSTEM_VERSION = "1.0.0.3";
 const SYSTEM_UPDATED_AT = "10/04/2026";
 
 export function ManagementPage() {
