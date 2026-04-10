@@ -1,5 +1,6 @@
 import type { Appointment } from "@/services/appointmentService";
 import { formatTimeRange } from "@/utils/agenda";
+import { getAppointmentServiceLabel } from "@/utils/appointment";
 import { Card } from "@/components/ui/card";
 
 type AppointmentCardProps = {
@@ -97,7 +98,7 @@ export function AppointmentCard({
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <h3 className="truncate text-[1.05rem] font-semibold tracking-[-0.02em] text-ink">
-                {appointment.servicoNome}
+                {getAppointmentServiceLabel(appointment)}
               </h3>
             </div>
 

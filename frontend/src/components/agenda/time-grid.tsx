@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { cn } from "@/utils/cn";
 import type { BlockedSlot } from "@/services/blockedSlotService";
 import type { Appointment } from "@/services/appointmentService";
+import { getAppointmentServiceLabel } from "@/utils/appointment";
 import { formatTimeRange, getTodayDate } from "@/utils/agenda";
 
 const HOUR_ROW_HEIGHT = 76;
@@ -199,7 +200,7 @@ function AppointmentBlock({
     >
       <div className="flex h-full min-h-0 flex-col justify-between gap-1">
         <div className="min-h-0">
-          <p className="truncate text-sm font-semibold text-white">{appointment.servicoNome}</p>
+          <p className="truncate text-sm font-semibold text-white">{getAppointmentServiceLabel(appointment)}</p>
           {!isTiny ? (
             <p className="truncate text-[12px] font-medium text-white/92">{appointment.clienteNome}</p>
           ) : null}

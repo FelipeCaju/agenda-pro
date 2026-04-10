@@ -5,6 +5,7 @@ import type {
 } from "@/services/appointmentService";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { getAppointmentServiceLabel } from "@/utils/appointment";
 import { formatDateBR } from "@/utils/date";
 
 type AppointmentDetailProps = {
@@ -58,7 +59,7 @@ export function AppointmentDetail({
     <Card>
       <p className="text-xs uppercase tracking-[0.24em] text-brand-600">Detalhes</p>
       <h2 className="mt-2 text-xl font-semibold text-ink">{appointment.clienteNome}</h2>
-      <p className="mt-2 text-sm text-slate-500">{appointment.servicoNome}</p>
+      <p className="mt-2 text-sm text-slate-500">{getAppointmentServiceLabel(appointment)}</p>
       {appointment.profissionalNome ? (
         <p className="mt-1 text-sm text-slate-500">Profissional: {appointment.profissionalNome}</p>
       ) : null}

@@ -4,6 +4,7 @@ import {
   getMonthGrid,
   groupAppointmentsByDate,
 } from "@/utils/agenda";
+import { getAppointmentServiceLabel } from "@/utils/appointment";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/utils/cn";
 
@@ -102,7 +103,9 @@ export function MonthView({ appointments, selectedDate, onOpenDate }: MonthViewP
                         className="rounded-[16px] border border-slate-200/80 bg-white/90 px-3 py-2 shadow-[0_8px_18px_rgba(15,23,42,0.05)]"
                         key={appointment.id}
                       >
-                        <p className="truncate text-sm font-semibold text-ink">{appointment.servicoNome}</p>
+                        <p className="truncate text-sm font-semibold text-ink">
+                          {getAppointmentServiceLabel(appointment)}
+                        </p>
                         <p className="mt-1 truncate text-xs text-slate-500">
                           {appointment.horarioInicial} • {appointment.clienteNome}
                         </p>
