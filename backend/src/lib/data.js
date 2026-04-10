@@ -603,6 +603,44 @@ function mapAppointment(row) {
   };
 }
 
+function hydrateAppointmentServiceData(appointment, servicesById) {
+  if (!appointment) {
+    return null;
+  }
+
+  const service = servicesById.get(appointment.servico_id);
+
+  if (!service) {
+    return appointment;
+  }
+
+  return {
+    ...appointment,
+    servico_nome: appointment.servico_nome || service.nome,
+    servico_cor: appointment.servico_cor || service.cor || "",
+  };
+}
+
+async function enrichAppointmentsWithServiceData(organizationId, appointments) {
+  if (!appointments?.length) {
+    return appointments;
+  }
+
+  const services = await listServicesByOrganization(organizationId);
+  const servicesById = new Map(services.map((service) => [service.id, service]));
+
+  return appointments.map((appointment) => hydrateAppointmentServiceData(appointment, servicesById));
+}
+
+async function enrichAppointmentWithServiceData(organizationId, appointment) {
+  if (!appointment) {
+    return null;
+  }
+
+  const [enriched] = await enrichAppointmentsWithServiceData(organizationId, [appointment]);
+  return enriched;
+}
+
 function mapAppSettings(row) {
   if (!row) {
     return null;
@@ -2267,7 +2305,7 @@ export async function listAllAppointmentsByOrganization(organizationId) {
     [organizationId],
   );
 
-  return rows.map(mapAppointment);
+  return enrichAppointmentsWithServiceData(organizationId, rows.map(mapAppointment));
 }
 
 export async function listDashboardAppointmentsByOrganization(
@@ -2307,7 +2345,7 @@ export async function listDashboardAppointmentsByOrganization(
     params,
   );
 
-  return rows.map(mapAppointment);
+  return enrichAppointmentsWithServiceData(organizationId, rows.map(mapAppointment));
 }
 
 export async function listAppointmentsByOrganization(
@@ -2337,7 +2375,7 @@ export async function listAppointmentsByOrganization(
         [organizationId, range.start, range.end],
       );
 
-  return rows.map(mapAppointment);
+  return enrichAppointmentsWithServiceData(organizationId, rows.map(mapAppointment));
 }
 
 export async function listUpcomingAppointmentsByOrganization(
@@ -2374,13 +2412,13 @@ export async function listUpcomingAppointmentsByOrganization(
         [organizationId, start, end],
       );
 
-  return rows.map(mapAppointment);
+  return enrichAppointmentsWithServiceData(organizationId, rows.map(mapAppointment));
 }
 
 export async function getAppointmentByIdForOrganization(organizationId, appointmentId) {
   await ensureInitialized();
   const rows = await query("SELECT * FROM appointments WHERE organization_id = ? AND id = ? LIMIT 1", [organizationId, appointmentId]);
-  return mapAppointment(rows[0]);
+  return enrichAppointmentWithServiceData(organizationId, mapAppointment(rows[0]));
 }
 
 export async function autoCancelStaleAppointmentsForOrganization(organizationId) {

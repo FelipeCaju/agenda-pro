@@ -5,9 +5,13 @@ export function getAppointmentServiceColor(appointment: Pick<Appointment, "servi
   return normalized || "#1d8cf8";
 }
 
-export function getAppointmentServiceLabel(appointment: Pick<Appointment, "servicoNome" | "lembreteConfirmado" | "confirmacaoCliente">) {
+export function getAppointmentServiceLabel(
+  appointment: Pick<Appointment, "servicoNome" | "status" | "lembreteConfirmado" | "confirmacaoCliente">,
+) {
   const isConfirmed =
-    appointment.lembreteConfirmado || appointment.confirmacaoCliente === "confirmado";
+    appointment.status === "confirmado" ||
+    appointment.lembreteConfirmado ||
+    appointment.confirmacaoCliente === "confirmado";
 
   return isConfirmed ? `${appointment.servicoNome} - Confirmado` : appointment.servicoNome;
 }
