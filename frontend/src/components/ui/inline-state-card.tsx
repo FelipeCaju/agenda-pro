@@ -10,8 +10,8 @@ export function InlineStateCard({
   message,
 }: InlineStateCardProps) {
   return (
-    <Card className={tone === "error" ? "border-rose-100 bg-rose-50/80" : undefined}>
-      <p className={tone === "error" ? "text-sm text-rose-700" : "text-sm text-slate-500"}>
+    <Card className={tone === "error" ? "app-message-error" : "app-message-neutral"}>
+      <p className={tone === "error" ? "text-sm font-medium text-rose-700" : "text-sm font-medium text-slate-600"}>
         {message}
       </p>
     </Card>

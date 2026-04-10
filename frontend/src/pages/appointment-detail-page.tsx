@@ -176,7 +176,7 @@ export function AppointmentDetailPage() {
       </Button>
 
       {successMessage ? (
-        <Card className="border-emerald-100 bg-emerald-50/80">
+        <Card className="app-message-success">
           <p className="text-sm font-medium text-emerald-700">{successMessage}</p>
         </Card>
       ) : null}

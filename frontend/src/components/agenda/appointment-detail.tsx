@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type {
   Appointment,
   AppointmentDeleteScope,
@@ -5,6 +6,7 @@ import type {
 } from "@/services/appointmentService";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { getAppointmentServiceLabel } from "@/utils/appointment";
 import { formatDateBR } from "@/utils/date";
 
@@ -24,91 +26,105 @@ export function AppointmentDetail({
   onPaymentStatusChange,
 }: AppointmentDetailProps) {
   const isRecurring = Boolean(appointment.recurrenceSeriesId && appointment.recurrenceType !== "none");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   async function handleDelete() {
-    if (isRecurring) {
-      const deleteSeries = window.confirm(
-        "Este agendamento faz parte de uma repeticao. Clique em OK para excluir toda a serie ou Cancelar para escolher apenas este registro.",
-      );
+    setDeleteDialogOpen(true);
+  }
 
-      if (deleteSeries) {
-        await onDelete("series");
-        return;
-      }
-
-      const deleteOnlyThis = window.confirm("Excluir apenas este agendamento?");
-
-      if (!deleteOnlyThis) {
-        return;
-      }
-
-      await onDelete("single");
-      return;
-    }
-
-    const confirmed = window.confirm("Excluir este agendamento?");
-
-    if (!confirmed) {
-      return;
-    }
-
-    await onDelete("single");
+  async function handleDeleteScope(scope: AppointmentDeleteScope) {
+    await onDelete(scope);
+    setDeleteDialogOpen(false);
   }
 
   return (
-    <Card>
-      <p className="text-xs uppercase tracking-[0.24em] text-brand-600">Detalhes</p>
-      <h2 className="mt-2 text-xl font-semibold text-ink">{appointment.clienteNome}</h2>
-      <p className="mt-2 text-sm text-slate-500">{getAppointmentServiceLabel(appointment)}</p>
-      {appointment.profissionalNome ? (
-        <p className="mt-1 text-sm text-slate-500">Profissional: {appointment.profissionalNome}</p>
-      ) : null}
-      <p className="mt-1 text-sm text-slate-500">
-        {formatDateBR(appointment.data)} - {appointment.horarioInicial} - {appointment.horarioFinal}
-      </p>
-      {isRecurring ? (
+    <>
+      <Card>
+        <p className="text-xs uppercase tracking-[0.24em] text-brand-600">Detalhes</p>
+        <h2 className="mt-2 text-xl font-semibold text-ink">{appointment.clienteNome}</h2>
+        <p className="mt-2 text-sm text-slate-500">{getAppointmentServiceLabel(appointment)}</p>
+        {appointment.profissionalNome ? (
+          <p className="mt-1 text-sm text-slate-500">Profissional: {appointment.profissionalNome}</p>
+        ) : null}
         <p className="mt-1 text-sm text-slate-500">
-          Recorrencia:{" "}
-          {appointment.recurrenceType === "weekly"
-            ? "Semanal"
-            : appointment.recurrenceType === "biweekly"
-              ? "Quinzenal"
-              : "Mensal"}
+          {formatDateBR(appointment.data)} - {appointment.horarioInicial} - {appointment.horarioFinal}
         </p>
-      ) : null}
+        {isRecurring ? (
+          <p className="mt-1 text-sm text-slate-500">
+            Recorrencia:{" "}
+            {appointment.recurrenceType === "weekly"
+              ? "Semanal"
+              : appointment.recurrenceType === "biweekly"
+                ? "Quinzenal"
+                : "Mensal"}
+          </p>
+        ) : null}
 
-      <div className="mt-4 space-y-2 rounded-2xl border border-slate-100 bg-slate-50/80 px-4 py-4">
-        <p className="text-sm font-semibold text-ink">Situacao atual</p>
-        <p className="text-sm text-slate-600">
-          Pagamento: <strong className="text-ink">{appointment.paymentStatus === "pago" ? "Pago" : "Pendente"}</strong>
-        </p>
-        <p className="text-sm text-slate-600">
-          Atendimento: <strong className="text-ink">{appointment.status}</strong>
-        </p>
-      </div>
+        <div className="mt-4 space-y-2 rounded-2xl border border-slate-100 bg-slate-50/80 px-4 py-4">
+          <p className="text-sm font-semibold text-ink">Situacao atual</p>
+          <p className="text-sm text-slate-600">
+            Pagamento: <strong className="text-ink">{appointment.paymentStatus === "pago" ? "Pago" : "Pendente"}</strong>
+          </p>
+          <p className="text-sm text-slate-600">
+            Atendimento: <strong className="text-ink">{appointment.status}</strong>
+          </p>
+        </div>
 
-      <Button
-        className="mt-4 w-full"
-        disabled={isUpdatingPaymentStatus || appointment.paymentStatus === "pago"}
-        onClick={() => void onPaymentStatusChange("pago")}
-        type="button"
-      >
-        {appointment.paymentStatus === "pago"
-          ? "Pagamento ja realizado"
-          : isUpdatingPaymentStatus
-            ? "Registrando pagamento..."
-            : "Pagamento realizado"}
-      </Button>
+        <Button
+          className="mt-4 w-full"
+          disabled={isUpdatingPaymentStatus || appointment.paymentStatus === "pago"}
+          onClick={() => void onPaymentStatusChange("pago")}
+          type="button"
+        >
+          {appointment.paymentStatus === "pago"
+            ? "Pagamento ja realizado"
+            : isUpdatingPaymentStatus
+              ? "Registrando pagamento..."
+              : "Pagamento realizado"}
+        </Button>
 
-      <Button
-        className="mt-4 w-full"
-        disabled={isDeleting}
-        onClick={() => void handleDelete()}
-        type="button"
-        variant="danger"
-      >
-        {isDeleting ? "Excluindo..." : "Excluir agendamento"}
-      </Button>
-    </Card>
+        <Button
+          className="mt-4 w-full"
+          disabled={isDeleting}
+          onClick={() => void handleDelete()}
+          type="button"
+          variant="danger"
+        >
+          {isDeleting ? "Excluindo..." : "Excluir agendamento"}
+        </Button>
+      </Card>
+
+      <ConfirmationDialog
+        cancelAction={{
+          label: "Cancelar",
+          onClick: () => setDeleteDialogOpen(false),
+          variant: "secondary",
+          disabled: isDeleting,
+        }}
+        confirmAction={{
+          label: isRecurring ? "Excluir toda a serie" : "Excluir agendamento",
+          onClick: () => void handleDeleteScope(isRecurring ? "series" : "single"),
+          variant: "danger",
+          disabled: isDeleting,
+        }}
+        description={
+          isRecurring
+            ? "Este atendimento faz parte de uma repeticao. Voce pode remover toda a serie ou excluir apenas este horario sem afetar os demais."
+            : "Essa exclusao remove o atendimento da agenda e nao podera ser desfeita."
+        }
+        open={deleteDialogOpen}
+        secondaryAction={
+          isRecurring
+            ? {
+                label: "Excluir so este",
+                onClick: () => void handleDeleteScope("single"),
+                variant: "ghost",
+                disabled: isDeleting,
+              }
+            : undefined
+        }
+        title={isRecurring ? "Excluir serie de agendamentos?" : "Excluir agendamento?"}
+      />
+    </>
   );
 }
