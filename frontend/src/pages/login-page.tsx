@@ -222,12 +222,12 @@ export function LoginPage() {
         </form>
 
         <div className="mt-6 flex justify-center">
-          <div className="inline-flex max-w-full flex-nowrap items-center gap-2 overflow-hidden rounded-full border border-slate-200/80 bg-white/80 px-4 py-2 text-[11px] text-slate-500 shadow-[0_10px_24px_rgba(15,23,42,0.05)] sm:text-xs">
+          <div className="inline-flex max-w-full flex-nowrap items-center gap-1 overflow-hidden rounded-full border border-slate-200/80 bg-white/80 px-3 py-2 text-[11px] text-slate-500 shadow-[0_10px_24px_rgba(15,23,42,0.05)] sm:gap-1.5 sm:px-4 sm:text-xs">
             <span className="whitespace-nowrap font-semibold uppercase tracking-[0.18em] text-slate-400">Sistema</span>
             <span className="whitespace-nowrap text-slate-300">•</span>
             <span className="whitespace-nowrap font-medium text-slate-600">V {SYSTEM_VERSION}</span>
             <span className="whitespace-nowrap text-slate-300">•</span>
-            <span className="whitespace-nowrap">Atualizado em {SYSTEM_UPDATED_AT}</span>
+            <span className="whitespace-nowrap text-[10px] sm:text-xs">Atualizado em {SYSTEM_UPDATED_AT}</span>
           </div>
         </div>
       </Card>
