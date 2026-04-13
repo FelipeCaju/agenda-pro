@@ -113,10 +113,6 @@ export function SettingsPage() {
   const [horaInicioAgenda, setHoraInicioAgenda] = useState("08:00");
   const [horaFimAgenda, setHoraFimAgenda] = useState("18:00");
   const [permitirConflito, setPermitirConflito] = useState(false);
-  const [recurringWhatsappAutomatico, setRecurringWhatsappAutomatico] = useState(true);
-  const [recurringMarcarVencidoAutomaticamente, setRecurringMarcarVencidoAutomaticamente] =
-    useState(true);
-  const [recurringWhatsappTemplate, setRecurringWhatsappTemplate] = useState("");
   const { preferences: notificationPreferences, savePreferences } = useNotificationPreferences();
   const [appNotificationsEnabled, setAppNotificationsEnabled] = useState(notificationPreferences.enabled);
   const [appNotificationSoundEnabled, setAppNotificationSoundEnabled] = useState(
@@ -177,20 +173,12 @@ export function SettingsPage() {
     setHoraInicioAgenda(settings.horaInicioAgenda ?? "08:00");
     setHoraFimAgenda(settings.horaFimAgenda ?? "18:00");
     setPermitirConflito(Boolean(settings.permitirConflito));
-    setRecurringWhatsappAutomatico(settings.recurringWhatsappAutomatico !== false);
-    setRecurringMarcarVencidoAutomaticamente(
-      settings.recurringMarcarVencidoAutomaticamente !== false,
-    );
-    setRecurringWhatsappTemplate(settings.recurringWhatsappTemplate ?? "");
   }, [
     settings?.horaFimAgenda,
     settings?.horaInicioAgenda,
     settings?.id,
     settings?.nomeNegocio,
     settings?.permitirConflito,
-    settings?.recurringMarcarVencidoAutomaticamente,
-    settings?.recurringWhatsappAutomatico,
-    settings?.recurringWhatsappTemplate,
     settings?.subtitulo,
   ]);
 
@@ -319,23 +307,6 @@ export function SettingsPage() {
       });
 
       setSuccessMessage("Configuracoes principais atualizadas com sucesso.");
-    } catch {
-      return;
-    }
-  }
-
-  async function handleRecurringSettingsSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setAppValidationError(null);
-
-    try {
-      await updateSettings({
-        recurringWhatsappAutomatico,
-        recurringMarcarVencidoAutomaticamente,
-        recurringWhatsappTemplate: recurringWhatsappTemplate.trim() || null,
-      });
-
-      setSuccessMessage("Configuracoes de recorrencia atualizadas com sucesso.");
     } catch {
       return;
     }
@@ -671,7 +642,7 @@ export function SettingsPage() {
             </span>
           </label>
 
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-3">
             <Button
               className="border-emerald-600 bg-emerald-500 text-white hover:bg-emerald-600 focus:ring-emerald-100"
               onClick={() => navigate("/configuracoes/whatsapp")}
@@ -685,6 +656,13 @@ export function SettingsPage() {
               type="button"
             >
               Configurar orcamentos
+            </Button>
+            <Button
+              className="border-sky-300 bg-sky-500 text-white hover:bg-sky-600 focus:ring-sky-200"
+              onClick={() => navigate("/configuracoes/recorrencia")}
+              type="button"
+            >
+              Configurar recorrencia
             </Button>
           </div>
 
@@ -767,88 +745,6 @@ export function SettingsPage() {
             <p className="text-sm text-slate-500">Nenhum pagamento registrado para esta organizacao.</p>
           )}
         </div>
-      </Card>
-
-      <Card>
-        <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Recorrencia</p>
-        <h3 className="mt-1 text-lg font-semibold text-ink">Automacao de cobrancas recorrentes</h3>
-        <p className="mt-2 text-sm text-slate-500">
-          Essas preferencias controlam a geracao automatica do modulo de recorrencia sem misturar
-          mensalidades com a agenda tradicional.
-        </p>
-
-        <form className="mt-4 space-y-4" onSubmit={handleRecurringSettingsSubmit}>
-          <label className="app-toggle-panel">
-            <input
-              checked={recurringWhatsappAutomatico}
-              className="app-checkbox"
-              onChange={(event) => setRecurringWhatsappAutomatico(event.target.checked)}
-              type="checkbox"
-            />
-            <span>
-              <span className="block text-sm font-medium text-ink">
-                Enviar WhatsApp automatico das cobrancas geradas
-              </span>
-              <span className="block text-sm text-slate-500">
-                Usa a integracao atual do sistema para enviar o lembrete do dia.
-              </span>
-            </span>
-          </label>
-
-          <label className="app-toggle-panel">
-            <input
-              checked={recurringMarcarVencidoAutomaticamente}
-              className="app-checkbox"
-              onChange={(event) =>
-                setRecurringMarcarVencidoAutomaticamente(event.target.checked)
-              }
-              type="checkbox"
-            />
-            <span>
-              <span className="block text-sm font-medium text-ink">
-                Marcar cobrancas vencidas automaticamente
-              </span>
-              <span className="block text-sm text-slate-500">
-                Mantem o painel do modulo atualizado sem depender de baixa manual para cada atraso.
-              </span>
-            </span>
-          </label>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-ink" htmlFor="recurring-whatsapp-template">
-              Template padrao do WhatsApp
-            </label>
-            <textarea
-              className="app-input min-h-36 resize-y"
-              id="recurring-whatsapp-template"
-              onChange={(event) => setRecurringWhatsappTemplate(event.target.value)}
-              placeholder={
-                "Ola, {NOME_CLIENTE}! Este e um lembrete da sua cobranca referente a {NOME_SERVICO}."
-              }
-              value={recurringWhatsappTemplate}
-            />
-            <p className="text-sm text-slate-500">
-              Placeholders suportados: {"{NOME_CLIENTE}"}, {"{NOME_SERVICO}"}, {"{VALOR}"},{" "}
-              {"{DATA_VENCIMENTO}"}, {"{CHAVE_PIX}"} e {"{EMPRESA_NOME}"}.
-            </p>
-          </div>
-
-          {appErrorMessage ? <p className="text-sm text-rose-600">{appErrorMessage}</p> : null}
-
-          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-            <Button className="w-full sm:w-auto" disabled={isUpdatingSettings} type="submit">
-              {isUpdatingSettings ? "Salvando automacao..." : "Salvar configuracoes de recorrencia"}
-            </Button>
-            <Button
-              className="w-full sm:w-auto"
-              onClick={() => navigate("/recorrencia")}
-              type="button"
-              variant="secondary"
-            >
-              Abrir modulo de recorrencia
-            </Button>
-          </div>
-        </form>
       </Card>
 
       <Card>

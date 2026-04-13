@@ -66,6 +66,9 @@ const WhatsappSettingsPage = lazy(async () => ({
 const OrcamentosSettingsPage = lazy(async () => ({
   default: (await import("@/pages/orcamentos-settings-page")).OrcamentosSettingsPage,
 }));
+const RecurrenceSettingsPage = lazy(async () => ({
+  default: (await import("@/pages/recurrence-settings-page")).RecurrenceSettingsPage,
+}));
 const OrcamentosPage = lazy(async () => ({
   default: (await import("@/pages/orcamentos-page")).OrcamentosPage,
 }));
@@ -221,6 +224,10 @@ export const router = createBrowserRouter([
               {
                 path: "/configuracoes/orcamentos",
                 element: withRouteSuspense(<OrcamentosSettingsPage />),
+              },
+              {
+                path: "/configuracoes/recorrencia",
+                element: withRouteSuspense(<RecurrenceSettingsPage />),
               },
               { path: "/funcionarios", element: withRouteSuspense(<ProfessionalsPage />) },
               { path: "/lembretes", element: withRouteSuspense(<RemindersPage />) },

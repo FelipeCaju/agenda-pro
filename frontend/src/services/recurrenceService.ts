@@ -10,12 +10,8 @@ export type RecurringProfile = {
   valor: number;
   dataInicio: string;
   dataFim: string | null;
-  diaCobranca1: number;
-  diaCobranca2: number | null;
-  diaCobranca3: number | null;
-  diaCobranca4: number | null;
+  diaCobranca: number;
   chavePix: string;
-  mensagemWhatsappPersonalizada: string;
   observacoes: string;
   ativo: boolean;
   createdAt?: string;
@@ -29,12 +25,8 @@ export type RecurringProfileInput = {
   valor: number;
   dataInicio: string;
   dataFim?: string | null;
-  diaCobranca1: number;
-  diaCobranca2?: number | null;
-  diaCobranca3?: number | null;
-  diaCobranca4?: number | null;
+  diaCobranca: number;
   chavePix?: string;
-  mensagemWhatsappPersonalizada?: string;
   observacoes?: string;
   ativo?: boolean;
 };
@@ -162,12 +154,8 @@ function fromProfileApi(model: RecurringProfileApiModel): RecurringProfile {
     valor: Number(model.valor ?? 0),
     dataInicio: model.data_inicio,
     dataFim: model.data_fim ?? null,
-    diaCobranca1: Number(model.dia_cobranca_1),
-    diaCobranca2: model.dia_cobranca_2 === null ? null : Number(model.dia_cobranca_2),
-    diaCobranca3: model.dia_cobranca_3 === null ? null : Number(model.dia_cobranca_3),
-    diaCobranca4: model.dia_cobranca_4 === null ? null : Number(model.dia_cobranca_4),
+    diaCobranca: Number(model.dia_cobranca_1),
     chavePix: model.chave_pix ?? "",
-    mensagemWhatsappPersonalizada: model.mensagem_whatsapp_personalizada ?? "",
     observacoes: model.observacoes ?? "",
     ativo: Boolean(model.ativo),
     createdAt: model.created_at,
@@ -214,12 +202,11 @@ function toProfileApi(input: RecurringProfileInput) {
     valor: Number(input.valor),
     data_inicio: input.dataInicio,
     data_fim: input.dataFim?.trim() || null,
-    dia_cobranca_1: Number(input.diaCobranca1),
-    dia_cobranca_2: input.diaCobranca2 ? Number(input.diaCobranca2) : null,
-    dia_cobranca_3: input.diaCobranca3 ? Number(input.diaCobranca3) : null,
-    dia_cobranca_4: input.diaCobranca4 ? Number(input.diaCobranca4) : null,
+    dia_cobranca_1: Number(input.diaCobranca),
+    dia_cobranca_2: null,
+    dia_cobranca_3: null,
+    dia_cobranca_4: null,
     chave_pix: input.chavePix?.trim() ?? "",
-    mensagem_whatsapp_personalizada: input.mensagemWhatsappPersonalizada?.trim() ?? "",
     observacoes: input.observacoes?.trim() ?? "",
     ativo: input.ativo ?? true,
   };

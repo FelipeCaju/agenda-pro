@@ -8,6 +8,7 @@ import { InlineStateCard } from "@/components/ui/inline-state-card";
 import { useClientsQuery } from "@/hooks/use-clients-query";
 import { useRecurrenceMutations } from "@/hooks/use-recurrence-mutations";
 import { useRecurringProfileQuery } from "@/hooks/use-recurrence-query";
+import { useSettingsQuery } from "@/hooks/use-settings-query";
 import { useServicesQuery } from "@/hooks/use-services-query";
 import type { RecurringProfileInput } from "@/services/recurrenceService";
 
@@ -19,6 +20,7 @@ export function RecurrenceFormPage() {
   const { data: profile, error: profileError, isError, isLoading } = useRecurringProfileQuery(profileId);
   const { data: clients = [] } = useClientsQuery();
   const { data: services = [] } = useServicesQuery();
+  const { data: settings } = useSettingsQuery();
   const {
     createProfile,
     updateProfile,
@@ -36,16 +38,12 @@ export function RecurrenceFormPage() {
       valor: profile ? String(profile.valor) : "",
       dataInicio: profile?.dataInicio ?? new Date().toISOString().slice(0, 10),
       dataFim: profile?.dataFim ?? "",
-      diaCobranca1: profile?.diaCobranca1 ? String(profile.diaCobranca1) : "",
-      diaCobranca2: profile?.diaCobranca2 ? String(profile.diaCobranca2) : "",
-      diaCobranca3: profile?.diaCobranca3 ? String(profile.diaCobranca3) : "",
-      diaCobranca4: profile?.diaCobranca4 ? String(profile.diaCobranca4) : "",
-      chavePix: profile?.chavePix ?? "",
-      mensagemWhatsappPersonalizada: profile?.mensagemWhatsappPersonalizada ?? "",
+      diaCobranca: profile?.diaCobranca ? String(profile.diaCobranca) : "",
+      chavePix: profile?.chavePix ?? settings?.recurringChavePixPadrao ?? "",
       observacoes: profile?.observacoes ?? "",
       ativo: profile?.ativo ?? true,
     }),
-    [profile],
+    [profile, settings?.recurringChavePixPadrao],
   );
 
   async function handleSubmit(values: RecurringProfileInput) {
@@ -104,7 +102,7 @@ export function RecurrenceFormPage() {
         clients={clients}
         description={
           isEditing
-            ? "Ajuste vigencia, valor, dias de cobranca e mensagem sem encostar na agenda tradicional."
+            ? "Ajuste vigencia, valor e dia do pagamento sem encostar na agenda tradicional."
             : "Cadastre uma recorrencia usando clientes e servicos que ja existem no AgendaPro."
         }
         errorMessage={createProfileError?.message ?? updateProfileError?.message ?? null}

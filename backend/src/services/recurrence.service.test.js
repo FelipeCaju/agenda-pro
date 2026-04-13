@@ -17,7 +17,6 @@ test("normalizeRecurringInput aceita payload valido em camelCase", () => {
     valor: 150,
     dataInicio: "2026-04-10",
     diaCobranca1: 10,
-    diaCobranca2: 20,
     ativo: true,
   });
 
@@ -25,7 +24,7 @@ test("normalizeRecurringInput aceita payload valido em camelCase", () => {
   assert.equal(normalized.service_id, "service-1");
   assert.equal(normalized.valor, 150);
   assert.equal(normalized.dia_cobranca_1, 10);
-  assert.equal(normalized.dia_cobranca_2, 20);
+  assert.equal(normalized.dia_cobranca_2, null);
   assert.equal(normalized.ativo, true);
 });
 
@@ -38,7 +37,7 @@ test("normalizeRecurringInput rejeita payload sem dia de cobranca", () => {
         valor: 150,
         dataInicio: "2026-04-10",
       }),
-    /pelo menos um dia de cobranca/i,
+    /dia do pagamento/i,
   );
 });
 

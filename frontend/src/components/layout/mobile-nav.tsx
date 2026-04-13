@@ -112,7 +112,9 @@ export function MobileNav() {
   const { data: settings } = useSettingsQuery();
   const billingAlert = getBillingAlert(organization, payments);
   const visibleLinks = links.filter(
-    (link) => link.to !== "/orcamentos" || settings?.criarOrcamentos !== false,
+    (link) =>
+      (link.to !== "/orcamentos" || settings?.criarOrcamentos !== false) &&
+      (link.to !== "/recorrencia" || settings?.criarRecorrencias !== false),
   );
 
   return (

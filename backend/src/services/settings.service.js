@@ -6,7 +6,7 @@ import {
 const DEFAULT_WHATSAPP_REMINDER_TEMPLATE =
   "Oie {{cliente_nome}}! \u{1F44B}\n\nAqui e a equipe da {{nome_organizacao}}.\n\nPassando para te lembrar do seu horario de {{servico_nome}}.\n\n\u{1F4C5} Data: {{data}}\n\u23F0 Horario: {{horario}}\n\nEstamos te aguardando por aqui. \u{1F49A}\n\nConfirmar agendamento?\nResponda com Sim ou Nao.";
 const DEFAULT_RECURRING_WHATSAPP_TEMPLATE =
-  "Ola, {NOME_CLIENTE}!\nEste e um lembrete da sua cobranca referente a {NOME_SERVICO}.\nValor: R$ {VALOR}\nVencimento: {DATA_VENCIMENTO}\nChave Pix: {CHAVE_PIX}\nSe o pagamento ja foi realizado, desconsidere esta mensagem.\nObrigado!\n{EMPRESA_NOME}";
+  "Oie {NOME_CLIENTE}!\n\nAqui e a equipe da {EMPRESA_NOME}.\n\nPassando para te lembrar da sua cobranca de {NOME_SERVICO}.\n\nValor: R$ {VALOR}\nVencimento: {DATA_VENCIMENTO}\nChave Pix: {CHAVE_PIX}\n\nSe o pagamento ja foi realizado, pode desconsiderar esta mensagem.\nObrigada!";
 const WHATSAPP_CONFIRMATION_PROMPT = "Confirmar agendamento?\nResponda com Sim ou Nao.";
 const LEGACY_WHATSAPP_CONFIRMATION_PROMPT = "Responda com 1 para confirmar ou 2 para cancelar.";
 
@@ -81,6 +81,7 @@ function buildSettingsPayload(settings) {
     moeda: settings.moeda,
     timezone: settings.timezone,
     criar_orcamentos: Boolean(settings.criar_orcamentos),
+    criar_recorrencias: Boolean(settings.criar_recorrencias),
     permitir_conflito: Boolean(settings.permitir_conflito),
     lembretes_ativos: Boolean(settings.lembretes_ativos),
     lembrete_horas_antes: settings.lembrete_horas_antes,
@@ -93,6 +94,7 @@ function buildSettingsPayload(settings) {
     recurring_marcar_vencido_automaticamente: Boolean(
       settings.recurring_marcar_vencido_automaticamente,
     ),
+    recurring_chave_pix_padrao: settings.recurring_chave_pix_padrao ?? null,
     recurring_whatsapp_template: normalizeRecurringTemplate(settings.recurring_whatsapp_template),
     created_at: settings.created_at,
     updated_at: settings.updated_at,
@@ -196,6 +198,10 @@ export async function updateSettings({ organizationId, input }) {
       input.criar_orcamentos !== undefined || input.criarOrcamentos !== undefined
         ? normalizeBoolean(input.criar_orcamentos ?? input.criarOrcamentos)
         : undefined,
+    criar_recorrencias:
+      input.criar_recorrencias !== undefined || input.criarRecorrencias !== undefined
+        ? normalizeBoolean(input.criar_recorrencias ?? input.criarRecorrencias)
+        : undefined,
     permitir_conflito:
       input.permitir_conflito !== undefined || input.permitirConflito !== undefined
         ? normalizeBoolean(input.permitir_conflito ?? input.permitirConflito)
@@ -252,13 +258,12 @@ export async function updateSettings({ organizationId, input }) {
               input.recurringMarcarVencidoAutomaticamente,
           )
         : undefined,
-    recurring_whatsapp_template:
-      input.recurring_whatsapp_template !== undefined ||
-      input.recurringWhatsappTemplate !== undefined
-        ? normalizeRecurringTemplate(
-            input.recurring_whatsapp_template ?? input.recurringWhatsappTemplate,
-          )
+    recurring_chave_pix_padrao:
+      input.recurring_chave_pix_padrao !== undefined || input.recurringChavePixPadrao !== undefined
+        ? normalizeString(input.recurring_chave_pix_padrao ?? input.recurringChavePixPadrao)
         : undefined,
+    recurring_whatsapp_template:
+      undefined,
   });
 
   if (!updated) {

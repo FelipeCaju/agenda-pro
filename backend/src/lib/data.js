@@ -659,6 +659,7 @@ function mapAppSettings(row) {
     moeda: row.moeda,
     timezone: row.timezone,
     criar_orcamentos: toBoolean(row.criar_orcamentos ?? 1),
+    criar_recorrencias: toBoolean(row.criar_recorrencias ?? 1),
     permitir_conflito: toBoolean(row.permitir_conflito),
     lembretes_ativos: toBoolean(row.lembretes_ativos),
     lembrete_horas_antes: Number(row.lembrete_horas_antes),
@@ -673,6 +674,7 @@ function mapAppSettings(row) {
     recurring_marcar_vencido_automaticamente: toBoolean(
       row.recurring_marcar_vencido_automaticamente ?? 1,
     ),
+    recurring_chave_pix_padrao: row.recurring_chave_pix_padrao ?? null,
     recurring_whatsapp_template: row.recurring_whatsapp_template ?? null,
     created_at: normalizeDateTime(row.created_at),
     updated_at: normalizeDateTime(row.updated_at),
@@ -891,6 +893,13 @@ async function ensurePlatformSettingsInfrastructure() {
       );
     }
 
+    if (!(await hasColumn("app_settings", "criar_recorrencias"))) {
+      await execute(
+        `ALTER TABLE app_settings
+          ADD COLUMN criar_recorrencias TINYINT(1) NOT NULL DEFAULT 1 AFTER criar_orcamentos`,
+      );
+    }
+
     if (!(await hasColumn("app_settings", "recurring_whatsapp_automatico"))) {
       await execute(
         `ALTER TABLE app_settings
@@ -909,6 +918,13 @@ async function ensurePlatformSettingsInfrastructure() {
       await execute(
         `ALTER TABLE app_settings
           ADD COLUMN recurring_whatsapp_template TEXT NULL AFTER recurring_marcar_vencido_automaticamente`,
+      );
+    }
+
+    if (!(await hasColumn("app_settings", "recurring_chave_pix_padrao"))) {
+      await execute(
+        `ALTER TABLE app_settings
+          ADD COLUMN recurring_chave_pix_padrao VARCHAR(255) NULL AFTER recurring_whatsapp_template`,
       );
     }
   }
@@ -2477,6 +2493,7 @@ export async function updateAppSettingsByOrganization(organizationId, input) {
     "moeda",
     "timezone",
     "criar_orcamentos",
+    "criar_recorrencias",
     "permitir_conflito",
     "lembretes_ativos",
     "lembrete_horas_antes",
@@ -2489,6 +2506,7 @@ export async function updateAppSettingsByOrganization(organizationId, input) {
     "whatsapp_tempo_lembrete_minutos",
     "recurring_whatsapp_automatico",
     "recurring_marcar_vencido_automaticamente",
+    "recurring_chave_pix_padrao",
     "recurring_whatsapp_template",
   ]);
 

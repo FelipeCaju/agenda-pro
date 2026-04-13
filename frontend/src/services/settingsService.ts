@@ -14,6 +14,7 @@ export type AppSettings = {
   moeda: string;
   timezone: string;
   criarOrcamentos: boolean;
+  criarRecorrencias: boolean;
   permitirConflito: boolean;
   lembretesAtivos: boolean;
   lembreteHorasAntes: number;
@@ -24,6 +25,7 @@ export type AppSettings = {
   whatsappTempoLembreteMinutos?: number;
   recurringWhatsappAutomatico?: boolean;
   recurringMarcarVencidoAutomaticamente?: boolean;
+  recurringChavePixPadrao?: string | null;
   recurringWhatsappTemplate?: string | null;
   createdAt?: string;
   updatedAt?: string;
@@ -42,6 +44,7 @@ type AppSettingsApiModel = {
   moeda: string;
   timezone: string;
   criar_orcamentos: boolean;
+  criar_recorrencias: boolean;
   permitir_conflito: boolean;
   lembretes_ativos: boolean;
   lembrete_horas_antes: number;
@@ -52,6 +55,7 @@ type AppSettingsApiModel = {
   whatsapp_tempo_lembrete_minutos?: number;
   recurring_whatsapp_automatico?: boolean;
   recurring_marcar_vencido_automaticamente?: boolean;
+  recurring_chave_pix_padrao?: string | null;
   recurring_whatsapp_template?: string | null;
   created_at?: string;
   updated_at?: string;
@@ -71,6 +75,7 @@ function mapSettings(model: AppSettingsApiModel): AppSettings {
     moeda: model.moeda,
     timezone: model.timezone,
     criarOrcamentos: model.criar_orcamentos !== false,
+    criarRecorrencias: model.criar_recorrencias !== false,
     permitirConflito: Boolean(model.permitir_conflito),
     lembretesAtivos: Boolean(model.lembretes_ativos),
     lembreteHorasAntes: Number(model.lembrete_horas_antes ?? 24),
@@ -83,6 +88,7 @@ function mapSettings(model: AppSettingsApiModel): AppSettings {
     recurringMarcarVencidoAutomaticamente: Boolean(
       model.recurring_marcar_vencido_automaticamente,
     ),
+    recurringChavePixPadrao: model.recurring_chave_pix_padrao ?? null,
     recurringWhatsappTemplate: model.recurring_whatsapp_template ?? null,
     createdAt: model.created_at,
     updatedAt: model.updated_at,

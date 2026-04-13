@@ -1,5 +1,21 @@
 USE agendapro;
 
+SET @has_criar_recorrencias := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'app_settings'
+    AND COLUMN_NAME = 'criar_recorrencias'
+);
+SET @sql := IF(
+  @has_criar_recorrencias = 0,
+  'ALTER TABLE app_settings ADD COLUMN criar_recorrencias TINYINT(1) NOT NULL DEFAULT 1 AFTER criar_orcamentos',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
 SET @has_recurring_whatsapp_automatico := (
   SELECT COUNT(*)
   FROM INFORMATION_SCHEMA.COLUMNS
@@ -42,6 +58,22 @@ SET @has_recurring_whatsapp_template := (
 SET @sql := IF(
   @has_recurring_whatsapp_template = 0,
   'ALTER TABLE app_settings ADD COLUMN recurring_whatsapp_template TEXT NULL AFTER recurring_marcar_vencido_automaticamente',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @has_recurring_chave_pix_padrao := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'app_settings'
+    AND COLUMN_NAME = 'recurring_chave_pix_padrao'
+);
+SET @sql := IF(
+  @has_recurring_chave_pix_padrao = 0,
+  'ALTER TABLE app_settings ADD COLUMN recurring_chave_pix_padrao VARCHAR(255) NULL AFTER recurring_whatsapp_template',
   'SELECT 1'
 );
 PREPARE stmt FROM @sql;

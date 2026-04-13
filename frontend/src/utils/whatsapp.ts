@@ -72,6 +72,29 @@ export function buildQuoteWhatsappPreviewTemplate(organizationName: string) {
   });
 }
 
+export function buildRecurringWhatsappPreviewTemplate(
+  organizationName: string,
+  pixKey?: string | null,
+) {
+  const normalizedOrganizationName = organizationName.trim() || "AgendaPro";
+  const normalizedPixKey = pixKey?.trim() || "pix@empresa.com";
+
+  return [
+    "Oie Cliente!",
+    "",
+    `Aqui e a equipe da ${normalizedOrganizationName}.`,
+    "",
+    "Passando para te lembrar da sua cobranca de Servico mensal.",
+    "",
+    "Valor: R$ 150,00",
+    "Vencimento: 10/04/2026",
+    `Chave Pix: ${normalizedPixKey}`,
+    "",
+    "Se o pagamento ja foi realizado, pode desconsiderar esta mensagem.",
+    "Obrigada!",
+  ].join("\n");
+}
+
 export function buildQuoteWhatsappMessageFromQuote(
   quote: Orcamento,
   organizationName: string,

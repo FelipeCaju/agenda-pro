@@ -10,7 +10,7 @@ import {
 import { sendWhatsappMessage } from "./whatsapp.service.js";
 
 const DEFAULT_RECURRING_WHATSAPP_TEMPLATE =
-  "Ola, {NOME_CLIENTE}!\nEste e um lembrete da sua cobranca referente a {NOME_SERVICO}.\nValor: R$ {VALOR}\nVencimento: {DATA_VENCIMENTO}\nChave Pix: {CHAVE_PIX}\nSe o pagamento ja foi realizado, desconsidere esta mensagem.\nObrigado!\n{EMPRESA_NOME}";
+  "Oie {NOME_CLIENTE}!\n\nAqui e a equipe da {EMPRESA_NOME}.\n\nPassando para te lembrar da sua cobranca de {NOME_SERVICO}.\n\nValor: R$ {VALOR}\nVencimento: {DATA_VENCIMENTO}\nChave Pix: {CHAVE_PIX}\n\nSe o pagamento ja foi realizado, pode desconsiderar esta mensagem.\nObrigada!";
 
 function buildError(message, statusCode) {
   const error = new Error(message);
@@ -142,12 +142,7 @@ function mapRecurringCharge(row) {
 }
 
 function buildDays(profile) {
-  return [
-    profile.dia_cobranca_1,
-    profile.dia_cobranca_2,
-    profile.dia_cobranca_3,
-    profile.dia_cobranca_4,
-  ].filter((day) => day !== null && day !== undefined);
+  return profile.dia_cobranca_1 ? [profile.dia_cobranca_1] : [];
 }
 
 function buildTemplateMessage(template, data) {
@@ -173,9 +168,6 @@ function normalizeRecurringInput(input = {}, { partial = false } = {}) {
     dia_cobranca_3: input.dia_cobranca_3 ?? input.diaCobranca3,
     dia_cobranca_4: input.dia_cobranca_4 ?? input.diaCobranca4,
     chave_pix: normalizeString(input.chave_pix ?? input.chavePix),
-    mensagem_whatsapp_personalizada: normalizeString(
-      input.mensagem_whatsapp_personalizada ?? input.mensagemWhatsappPersonalizada,
-    ),
     observacoes: normalizeString(input.observacoes ?? input.notes),
     ativo: input.ativo,
   };
@@ -216,44 +208,25 @@ function normalizeRecurringInput(input = {}, { partial = false } = {}) {
     }
   }
 
-  const days = [
-    normalizeDay(normalized.dia_cobranca_1),
-    normalizeDay(normalized.dia_cobranca_2),
-    normalizeDay(normalized.dia_cobranca_3),
-    normalizeDay(normalized.dia_cobranca_4),
-  ];
+  const billingDay = normalizeDay(normalized.dia_cobranca_1);
+  const shouldValidateBillingDay =
+    !partial || input.dia_cobranca_1 !== undefined || input.diaCobranca1 !== undefined;
 
-  const shouldValidateDays =
-    !partial ||
-    input.dia_cobranca_1 !== undefined ||
-    input.diaCobranca1 !== undefined ||
-    input.dia_cobranca_2 !== undefined ||
-    input.diaCobranca2 !== undefined ||
-    input.dia_cobranca_3 !== undefined ||
-    input.diaCobranca3 !== undefined ||
-    input.dia_cobranca_4 !== undefined ||
-    input.diaCobranca4 !== undefined;
-
-  if (shouldValidateDays) {
-    if (!days.some((day) => Number.isInteger(day))) {
-      throw buildError("Informe pelo menos um dia de cobranca.", 400);
+  if (shouldValidateBillingDay) {
+    if (!Number.isInteger(billingDay)) {
+      throw buildError("Informe o dia do pagamento.", 400);
     }
 
-    for (const day of days) {
-      if (day === null) {
-        continue;
-      }
-
-      if (!Number.isInteger(day) || day < 1 || day > 31) {
-        throw buildError("Dias de cobranca devem estar entre 1 e 31.", 400);
-      }
+    if (billingDay < 1 || billingDay > 31) {
+      throw buildError("O dia do pagamento deve estar entre 1 e 31.", 400);
     }
   }
 
-  normalized.dia_cobranca_1 = days[0];
-  normalized.dia_cobranca_2 = days[1];
-  normalized.dia_cobranca_3 = days[2];
-  normalized.dia_cobranca_4 = days[3];
+  normalized.dia_cobranca_1 = shouldValidateBillingDay ? billingDay : undefined;
+  normalized.dia_cobranca_2 = shouldValidateBillingDay ? null : undefined;
+  normalized.dia_cobranca_3 = shouldValidateBillingDay ? null : undefined;
+  normalized.dia_cobranca_4 = shouldValidateBillingDay ? null : undefined;
+  normalized.mensagem_whatsapp_personalizada = "";
 
   if (normalized.data_inicio && normalized.data_fim && normalized.data_fim < normalized.data_inicio) {
     throw buildError("Data final nao pode ser menor que a data inicial.", 400);
@@ -338,10 +311,7 @@ async function buildChargeMessage({ organizationId, charge, profile }) {
     getAppSettingsByOrganization(organizationId),
     getOrganizationById(organizationId),
   ]);
-  const template =
-    normalizeString(profile?.mensagem_whatsapp_personalizada) ||
-    normalizeString(settings?.recurring_whatsapp_template) ||
-    DEFAULT_RECURRING_WHATSAPP_TEMPLATE;
+  const template = DEFAULT_RECURRING_WHATSAPP_TEMPLATE;
 
   return buildTemplateMessage(template, {
     clientName: charge.client_name,
@@ -492,9 +462,10 @@ export async function getRecurringProfile({ organizationId, profileId }) {
 
 export async function createRecurringProfile({ organizationId, input, createdByUserId = null }) {
   const normalized = normalizeRecurringInput(input);
-  const [client, service] = await Promise.all([
+  const [client, service, settings] = await Promise.all([
     getClientByIdForOrganization(organizationId, normalized.client_id),
     getServiceByIdForOrganization(organizationId, normalized.service_id),
+    getAppSettingsByOrganization(organizationId),
   ]);
 
   if (!client) {
@@ -507,6 +478,7 @@ export async function createRecurringProfile({ organizationId, input, createdByU
 
   const id = randomUUID();
   const descricao = normalized.descricao || service.nome;
+  const chavePix = normalized.chave_pix || settings?.recurring_chave_pix_padrao || null;
 
   await withTransaction(async (connection) => {
     await connection.execute(
@@ -526,11 +498,11 @@ export async function createRecurringProfile({ organizationId, input, createdByU
         normalized.data_inicio,
         normalized.data_fim || null,
         normalized.dia_cobranca_1,
-        normalized.dia_cobranca_2,
-        normalized.dia_cobranca_3,
-        normalized.dia_cobranca_4,
-        normalized.chave_pix || null,
-        normalized.mensagem_whatsapp_personalizada || null,
+        null,
+        null,
+        null,
+        chavePix,
+        null,
         normalized.observacoes || null,
         normalized.ativo ? 1 : 0,
         createdByUserId,
@@ -567,9 +539,10 @@ export async function updateRecurringProfile({
 
   normalizeRecurringInput(next);
 
-  const [client, service] = await Promise.all([
+  const [client, service, settings] = await Promise.all([
     getClientByIdForOrganization(organizationId, next.client_id),
     getServiceByIdForOrganization(organizationId, next.service_id),
+    getAppSettingsByOrganization(organizationId),
   ]);
 
   if (!client) {
@@ -579,6 +552,8 @@ export async function updateRecurringProfile({
   if (!service) {
     throw buildError("Servico da recorrencia nao encontrado.", 404);
   }
+
+  const chavePix = next.chave_pix || settings?.recurring_chave_pix_padrao || null;
 
   await withTransaction(async (connection) => {
     await connection.execute(
@@ -595,11 +570,11 @@ export async function updateRecurringProfile({
         next.data_inicio,
         next.data_fim || null,
         next.dia_cobranca_1,
-        next.dia_cobranca_2,
-        next.dia_cobranca_3,
-        next.dia_cobranca_4,
-        next.chave_pix || null,
-        next.mensagem_whatsapp_personalizada || null,
+        null,
+        null,
+        null,
+        chavePix,
+        null,
         next.observacoes || null,
         next.ativo ? 1 : 0,
         updatedByUserId,
@@ -961,7 +936,7 @@ async function generateChargeForProfile({
 async function markOverdueChargesForOrganization({ organizationId, targetDate }) {
   const settings = await getAppSettingsByOrganization(organizationId);
 
-  if (!settings?.recurring_marcar_vencido_automaticamente) {
+  if (!settings?.criar_recorrencias || !settings?.recurring_marcar_vencido_automaticamente) {
     return { updated: 0 };
   }
 
@@ -1000,6 +975,10 @@ export async function processRecurringAutomation({
         filters: { ativo: true },
       });
       const settings = await getAppSettingsByOrganization(organization.id);
+
+      if (!settings?.criar_recorrencias) {
+        continue;
+      }
 
       await markOverdueChargesForOrganization({
         organizationId: organization.id,

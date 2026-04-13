@@ -30,17 +30,6 @@ function getServiceName(services: BusinessService[], serviceId: string) {
   return services.find((service) => service.id === serviceId)?.nome ?? "Servico";
 }
 
-function formatDays(profile: RecurringProfile) {
-  return [
-    profile.diaCobranca1,
-    profile.diaCobranca2,
-    profile.diaCobranca3,
-    profile.diaCobranca4,
-  ]
-    .filter(Boolean)
-    .join(", ");
-}
-
 export function RecurrenceProfileList({
   items,
   clients,
@@ -93,7 +82,7 @@ export function RecurrenceProfileList({
                 </div>
                 <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-500">
                   <span>Inicio {profile.dataInicio}</span>
-                  <span>Dias {formatDays(profile)}</span>
+                  <span>Dia do pagamento {profile.diaCobranca}</span>
                   {profile.dataFim ? <span>Fim {profile.dataFim}</span> : <span>Sem data final</span>}
                 </div>
               </div>

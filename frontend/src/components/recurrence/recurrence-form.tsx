@@ -12,12 +12,8 @@ type RecurrenceFormValues = {
   valor: string;
   dataInicio: string;
   dataFim: string;
-  diaCobranca1: string;
-  diaCobranca2: string;
-  diaCobranca3: string;
-  diaCobranca4: string;
+  diaCobranca: string;
   chavePix: string;
-  mensagemWhatsappPersonalizada: string;
   observacoes: string;
   ativo: boolean;
 };
@@ -42,12 +38,8 @@ const EMPTY_VALUES: RecurrenceFormValues = {
   valor: "",
   dataInicio: new Date().toISOString().slice(0, 10),
   dataFim: "",
-  diaCobranca1: "",
-  diaCobranca2: "",
-  diaCobranca3: "",
-  diaCobranca4: "",
+  diaCobranca: "",
   chavePix: "",
-  mensagemWhatsappPersonalizada: "",
   observacoes: "",
   ativo: true,
 };
@@ -140,14 +132,7 @@ export function RecurrenceForm({
     event.preventDefault();
 
     const valor = parseCurrencyInput(values.valor);
-    const dias = [
-      values.diaCobranca1,
-      values.diaCobranca2,
-      values.diaCobranca3,
-      values.diaCobranca4,
-    ]
-      .map((value) => (value ? Number(value) : null))
-      .filter((value) => value !== null);
+    const diaCobranca = values.diaCobranca ? Number(values.diaCobranca) : Number.NaN;
 
     if (!values.clientId) {
       setFieldError("Selecione um cliente.");
@@ -169,13 +154,13 @@ export function RecurrenceForm({
       return;
     }
 
-    if (!dias.length) {
-      setFieldError("Informe pelo menos um dia de cobranca.");
+    if (!Number.isInteger(diaCobranca)) {
+      setFieldError("Informe o dia do pagamento.");
       return;
     }
 
-    if (dias.some((day) => Number(day) < 1 || Number(day) > 31)) {
-      setFieldError("Os dias de cobranca devem ficar entre 1 e 31.");
+    if (diaCobranca < 1 || diaCobranca > 31) {
+      setFieldError("O dia do pagamento deve ficar entre 1 e 31.");
       return;
     }
 
@@ -191,12 +176,8 @@ export function RecurrenceForm({
       valor: valor ?? 0,
       dataInicio: values.dataInicio,
       dataFim: values.dataFim || null,
-      diaCobranca1: Number(values.diaCobranca1),
-      diaCobranca2: values.diaCobranca2 ? Number(values.diaCobranca2) : null,
-      diaCobranca3: values.diaCobranca3 ? Number(values.diaCobranca3) : null,
-      diaCobranca4: values.diaCobranca4 ? Number(values.diaCobranca4) : null,
+      diaCobranca,
       chavePix: values.chavePix,
-      mensagemWhatsappPersonalizada: values.mensagemWhatsappPersonalizada,
       observacoes: values.observacoes,
       ativo: values.ativo,
     });
@@ -305,30 +286,22 @@ export function RecurrenceForm({
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-4">
-          {[
-            { field: "diaCobranca1", label: "Dia 1" },
-            { field: "diaCobranca2", label: "Dia 2" },
-            { field: "diaCobranca3", label: "Dia 3" },
-            { field: "diaCobranca4", label: "Dia 4" },
-          ].map((item) => (
-            <div className="space-y-2" key={item.field}>
-              <label className="text-sm font-medium text-ink" htmlFor={item.field}>
-                {item.label}
-              </label>
-              <input
-                className="app-input"
-                id={item.field}
-                max="31"
-                min="1"
-                onChange={(event) =>
-                  updateField(item.field as keyof RecurrenceFormValues, event.target.value)
-                }
-                type="number"
-                value={values[item.field as keyof RecurrenceFormValues] as string}
-              />
-            </div>
-          ))}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-ink" htmlFor="diaCobranca">
+            Dia do pagamento
+          </label>
+          <input
+            className="app-input"
+            id="diaCobranca"
+            max="31"
+            min="1"
+            onChange={(event) => updateField("diaCobranca", event.target.value)}
+            type="number"
+            value={values.diaCobranca}
+          />
+          <p className="text-sm text-slate-500">
+            Exemplo: `10` para gerar a cobranca todo dia 10 de cada mes.
+          </p>
         </div>
 
         <div className="space-y-2">
@@ -340,21 +313,6 @@ export function RecurrenceForm({
             id="chavePix"
             onChange={(event) => updateField("chavePix", event.target.value)}
             value={values.chavePix}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-ink" htmlFor="mensagem">
-            Mensagem personalizada do WhatsApp
-          </label>
-          <textarea
-            className="app-textarea"
-            id="mensagem"
-            onChange={(event) =>
-              updateField("mensagemWhatsappPersonalizada", event.target.value)
-            }
-            placeholder="Opcional. Se vazio, o template padrao do modulo sera usado."
-            value={values.mensagemWhatsappPersonalizada}
           />
         </div>
 
