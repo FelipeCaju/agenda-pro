@@ -14,6 +14,7 @@ import {
   getPaymentStatusLabel,
   getSubscriptionStatusLabel,
 } from "@/utils/billing";
+import { SYSTEM_UPDATED_AT, SYSTEM_VERSION } from "@/config/system-version";
 import { formatDateBR, formatMonthYearBR } from "@/utils/date";
 import { buildNavigationState } from "@/utils/navigation";
 
@@ -23,9 +24,6 @@ function formatCurrency(value: number) {
     currency: "BRL",
   }).format(value);
 }
-
-const SYSTEM_VERSION = "1.0.0.3";
-const SYSTEM_UPDATED_AT = "10/04/2026";
 
 export function ManagementPage() {
   const navigate = useNavigate();
