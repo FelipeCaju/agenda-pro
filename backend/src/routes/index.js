@@ -59,6 +59,22 @@ import {
   sendManualReminderController,
 } from "../controllers/reminders.controller.js";
 import {
+  cancelRecurringChargeController,
+  createRecurringProfileController,
+  deleteRecurringProfileController,
+  getRecurringChargeController,
+  getRecurringProfileController,
+  getRecurringSummaryController,
+  listChargesByRecurringProfileController,
+  listRecurringChargesController,
+  listRecurringProfilesController,
+  markRecurringChargeAsPaidController,
+  resendRecurringChargeWhatsappController,
+  runRecurringAutomationController,
+  toggleRecurringProfileActiveController,
+  updateRecurringProfileController,
+} from "../controllers/recurrence.controller.js";
+import {
   approveQuoteController,
   convertQuoteToServiceOrderController,
   createQuoteAppointmentDraftController,
@@ -183,6 +199,26 @@ router.post("/quotes/:quoteId/service-order", convertQuoteToServiceOrderControll
 router.get("/reminders", listReminders);
 router.post("/reminders/manual-send", sendManualReminderController);
 router.patch("/reminders/:appointmentId/reply", registerReminderReplyController);
+router.get("/recurring/summary", getRecurringSummaryController);
+router.get("/recurring/profiles", listRecurringProfilesController);
+router.get("/recurring/profiles/:profileId", getRecurringProfileController);
+router.post("/recurring/profiles", createRecurringProfileController);
+router.put("/recurring/profiles/:profileId", updateRecurringProfileController);
+router.patch("/recurring/profiles/:profileId/status", toggleRecurringProfileActiveController);
+router.delete("/recurring/profiles/:profileId", deleteRecurringProfileController);
+router.get(
+  "/recurring/profiles/:profileId/charges",
+  listChargesByRecurringProfileController,
+);
+router.get("/recurring/charges", listRecurringChargesController);
+router.get("/recurring/charges/:chargeId", getRecurringChargeController);
+router.patch("/recurring/charges/:chargeId/pay", markRecurringChargeAsPaidController);
+router.patch("/recurring/charges/:chargeId/cancel", cancelRecurringChargeController);
+router.post(
+  "/recurring/charges/:chargeId/resend-whatsapp",
+  resendRecurringChargeWhatsappController,
+);
+router.post("/recurring/run-daily", runRecurringAutomationController);
 router.get("/admin/platform-settings", getPlatformSettingsController);
 router.patch("/admin/platform-settings", updatePlatformSettingsController);
 router.get("/admin/organizations", listAdminOrganizationsController);

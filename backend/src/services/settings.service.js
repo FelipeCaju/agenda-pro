@@ -5,6 +5,8 @@ import {
 
 const DEFAULT_WHATSAPP_REMINDER_TEMPLATE =
   "Oie {{cliente_nome}}! \u{1F44B}\n\nAqui e a equipe da {{nome_organizacao}}.\n\nPassando para te lembrar do seu horario de {{servico_nome}}.\n\n\u{1F4C5} Data: {{data}}\n\u23F0 Horario: {{horario}}\n\nEstamos te aguardando por aqui. \u{1F49A}\n\nConfirmar agendamento?\nResponda com Sim ou Nao.";
+const DEFAULT_RECURRING_WHATSAPP_TEMPLATE =
+  "Ola, {NOME_CLIENTE}!\nEste e um lembrete da sua cobranca referente a {NOME_SERVICO}.\nValor: R$ {VALOR}\nVencimento: {DATA_VENCIMENTO}\nChave Pix: {CHAVE_PIX}\nSe o pagamento ja foi realizado, desconsidere esta mensagem.\nObrigado!\n{EMPRESA_NOME}";
 const WHATSAPP_CONFIRMATION_PROMPT = "Confirmar agendamento?\nResponda com Sim ou Nao.";
 const LEGACY_WHATSAPP_CONFIRMATION_PROMPT = "Responda com 1 para confirmar ou 2 para cancelar.";
 
@@ -60,6 +62,11 @@ function normalizeReminderTemplate(value) {
   return `${withoutLegacyPrompt}\n\n${WHATSAPP_CONFIRMATION_PROMPT}`;
 }
 
+function normalizeRecurringTemplate(value) {
+  const normalized = typeof value === "string" ? value.trim() : "";
+  return normalized || DEFAULT_RECURRING_WHATSAPP_TEMPLATE;
+}
+
 function buildSettingsPayload(settings) {
   return {
     id: settings.id,
@@ -82,6 +89,11 @@ function buildSettingsPayload(settings) {
     whatsapp_api_provider: settings.whatsapp_api_provider,
     whatsapp_instance_id: settings.whatsapp_instance_id,
     whatsapp_tempo_lembrete_minutos: settings.whatsapp_tempo_lembrete_minutos,
+    recurring_whatsapp_automatico: Boolean(settings.recurring_whatsapp_automatico),
+    recurring_marcar_vencido_automaticamente: Boolean(
+      settings.recurring_marcar_vencido_automaticamente,
+    ),
+    recurring_whatsapp_template: normalizeRecurringTemplate(settings.recurring_whatsapp_template),
     created_at: settings.created_at,
     updated_at: settings.updated_at,
   };
@@ -223,6 +235,28 @@ export async function updateSettings({ organizationId, input }) {
       input.whatsappTempoLembreteMinutos !== undefined
         ? normalizeInteger(
             input.whatsapp_tempo_lembrete_minutos ?? input.whatsappTempoLembreteMinutos,
+          )
+        : undefined,
+    recurring_whatsapp_automatico:
+      input.recurring_whatsapp_automatico !== undefined ||
+      input.recurringWhatsappAutomatico !== undefined
+        ? normalizeBoolean(
+            input.recurring_whatsapp_automatico ?? input.recurringWhatsappAutomatico,
+          )
+        : undefined,
+    recurring_marcar_vencido_automaticamente:
+      input.recurring_marcar_vencido_automaticamente !== undefined ||
+      input.recurringMarcarVencidoAutomaticamente !== undefined
+        ? normalizeBoolean(
+            input.recurring_marcar_vencido_automaticamente ??
+              input.recurringMarcarVencidoAutomaticamente,
+          )
+        : undefined,
+    recurring_whatsapp_template:
+      input.recurring_whatsapp_template !== undefined ||
+      input.recurringWhatsappTemplate !== undefined
+        ? normalizeRecurringTemplate(
+            input.recurring_whatsapp_template ?? input.recurringWhatsappTemplate,
           )
         : undefined,
   });

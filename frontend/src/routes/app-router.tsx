@@ -78,6 +78,15 @@ const ProfessionalsPage = lazy(async () => ({
 const RemindersPage = lazy(async () => ({
   default: (await import("@/pages/reminders-page")).RemindersPage,
 }));
+const RecurrencePage = lazy(async () => ({
+  default: (await import("@/pages/recurrence-page")).RecurrencePage,
+}));
+const RecurrenceFormPage = lazy(async () => ({
+  default: (await import("@/pages/recurrence-form-page")).RecurrenceFormPage,
+}));
+const RecurringChargesPage = lazy(async () => ({
+  default: (await import("@/pages/recurring-charges-page")).RecurringChargesPage,
+}));
 const NotFoundPage = lazy(async () => ({
   default: (await import("@/pages/not-found-page")).NotFoundPage,
 }));
@@ -215,6 +224,16 @@ export const router = createBrowserRouter([
               },
               { path: "/funcionarios", element: withRouteSuspense(<ProfessionalsPage />) },
               { path: "/lembretes", element: withRouteSuspense(<RemindersPage />) },
+              { path: "/recorrencia", element: withRouteSuspense(<RecurrencePage />) },
+              { path: "/recorrencia/nova", element: withRouteSuspense(<RecurrenceFormPage />) },
+              {
+                path: "/recorrencia/:profileId/editar",
+                element: withRouteSuspense(<RecurrenceFormPage />),
+              },
+              {
+                path: "/recorrencia/cobrancas",
+                element: withRouteSuspense(<RecurringChargesPage />),
+              },
             ],
           },
         ],

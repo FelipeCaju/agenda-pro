@@ -13,6 +13,7 @@ import { cn } from "@/utils/cn";
 
 const links = [
   { to: "/agenda", label: "Agenda", icon: "calendar" },
+  { to: "/recorrencia", label: "Recorrencia", icon: "money" },
   { to: "/orcamentos", label: "Orcamentos", icon: "receipt" },
   { to: "/clientes", label: "Clientes", icon: "users" },
   { to: "/servicos", label: "Servicos", icon: "scissors" },
@@ -49,6 +50,23 @@ function SidebarIcon({ icon }: { icon: (typeof links)[number]["icon"] }) {
 
   if (icon === "scissors") {
     return <ScissorsIcon className="h-5 w-5" />;
+  }
+
+  if (icon === "money") {
+    return (
+      <svg
+        className="h-5 w-5"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+        viewBox="0 0 24 24"
+      >
+        <path d="M12 4v16" />
+        <path d="M15.5 7.5c0-1.4-1.6-2.5-3.5-2.5s-3.5 1.1-3.5 2.5S10.1 10 12 10s3.5 1.1 3.5 2.5S13.9 15 12 15s-3.5-1.1-3.5-2.5" />
+      </svg>
+    );
   }
 
   if (icon === "grid") {

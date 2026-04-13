@@ -3,12 +3,14 @@ import { initDataStore } from "./lib/data.js";
 import { describeDatabaseTarget, verifyDatabaseConnection } from "./lib/database.js";
 import { loadEnvironment } from "./lib/env.js";
 import { ensureBillingInfrastructure } from "./repositories/billing.repository.js";
+import { processRecurringAutomation } from "./services/recurrence.service.js";
 import { processAutomaticReminders } from "./services/reminder.service.js";
 
 loadEnvironment();
 
 const PORT = Number(process.env.PORT ?? 3333);
 const REMINDER_INTERVAL_MS = 60_000;
+const RECURRING_INTERVAL_MS = 60_000;
 
 function startReminderScheduler() {
   let isRunning = false;
@@ -36,6 +38,32 @@ function startReminderScheduler() {
   }, REMINDER_INTERVAL_MS);
 }
 
+function startRecurringScheduler() {
+  let isRunning = false;
+
+  const runSweep = async () => {
+    if (isRunning) {
+      return;
+    }
+
+    isRunning = true;
+
+    try {
+      await processRecurringAutomation();
+    } catch (error) {
+      console.error("Falha ao processar cobrancas recorrentes.");
+      console.error(error.message ?? error);
+    } finally {
+      isRunning = false;
+    }
+  };
+
+  void runSweep();
+  setInterval(() => {
+    void runSweep();
+  }, RECURRING_INTERVAL_MS);
+}
+
 async function startServer() {
   try {
     await verifyDatabaseConnection();
@@ -56,6 +84,7 @@ async function startServer() {
     });
 
     startReminderScheduler();
+    startRecurringScheduler();
   } catch (error) {
     console.error("Falha ao iniciar o backend AgendaPro.");
     console.error(error.message);

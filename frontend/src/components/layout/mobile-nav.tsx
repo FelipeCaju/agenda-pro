@@ -9,6 +9,7 @@ import { cn } from "@/utils/cn";
 
 const links = [
   { to: "/agenda", label: "Agenda", icon: "calendar" },
+  { to: "/recorrencia", label: "Recorrencia", icon: "money" },
   { to: "/orcamentos", label: "Orcamentos", icon: "receipt" },
   { to: "/clientes", label: "Clientes", icon: "users" },
   { to: "/servicos", label: "Servicos", icon: "scissors" },
@@ -70,6 +71,15 @@ function NavIcon({ icon }: { icon: (typeof links)[number]["icon"] }) {
     );
   }
 
+  if (icon === "money") {
+    return (
+      <svg {...baseProps}>
+        <path d="M12 4v16" />
+        <path d="M15.5 7.5c0-1.4-1.6-2.5-3.5-2.5s-3.5 1.1-3.5 2.5S10.1 10 12 10s3.5 1.1 3.5 2.5S13.9 15 12 15s-3.5-1.1-3.5-2.5" />
+      </svg>
+    );
+  }
+
   if (icon === "grid") {
     return (
       <svg {...baseProps}>
@@ -109,9 +119,9 @@ export function MobileNav() {
     <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-slate-200 bg-white px-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-2 xl:hidden">
       <div
         className={cn(
-          "mx-auto max-w-3xl gap-1.5 rounded-[24px] bg-white p-2",
-          visibleLinks.length <= 5 ? "grid grid-cols-5" : "grid grid-cols-6",
+          "mx-auto max-w-3xl gap-1.5 rounded-[24px] bg-white p-2 grid",
         )}
+        style={{ gridTemplateColumns: `repeat(${visibleLinks.length}, minmax(0, 1fr))` }}
       >
         {visibleLinks.map((link) => (
           <NavLink
