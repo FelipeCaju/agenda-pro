@@ -52,6 +52,12 @@ export type OrcamentoAppointmentDraft = {
   quoteId: string;
   clientId: string;
   serviceId: string;
+  items: Array<{
+    id: string;
+    serviceId: string;
+    unitPrice: number;
+    totalPrice: number;
+  }>;
   notes: string;
 };
 
@@ -88,6 +94,12 @@ type OrcamentoAppointmentDraftApiModel = {
   quote_id: string;
   cliente_id: string;
   servico_id: string;
+  items?: Array<{
+    id: string;
+    servico_id: string;
+    valor_unitario: number;
+    valor_total: number;
+  }>;
   observacoes: string;
 };
 
@@ -217,6 +229,12 @@ export const orcamentoService = {
           quoteId: response.data.quote_id,
           clientId: response.data.cliente_id,
           serviceId: response.data.servico_id,
+          items: (response.data.items ?? []).map((item) => ({
+            id: item.id,
+            serviceId: item.servico_id,
+            unitPrice: Number(item.valor_unitario ?? 0),
+            totalPrice: Number(item.valor_total ?? 0),
+          })),
           notes: response.data.observacoes ?? "",
         } satisfies OrcamentoAppointmentDraft;
       },

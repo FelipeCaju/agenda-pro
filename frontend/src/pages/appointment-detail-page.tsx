@@ -68,17 +68,22 @@ export function AppointmentDetailPage() {
   const initialValues = useMemo(
     () => ({
       clienteId: appointment?.clienteId ?? "",
-      servicoId: appointment?.servicoId ?? "",
       professionalId: appointment?.profissionalId ?? "",
       data: appointment?.data ?? "",
       horarioInicial: appointment?.horarioInicial ?? "",
-      horarioFinal: appointment?.horarioFinal ?? "",
-      valor: appointment ? formatCurrencyValue(appointment.valor) : "",
+      valorTotal: appointment ? formatCurrencyValue(appointment.valor) : "",
       status: appointment?.status ?? "pendente",
       paymentStatus: appointment?.paymentStatus ?? "pendente",
       observacoes: appointment?.observacoes ?? "",
       quoteId: appointment?.quoteId ?? "",
       serviceOrderId: appointment?.serviceOrderId ?? "",
+      items:
+        appointment?.items.map((item) => ({
+          id: item.id,
+          serviceId: item.servicoId ?? "",
+          durationMinutes: String(item.duracaoMinutos ?? 0),
+          unitPrice: formatCurrencyValue(item.valorUnitario),
+        })) ?? [],
     }),
     [appointment],
   );

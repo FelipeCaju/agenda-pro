@@ -564,6 +564,27 @@ function mapProfessional(row) {
   };
 }
 
+function mapAppointmentItem(row) {
+  if (!row) {
+    return null;
+  }
+
+  return {
+    id: row.id,
+    organization_id: row.organization_id,
+    appointment_id: row.appointment_id,
+    servico_id: row.servico_id ?? null,
+    servico_nome: row.servico_nome,
+    servico_cor: row.servico_cor ?? "",
+    ordem: Number(row.ordem ?? 0),
+    duracao_minutos: Number(row.duracao_minutos ?? 0),
+    valor_unitario: Number(row.valor_unitario ?? 0),
+    valor_total: Number(row.valor_total ?? 0),
+    created_at: normalizeDateTime(row.created_at),
+    updated_at: normalizeDateTime(row.updated_at),
+  };
+}
+
 function mapAppointment(row) {
   if (!row) {
     return null;
@@ -584,6 +605,7 @@ function mapAppointment(row) {
     horario_inicial: stripSeconds(row.horario_inicial),
     horario_final: stripSeconds(row.horario_final),
     valor: Number(row.valor),
+    ajuste_valor: Number(row.ajuste_valor ?? 0),
     status: row.status,
     payment_status: row.payment_status ?? "pendente",
     observacoes: row.observacoes ?? "",
@@ -598,6 +620,7 @@ function mapAppointment(row) {
     recurrence_series_id: row.recurrence_series_id ?? null,
     recurrence_type: row.recurrence_type ?? "none",
     recurrence_index: Number(row.recurrence_index ?? 0),
+    items: [],
     created_at: normalizeDateTime(row.created_at),
     updated_at: normalizeDateTime(row.updated_at),
   };
@@ -608,17 +631,56 @@ function hydrateAppointmentServiceData(appointment, servicesById) {
     return null;
   }
 
-  const service = servicesById.get(appointment.servico_id);
+  const primaryItem = appointment.items?.[0] ?? null;
+  const primaryServiceId = appointment.servico_id ?? primaryItem?.servico_id ?? null;
+  const service = primaryServiceId ? servicesById.get(primaryServiceId) : null;
 
   if (!service) {
-    return appointment;
+    return {
+      ...appointment,
+      servico_id: appointment.servico_id ?? primaryItem?.servico_id ?? null,
+      servico_nome: appointment.servico_nome || primaryItem?.servico_nome || "",
+      servico_cor: appointment.servico_cor || primaryItem?.servico_cor || "",
+    };
   }
 
   return {
     ...appointment,
+    servico_id: appointment.servico_id ?? primaryItem?.servico_id ?? service.id,
     servico_nome: appointment.servico_nome || service.nome,
     servico_cor: appointment.servico_cor || service.cor || "",
+    items:
+      appointment.items?.map((item) => ({
+        ...item,
+        servico_cor: item.servico_cor || servicesById.get(item.servico_id)?.cor || "",
+      })) ?? [],
   };
+}
+
+async function listAppointmentItemsByAppointmentIds(organizationId, appointmentIds) {
+  if (!appointmentIds?.length) {
+    return new Map();
+  }
+
+  const placeholders = appointmentIds.map(() => "?").join(", ");
+  const rows = await query(
+    `SELECT * FROM appointment_items
+      WHERE organization_id = ?
+        AND appointment_id IN (${placeholders})
+      ORDER BY appointment_id ASC, ordem ASC, created_at ASC`,
+    [organizationId, ...appointmentIds],
+  );
+
+  const itemsByAppointmentId = new Map();
+
+  for (const row of rows) {
+    const item = mapAppointmentItem(row);
+    const currentItems = itemsByAppointmentId.get(item.appointment_id) ?? [];
+    currentItems.push(item);
+    itemsByAppointmentId.set(item.appointment_id, currentItems);
+  }
+
+  return itemsByAppointmentId;
 }
 
 async function enrichAppointmentsWithServiceData(organizationId, appointments) {
@@ -626,10 +688,22 @@ async function enrichAppointmentsWithServiceData(organizationId, appointments) {
     return appointments;
   }
 
+  const itemsByAppointmentId = await listAppointmentItemsByAppointmentIds(
+    organizationId,
+    appointments.map((appointment) => appointment.id),
+  );
   const services = await listServicesByOrganization(organizationId);
   const servicesById = new Map(services.map((service) => [service.id, service]));
 
-  return appointments.map((appointment) => hydrateAppointmentServiceData(appointment, servicesById));
+  return appointments.map((appointment) =>
+    hydrateAppointmentServiceData(
+      {
+        ...appointment,
+        items: itemsByAppointmentId.get(appointment.id) ?? [],
+      },
+      servicesById,
+    ),
+  );
 }
 
 async function enrichAppointmentWithServiceData(organizationId, appointment) {
@@ -1050,6 +1124,38 @@ async function ensurePlatformSettingsInfrastructure() {
 
 async function ensureQuotesInfrastructure() {
   await execute(
+    `CREATE TABLE IF NOT EXISTS appointment_items (
+      id CHAR(36) NOT NULL,
+      organization_id CHAR(36) NOT NULL,
+      appointment_id CHAR(36) NOT NULL,
+      servico_id CHAR(36) NULL,
+      servico_nome VARCHAR(160) NOT NULL,
+      servico_cor VARCHAR(20) NULL,
+      ordem INT NOT NULL DEFAULT 0,
+      duracao_minutos INT NOT NULL DEFAULT 0,
+      valor_unitario DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+      valor_total DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      KEY idx_appointment_items_org_appointment (organization_id, appointment_id, ordem),
+      KEY idx_appointment_items_org_service (organization_id, servico_id),
+      CONSTRAINT fk_appointment_items_appointment
+        FOREIGN KEY (appointment_id)
+        REFERENCES appointments (id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+  );
+
+  if (!(await hasColumn("appointments", "ajuste_valor"))) {
+    await execute(
+      `ALTER TABLE appointments
+        ADD COLUMN ajuste_valor DECIMAL(12,2) NOT NULL DEFAULT 0.00 AFTER valor`,
+    );
+  }
+
+  await execute(
     `CREATE TABLE IF NOT EXISTS quotes (
       id CHAR(36) NOT NULL,
       organization_id CHAR(36) NOT NULL,
@@ -1189,6 +1295,37 @@ async function ensureQuotesInfrastructure() {
         ADD COLUMN recurrence_index INT NOT NULL DEFAULT 0 AFTER recurrence_type`,
     );
   }
+
+  await execute(
+    `INSERT INTO appointment_items (
+      id,
+      organization_id,
+      appointment_id,
+      servico_id,
+      servico_nome,
+      servico_cor,
+      ordem,
+      duracao_minutos,
+      valor_unitario,
+      valor_total
+    )
+    SELECT
+      UUID(),
+      a.organization_id,
+      a.id,
+      a.servico_id,
+      a.servico_nome,
+      a.servico_cor,
+      0,
+      GREATEST(TIMESTAMPDIFF(MINUTE, a.horario_inicial, a.horario_final), 0),
+      a.valor,
+      a.valor
+    FROM appointments a
+    LEFT JOIN appointment_items ai
+      ON ai.organization_id = a.organization_id
+     AND ai.appointment_id = a.id
+    WHERE ai.id IS NULL`,
+  );
 }
 
 async function ensureRecurringInfrastructure() {
@@ -2558,8 +2695,15 @@ export async function listDashboardAppointmentsByOrganization(
   }
 
   if (serviceId && serviceId !== "all") {
-    conditions.push("servico_id = ?");
-    params.push(serviceId);
+    conditions.push(
+      `(servico_id = ? OR EXISTS (
+        SELECT 1 FROM appointment_items ai
+        WHERE ai.organization_id = appointments.organization_id
+          AND ai.appointment_id = appointments.id
+          AND ai.servico_id = ?
+      ))`,
+    );
+    params.push(serviceId, serviceId);
   }
 
   const rows = await query(
@@ -2665,50 +2809,85 @@ export async function autoCancelStaleAppointmentsForOrganization(organizationId)
   );
 }
 
+async function replaceAppointmentItems(connection, organizationId, appointmentId, items = []) {
+  await connection.execute(
+    `DELETE FROM appointment_items
+      WHERE organization_id = ? AND appointment_id = ?`,
+    [organizationId, appointmentId],
+  );
+
+  for (let index = 0; index < items.length; index += 1) {
+    const item = items[index];
+    await connection.execute(
+      `INSERT INTO appointment_items (
+        id, organization_id, appointment_id, servico_id, servico_nome, servico_cor,
+        ordem, duracao_minutos, valor_unitario, valor_total
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        item.id || randomUUID(),
+        organizationId,
+        appointmentId,
+        item.servico_id || null,
+        item.servico_nome,
+        item.servico_cor || null,
+        Number(item.ordem ?? index),
+        Number(item.duracao_minutos ?? 0),
+        Number(item.valor_unitario ?? 0),
+        Number(item.valor_total ?? 0),
+      ],
+    );
+  }
+}
+
 export async function createAppointmentForOrganization(organizationId, input) {
   await ensureInitialized();
   const id = randomUUID();
 
-  await execute(
-    `INSERT INTO appointments (
-      id, organization_id, cliente_id, cliente_nome, cliente_email,
-      servico_id, servico_nome, servico_cor, profissional_id, profissional_nome,
-      data, horario_inicial, horario_final,
-      valor, status, payment_status, observacoes, confirmacao_cliente, lembrete_enviado,
-      lembrete_confirmado, lembrete_cancelado, data_envio_lembrete, resposta_whatsapp,
-      quote_id, service_order_id, recurrence_series_id, recurrence_type, recurrence_index
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)` ,
-    [
-      id,
-      organizationId,
-      input.cliente_id,
-      input.cliente_nome,
-      input.cliente_email || null,
-      input.servico_id,
-      input.servico_nome,
-      input.servico_cor || null,
-      input.profissional_id || null,
-      input.profissional_nome || null,
-      input.data,
-      `${stripSeconds(input.horario_inicial)}:00`,
-      `${stripSeconds(input.horario_final)}:00`,
-      Number(input.valor),
-      input.status,
-      input.payment_status,
-      input.observacoes || null,
-      input.confirmacao_cliente,
-      input.lembrete_enviado ? 1 : 0,
-      input.lembrete_confirmado ? 1 : 0,
-      input.lembrete_cancelado ? 1 : 0,
-      toMysqlDateTime(input.data_envio_lembrete),
-      input.resposta_whatsapp || null,
-      input.quote_id || null,
-      input.service_order_id || null,
-      input.recurrence_series_id || null,
-      input.recurrence_type || "none",
-      Number(input.recurrence_index ?? 0),
-    ],
-  );
+  await withTransaction(async (connection) => {
+    await connection.execute(
+      `INSERT INTO appointments (
+        id, organization_id, cliente_id, cliente_nome, cliente_email,
+        servico_id, servico_nome, servico_cor, profissional_id, profissional_nome,
+        data, horario_inicial, horario_final,
+        valor, ajuste_valor, status, payment_status, observacoes, confirmacao_cliente, lembrete_enviado,
+        lembrete_confirmado, lembrete_cancelado, data_envio_lembrete, resposta_whatsapp,
+        quote_id, service_order_id, recurrence_series_id, recurrence_type, recurrence_index
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)` ,
+      [
+        id,
+        organizationId,
+        input.cliente_id,
+        input.cliente_nome,
+        input.cliente_email || null,
+        input.servico_id,
+        input.servico_nome,
+        input.servico_cor || null,
+        input.profissional_id || null,
+        input.profissional_nome || null,
+        input.data,
+        `${stripSeconds(input.horario_inicial)}:00`,
+        `${stripSeconds(input.horario_final)}:00`,
+        Number(input.valor),
+        Number(input.ajuste_valor ?? 0),
+        input.status,
+        input.payment_status,
+        input.observacoes || null,
+        input.confirmacao_cliente,
+        input.lembrete_enviado ? 1 : 0,
+        input.lembrete_confirmado ? 1 : 0,
+        input.lembrete_cancelado ? 1 : 0,
+        toMysqlDateTime(input.data_envio_lembrete),
+        input.resposta_whatsapp || null,
+        input.quote_id || null,
+        input.service_order_id || null,
+        input.recurrence_series_id || null,
+        input.recurrence_type || "none",
+        Number(input.recurrence_index ?? 0),
+      ],
+    );
+
+    await replaceAppointmentItems(connection, organizationId, id, input.items ?? []);
+  });
 
   return getAppointmentByIdForOrganization(organizationId, id);
 }
@@ -2730,6 +2909,7 @@ export async function updateAppointmentForOrganization(organizationId, appointme
       horario_inicial: input.horario_inicial === undefined ? undefined : `${stripSeconds(input.horario_inicial)}:00`,
       horario_final: input.horario_final === undefined ? undefined : `${stripSeconds(input.horario_final)}:00`,
       valor: input.valor === undefined ? undefined : Number(input.valor),
+      ajuste_valor: input.ajuste_valor === undefined ? undefined : Number(input.ajuste_valor),
       status: input.status,
       payment_status: input.payment_status,
       observacoes: input.observacoes === undefined ? undefined : input.observacoes || null,
@@ -2765,6 +2945,7 @@ export async function updateAppointmentForOrganization(organizationId, appointme
       "horario_inicial",
       "horario_final",
       "valor",
+      "ajuste_valor",
       "status",
       "payment_status",
       "observacoes",
@@ -2782,12 +2963,18 @@ export async function updateAppointmentForOrganization(organizationId, appointme
     ],
   );
 
-  if (statement) {
-    await execute(
-      `UPDATE appointments SET ${statement.sql} WHERE organization_id = ? AND id = ?`,
-      [...statement.params, organizationId, appointmentId],
-    );
-  }
+  await withTransaction(async (connection) => {
+    if (statement) {
+      await connection.execute(
+        `UPDATE appointments SET ${statement.sql} WHERE organization_id = ? AND id = ?`,
+        [...statement.params, organizationId, appointmentId],
+      );
+    }
+
+    if (input.items !== undefined) {
+      await replaceAppointmentItems(connection, organizationId, appointmentId, input.items);
+    }
+  });
 
   return getAppointmentByIdForOrganization(organizationId, appointmentId);
 }

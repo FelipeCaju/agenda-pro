@@ -152,6 +152,7 @@ function mapAppointment(model: AppointmentApiModel): Appointment {
     horarioInicial: model.horario_inicial,
     horarioFinal: model.horario_final,
     valor: Number(model.valor ?? 0),
+    ajusteValor: 0,
     status: model.status,
     paymentStatus: model.payment_status ?? "pendente",
     observacoes: model.observacoes ?? "",
@@ -166,6 +167,19 @@ function mapAppointment(model: AppointmentApiModel): Appointment {
     recurrenceSeriesId: model.recurrence_series_id ?? null,
     recurrenceType: model.recurrence_type ?? "none",
     recurrenceIndex: Number(model.recurrence_index ?? 0),
+    items: [
+      {
+        id: `${model.id}-dashboard-item`,
+        appointmentId: model.id,
+        servicoId: model.servico_id ?? null,
+        servicoNome: model.servico_nome,
+        servicoCor: normalizeServiceColor(model.servico_cor),
+        ordem: 0,
+        duracaoMinutos: 0,
+        valorUnitario: Number(model.valor ?? 0),
+        valorTotal: Number(model.valor ?? 0),
+      },
+    ],
     createdAt: model.created_at,
     updatedAt: model.updated_at,
   };

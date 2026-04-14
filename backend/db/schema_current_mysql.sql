@@ -175,6 +175,7 @@ CREATE TABLE IF NOT EXISTS appointments (
   horario_inicial TIME NOT NULL,
   horario_final TIME NOT NULL,
   valor DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  ajuste_valor DECIMAL(12,2) NOT NULL DEFAULT 0.00,
   status ENUM('pendente', 'confirmado', 'concluido', 'cancelado') NOT NULL DEFAULT 'pendente',
   payment_status ENUM('pendente', 'pago') NOT NULL DEFAULT 'pendente',
   observacoes TEXT NULL,
@@ -218,6 +219,29 @@ CREATE TABLE IF NOT EXISTS appointments (
     FOREIGN KEY (organization_id, profissional_id)
     REFERENCES professionals (organization_id, id)
     ON DELETE RESTRICT
+    ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS appointment_items (
+  id CHAR(36) NOT NULL,
+  organization_id CHAR(36) NOT NULL,
+  appointment_id CHAR(36) NOT NULL,
+  servico_id CHAR(36) NULL,
+  servico_nome VARCHAR(160) NOT NULL,
+  servico_cor VARCHAR(20) NULL,
+  ordem INT NOT NULL DEFAULT 0,
+  duracao_minutos INT NOT NULL DEFAULT 0,
+  valor_unitario DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  valor_total DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_appointment_items_org_appointment (organization_id, appointment_id, ordem),
+  KEY idx_appointment_items_org_service (organization_id, servico_id),
+  CONSTRAINT fk_appointment_items_appointment
+    FOREIGN KEY (appointment_id)
+    REFERENCES appointments (id)
+    ON DELETE CASCADE
     ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

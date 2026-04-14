@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { CalendarIcon, ChevronDownIcon, ClockIcon } from "@/components/ui/icons";
 import type {
   AppointmentInput,
+  AppointmentItemInput,
   AppointmentPaymentStatus,
   AppointmentStatus,
 } from "@/services/appointmentService";
@@ -12,20 +13,26 @@ import type { BusinessService } from "@/services/serviceService";
 import { getTodayDate } from "@/utils/agenda";
 import { formatDateBR } from "@/utils/date";
 
+type AppointmentFormItemValues = {
+  id: string;
+  serviceId: string;
+  durationMinutes: string;
+  unitPrice: string;
+};
+
 type NewAppointmentValues = {
   clienteId: string;
-  servicoId: string;
   professionalId: string;
   data: string;
   horarioInicial: string;
-  horarioFinal: string;
-  valor: string;
+  valorTotal: string;
   status: AppointmentStatus;
   paymentStatus: AppointmentPaymentStatus;
   observacoes: string;
   quoteId: string;
   serviceOrderId: string;
   repetir: "nao_repetir" | "semanal" | "quinzenal" | "mensal";
+  items: AppointmentFormItemValues[];
 };
 
 type NewAppointmentProps = {
@@ -46,19 +53,27 @@ type NewAppointmentProps = {
 
 const EMPTY_VALUES: NewAppointmentValues = {
   clienteId: "",
-  servicoId: "",
   professionalId: "",
   data: getTodayDate(),
   horarioInicial: "",
-  horarioFinal: "",
-  valor: "",
+  valorTotal: "",
   status: "pendente",
   paymentStatus: "pendente",
   observacoes: "",
   quoteId: "",
   serviceOrderId: "",
   repetir: "nao_repetir",
+  items: [],
 };
+
+function createEmptyDraftItem(): AppointmentFormItemValues {
+  return {
+    id: crypto.randomUUID(),
+    serviceId: "",
+    durationMinutes: "",
+    unitPrice: "",
+  };
+}
 
 function formatSummaryDate(date: string) {
   return date ? formatDateBR(date) : "--";
@@ -99,7 +114,7 @@ function parseCurrencyInput(value: string) {
 
   const normalized = value.replace(/\./g, "").replace(",", ".");
   const parsed = Number(normalized);
-  return Number.isFinite(parsed) ? parsed : NaN;
+  return Number.isFinite(parsed) ? parsed : Number.NaN;
 }
 
 function addMinutesToTime(time: string, minutesToAdd: number) {
@@ -114,11 +129,37 @@ function addMinutesToTime(time: string, minutesToAdd: number) {
   }
 
   const totalMinutes = hours * 60 + minutes + minutesToAdd;
-  const normalizedMinutes = ((totalMinutes % (24 * 60)) + 24 * 60) % (24 * 60);
-  const nextHours = String(Math.floor(normalizedMinutes / 60)).padStart(2, "0");
-  const nextMinutes = String(normalizedMinutes % 60).padStart(2, "0");
+
+  if (totalMinutes < 0 || totalMinutes > 24 * 60) {
+    return "";
+  }
+
+  const nextHours = String(Math.floor(totalMinutes / 60)).padStart(2, "0");
+  const nextMinutes = String(totalMinutes % 60).padStart(2, "0");
 
   return `${nextHours}:${nextMinutes}`;
+}
+
+function formatDuration(durationMinutes: number) {
+  const hours = Math.floor(durationMinutes / 60);
+  const minutes = durationMinutes % 60;
+
+  if (hours > 0 && minutes > 0) {
+    return `${hours}h ${minutes}min`;
+  }
+
+  if (hours > 0) {
+    return `${hours}h`;
+  }
+
+  return `${minutes}min`;
+}
+
+function formatCurrencyDisplay(value: number) {
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(value);
 }
 
 export function NewAppointment({
@@ -139,74 +180,88 @@ export function NewAppointment({
   const [values, setValues] = useState<NewAppointmentValues>({
     ...EMPTY_VALUES,
     ...initialValues,
+    items: initialValues?.items?.length ? initialValues.items : [],
   });
+  const [draftItem, setDraftItem] = useState<AppointmentFormItemValues>(createEmptyDraftItem());
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [fieldError, setFieldError] = useState<string | null>(null);
+  const [isTotalManuallyEdited, setIsTotalManuallyEdited] = useState(false);
 
   useEffect(() => {
+    const nextItems = initialValues?.items?.length ? initialValues.items : [];
+    const subtotal = nextItems.reduce((sum, item) => {
+      const unitPrice = parseCurrencyInput(item.unitPrice);
+      return sum + (Number.isFinite(unitPrice) ? unitPrice ?? 0 : 0);
+    }, 0);
+    const providedTotal = parseCurrencyInput(initialValues?.valorTotal ?? "");
+
     setValues({
       ...EMPTY_VALUES,
       ...initialValues,
+      items: nextItems,
     });
+    setDraftItem(createEmptyDraftItem());
+    setEditingItemId(null);
+    setIsTotalManuallyEdited(
+      providedTotal !== undefined && Number((providedTotal - subtotal).toFixed(2)) !== 0,
+    );
   }, [initialValues]);
 
-  const selectedService = useMemo(
-    () => services.find((service) => service.id === values.servicoId) ?? null,
-    [services, values.servicoId],
+  const subtotal = useMemo(
+    () =>
+      Number(
+        values.items
+          .reduce((sum, item) => sum + (parseCurrencyInput(item.unitPrice) ?? 0), 0)
+          .toFixed(2),
+      ),
+    [values.items],
   );
-  const availableProfessionals = useMemo(
-    () => {
-      if (!values.servicoId) {
-        return [];
-      }
-
-      const linkedProfessionals = professionals.filter((professional) =>
-        professional.serviceIds.includes(values.servicoId),
-      );
-
-      return linkedProfessionals.length ? linkedProfessionals : professionals;
-    },
-    [professionals, values.servicoId],
+  const totalDuration = useMemo(
+    () =>
+      values.items.reduce((sum, item) => {
+        const duration = Number(item.durationMinutes || 0);
+        return sum + (Number.isFinite(duration) ? duration : 0);
+      }, 0),
+    [values.items],
+  );
+  const computedEndTime = useMemo(
+    () => addMinutesToTime(values.horarioInicial, totalDuration),
+    [totalDuration, values.horarioInicial],
+  );
+  const selectedServiceIds = useMemo(
+    () => [...new Set(values.items.map((item) => item.serviceId).filter(Boolean))],
+    [values.items],
   );
 
-  useEffect(() => {
-    if (!selectedService) {
-      return;
+  const availableProfessionals = useMemo(() => {
+    if (!selectedServiceIds.length) {
+      return [];
     }
 
-    setValues((current) => {
-      if (current.valor) {
-        return current;
-      }
-
-      return {
-        ...current,
-        valor: formatCurrencyValue(selectedService.valorPadrao),
-      };
-    });
-  }, [selectedService]);
-
-  useEffect(() => {
-    if (!selectedService || !values.horarioInicial) {
-      return;
-    }
-
-    const nextEndTime = addMinutesToTime(
-      values.horarioInicial,
-      Number(selectedService.duracaoMinutos ?? 0),
+    const matchingAllServices = professionals.filter((professional) =>
+      selectedServiceIds.every((serviceId) => professional.serviceIds.includes(serviceId)),
     );
 
-    if (!nextEndTime || nextEndTime === values.horarioFinal) {
+    if (matchingAllServices.length) {
+      return matchingAllServices;
+    }
+
+    return professionals;
+  }, [professionals, selectedServiceIds]);
+
+  useEffect(() => {
+    if (isTotalManuallyEdited) {
       return;
     }
 
     setValues((current) => ({
       ...current,
-      horarioFinal: nextEndTime,
+      valorTotal: formatCurrencyValue(subtotal),
     }));
-  }, [selectedService, values.horarioInicial, values.horarioFinal]);
+  }, [isTotalManuallyEdited, subtotal]);
 
   useEffect(() => {
-    if (!values.servicoId) {
+    if (!selectedServiceIds.length) {
       setValues((current) => ({
         ...current,
         professionalId: "",
@@ -239,7 +294,7 @@ export function NewAppointment({
 
       return current;
     });
-  }, [availableProfessionals, values.servicoId]);
+  }, [availableProfessionals, selectedServiceIds]);
 
   function updateField<K extends keyof NewAppointmentValues>(
     field: K,
@@ -252,6 +307,101 @@ export function NewAppointment({
     setFieldError(null);
   }
 
+  function updateDraftItem(field: keyof AppointmentFormItemValues, value: string) {
+    setDraftItem((current) => {
+      const nextItem = {
+        ...current,
+        [field]: value,
+      };
+
+      if (field === "serviceId") {
+        const selectedService = services.find((service) => service.id === value);
+
+        if (selectedService) {
+          nextItem.durationMinutes = String(selectedService.duracaoMinutos ?? 0);
+          nextItem.unitPrice = formatCurrencyValue(selectedService.valorPadrao);
+        } else {
+          nextItem.durationMinutes = "";
+          nextItem.unitPrice = "";
+        }
+      }
+
+      return nextItem;
+    });
+
+    setFieldError(null);
+  }
+
+  function resetDraftItem() {
+    setDraftItem(createEmptyDraftItem());
+    setEditingItemId(null);
+  }
+
+  function validateDraftItem(item: AppointmentFormItemValues) {
+    const duration = Number(item.durationMinutes || 0);
+    const unitPrice = parseCurrencyInput(item.unitPrice);
+
+    if (!item.serviceId) {
+      return "Selecione o servico do item.";
+    }
+
+    if (!Number.isInteger(duration) || duration <= 0) {
+      return "A duracao do item deve ser maior que zero.";
+    }
+
+    if (!Number.isFinite(unitPrice) || (unitPrice ?? 0) < 0) {
+      return "O valor unitario do item e invalido.";
+    }
+
+    return null;
+  }
+
+  function saveDraftItem() {
+    const validationError = validateDraftItem(draftItem);
+
+    if (validationError) {
+      setFieldError(validationError);
+      return;
+    }
+
+    setValues((current) => {
+      const nextItems = editingItemId
+        ? current.items.map((item) => (item.id === editingItemId ? { ...draftItem } : item))
+        : [...current.items, { ...draftItem }];
+
+      return {
+        ...current,
+        items: nextItems,
+      };
+    });
+
+    resetDraftItem();
+    setFieldError(null);
+  }
+
+  function startEditingItem(itemId: string) {
+    const item = values.items.find((currentItem) => currentItem.id === itemId);
+
+    if (!item) {
+      return;
+    }
+
+    setDraftItem({ ...item });
+    setEditingItemId(itemId);
+    setFieldError(null);
+  }
+
+  function removeItem(itemId: string) {
+    setValues((current) => ({
+      ...current,
+      items: current.items.filter((item) => item.id !== itemId),
+    }));
+
+    if (editingItemId === itemId) {
+      resetDraftItem();
+    }
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -260,18 +410,8 @@ export function NewAppointment({
       return;
     }
 
-    if (!values.servicoId) {
-      setFieldError("Servico e obrigatorio.");
-      return;
-    }
-
     if (!values.data) {
       setFieldError("Data e obrigatoria.");
-      return;
-    }
-
-    if (availableProfessionals.length > 1 && !values.professionalId) {
-      setFieldError("Selecione o profissional responsavel.");
       return;
     }
 
@@ -280,36 +420,60 @@ export function NewAppointment({
       return;
     }
 
-    if (!values.horarioInicial || !values.horarioFinal) {
-      setFieldError("Horario inicial e final sao obrigatorios.");
+    if (!values.horarioInicial) {
+      setFieldError("Horario inicial e obrigatorio.");
       return;
     }
 
-    if (values.horarioFinal <= values.horarioInicial) {
-      setFieldError("Horario final deve ser maior que o inicial.");
+    if (editingItemId) {
+      setFieldError("Salve a edicao do item antes de salvar o agendamento.");
       return;
     }
 
-    const parsedValue = parseCurrencyInput(values.valor);
-
-    if (parsedValue !== undefined && (!Number.isFinite(parsedValue) || parsedValue < 0)) {
-      setFieldError("Valor invalido.");
+    if (!values.items.length) {
+      setFieldError("Adicione pelo menos um servico ao agendamento.");
       return;
     }
+
+    if (!computedEndTime) {
+      setFieldError("Nao foi possivel calcular o horario final.");
+      return;
+    }
+
+    if (availableProfessionals.length > 1 && !values.professionalId) {
+      setFieldError("Selecione o profissional responsavel.");
+      return;
+    }
+
+    const parsedTotal = parseCurrencyInput(values.valorTotal);
+
+    if (parsedTotal !== undefined && (!Number.isFinite(parsedTotal) || parsedTotal < 0)) {
+      setFieldError("Valor total invalido.");
+      return;
+    }
+
+    const normalizedItems: AppointmentItemInput[] = values.items.map((item) => ({
+      id: item.id,
+      serviceId: item.serviceId,
+      durationMinutes: Number(item.durationMinutes || 0),
+      unitPrice: parseCurrencyInput(item.unitPrice) ?? 0,
+      totalPrice: parseCurrencyInput(item.unitPrice) ?? 0,
+    }));
 
     await onSubmit({
       clienteId: values.clienteId,
-      servicoId: values.servicoId,
+      servicoId: normalizedItems[0].serviceId,
       professionalId: values.professionalId || null,
       data: values.data,
       horarioInicial: values.horarioInicial,
-      horarioFinal: values.horarioFinal,
-      valor: parsedValue,
+      horarioFinal: computedEndTime,
+      valor: parsedTotal ?? subtotal,
       status: values.status,
       paymentStatus: values.paymentStatus,
       observacoes: values.observacoes,
       quoteId: values.quoteId || null,
       serviceOrderId: values.serviceOrderId || null,
+      items: normalizedItems,
       recurrence:
         values.repetir === "semanal"
           ? { type: "weekly", count: 1 }
@@ -317,7 +481,7 @@ export function NewAppointment({
             ? { type: "biweekly", count: 1 }
             : values.repetir === "mensal"
               ? { type: "monthly", count: 1 }
-            : undefined,
+              : undefined,
     });
   }
 
@@ -336,6 +500,9 @@ export function NewAppointment({
 
     return "Nao repetir";
   }
+
+  const totalValue = parseCurrencyInput(values.valorTotal) ?? subtotal;
+  const adjustmentValue = Number((totalValue - subtotal).toFixed(2));
 
   return (
     <form className="space-y-5" id={formId} onSubmit={handleSubmit}>
@@ -367,26 +534,36 @@ export function NewAppointment({
         </div>
       </label>
 
-      <label className="block space-y-2">
-        <span className="text-sm font-medium text-ink">Servico</span>
-        <div className="relative">
-          <select
-            className="app-select appearance-none pr-10 text-base"
-            onChange={(event) => updateField("servicoId", event.target.value)}
-            value={values.servicoId}
-          >
-            <option value="">Nome do servico</option>
-            {services.map((service) => (
-              <option key={service.id} value={service.id}>
-                {service.nome}
-              </option>
-            ))}
-          </select>
-          <ChevronDownIcon className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-        </div>
-      </label>
+      <div className="grid grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] gap-2 sm:gap-3">
+        <label className="block min-w-0 space-y-2">
+          <span className="text-sm font-medium text-ink">Data</span>
+          <div className="relative">
+            <input
+              className="app-input px-3 pr-9 text-sm sm:px-4 sm:pr-11 sm:text-base"
+              min={getTodayDate()}
+              onChange={(event) => updateField("data", event.target.value)}
+              type="date"
+              value={values.data}
+            />
+            <CalendarIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 sm:right-4" />
+          </div>
+        </label>
 
-      {values.servicoId ? (
+        <label className="block min-w-0 space-y-2">
+          <span className="text-sm font-medium text-ink">Inicio</span>
+          <div className="relative">
+            <input
+              className="app-input px-3 pr-8 text-sm sm:px-4 sm:pr-10 sm:text-base"
+              onChange={(event) => updateField("horarioInicial", event.target.value)}
+              type="time"
+              value={values.horarioInicial}
+            />
+            <ClockIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 sm:right-4" />
+          </div>
+        </label>
+      </div>
+
+      {selectedServiceIds.length ? (
         <label className="block space-y-2">
           <span className="text-sm font-medium text-ink">Profissional</span>
           <div className="relative">
@@ -416,56 +593,212 @@ export function NewAppointment({
         </label>
       ) : null}
 
-      <div className="grid grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] gap-2 sm:gap-3">
-        <label className="block min-w-0 space-y-2">
-          <span className="text-sm font-medium text-ink">Data</span>
-          <div className="relative">
-            <input
-              className="app-input px-3 pr-9 text-sm sm:px-4 sm:pr-11 sm:text-base"
-              min={getTodayDate()}
-              onChange={(event) => updateField("data", event.target.value)}
-              type="date"
-              value={values.data}
-            />
-            <CalendarIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 sm:right-4" />
+      <div className="space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium text-ink">Servicos do atendimento</p>
+            <p className="text-sm text-slate-500">
+              Monte o atendimento com varios servicos sem criar duas agendas para o mesmo cliente.
+            </p>
           </div>
-        </label>
+        </div>
 
-        <label className="block min-w-0 space-y-2">
-          <span className="text-sm font-medium text-ink">Valor (R$)</span>
+        <Card className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-ink">
+              {editingItemId ? "Editando servico" : "Novo servico"}
+            </p>
+            {editingItemId ? (
+              <button
+                className="text-sm font-medium text-slate-500"
+                onClick={resetDraftItem}
+                type="button"
+              >
+                Cancelar edicao
+              </button>
+            ) : null}
+          </div>
+
+          <div className="grid gap-3 lg:grid-cols-[1.5fr_0.8fr_0.9fr]">
+            <label className="block space-y-2">
+              <span className="text-sm font-medium text-ink">Servico</span>
+              <div className="relative">
+                <select
+                  className="app-select appearance-none pr-10 text-base"
+                  onChange={(event) => updateDraftItem("serviceId", event.target.value)}
+                  value={draftItem.serviceId}
+                >
+                  <option value="">Selecione o servico</option>
+                  {services.map((service) => (
+                    <option key={service.id} value={service.id}>
+                      {service.nome}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDownIcon className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              </div>
+            </label>
+
+            <label className="block space-y-2">
+              <span className="text-sm font-medium text-ink">Duracao</span>
+              <input
+                className="app-input"
+                min="1"
+                onChange={(event) => updateDraftItem("durationMinutes", event.target.value)}
+                step="1"
+                type="number"
+                value={draftItem.durationMinutes}
+              />
+            </label>
+
+            <label className="block space-y-2">
+              <span className="text-sm font-medium text-ink">Valor unitario</span>
+              <input
+                className="app-input"
+                inputMode="numeric"
+                onChange={(event) => updateDraftItem("unitPrice", formatCurrencyInput(event.target.value))}
+                placeholder="0,00"
+                type="text"
+                value={draftItem.unitPrice}
+              />
+            </label>
+          </div>
+
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <button
+              className="rounded-full bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-700"
+              onClick={saveDraftItem}
+              type="button"
+            >
+              {editingItemId ? "Salvar edicao" : "Adicionar servico"}
+            </button>
+            {values.items.length > 0 ? (
+              <span className="self-center text-sm text-slate-500">
+                {values.items.length} {values.items.length === 1 ? "servico adicionado" : "servicos adicionados"}
+              </span>
+            ) : null}
+          </div>
+        </Card>
+
+        <Card className="overflow-hidden p-0">
+          {values.items.length === 0 ? (
+            <div className="px-4 py-6 text-sm text-slate-500">Nenhum servico adicionado ainda.</div>
+          ) : (
+            <>
+              <div className="overflow-x-auto hidden md:block">
+                <table className="min-w-full divide-y divide-slate-200">
+                  <thead className="bg-slate-50">
+                    <tr className="text-left text-xs uppercase tracking-[0.16em] text-slate-500">
+                      <th className="px-4 py-3 font-medium">Servico</th>
+                      <th className="px-4 py-3 font-medium">Duracao</th>
+                      <th className="px-4 py-3 font-medium">Unitario</th>
+                      <th className="px-4 py-3 font-medium">Total</th>
+                      <th className="px-4 py-3 font-medium text-right">Acoes</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 bg-white text-sm text-slate-600">
+                    {values.items.map((item) => {
+                      const service = services.find((currentService) => currentService.id === item.serviceId);
+                      const unitPrice = parseCurrencyInput(item.unitPrice) ?? 0;
+
+                      return (
+                        <tr key={item.id}>
+                          <td className="px-4 py-3">
+                            <div className="font-medium text-ink">{service?.nome ?? "Servico removido"}</div>
+                          </td>
+                          <td className="px-4 py-3">{formatDuration(Number(item.durationMinutes || 0))}</td>
+                          <td className="px-4 py-3">{formatCurrencyDisplay(unitPrice)}</td>
+                          <td className="px-4 py-3 font-medium text-ink">{formatCurrencyDisplay(unitPrice)}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex justify-end gap-3">
+                              <button
+                                className="text-sm font-medium text-brand-700"
+                                onClick={() => startEditingItem(item.id)}
+                                type="button"
+                              >
+                                Editar
+                              </button>
+                              <button
+                                className="text-sm font-medium text-rose-600"
+                                onClick={() => removeItem(item.id)}
+                                type="button"
+                              >
+                                Remover
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="space-y-3 p-4 md:hidden">
+                {values.items.map((item) => {
+                  const service = services.find((currentService) => currentService.id === item.serviceId);
+                  const unitPrice = parseCurrencyInput(item.unitPrice) ?? 0;
+
+                  return (
+                    <div className="rounded-2xl border border-slate-200 p-4" key={item.id}>
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-medium text-ink">{service?.nome ?? "Servico removido"}</p>
+                          <p className="mt-1 text-sm text-slate-500">
+                            {formatDuration(Number(item.durationMinutes || 0))}
+                          </p>
+                        </div>
+                        <p className="text-sm font-semibold text-ink">{formatCurrencyDisplay(unitPrice)}</p>
+                      </div>
+                      <div className="mt-4 flex gap-3">
+                        <button
+                          className="text-sm font-medium text-brand-700"
+                          onClick={() => startEditingItem(item.id)}
+                          type="button"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          className="text-sm font-medium text-rose-600"
+                          onClick={() => removeItem(item.id)}
+                          type="button"
+                        >
+                          Remover
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </Card>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="block space-y-2">
+          <span className="text-sm font-medium text-ink">Valor total da agenda</span>
           <input
             className="app-input text-base"
             inputMode="numeric"
-            onChange={(event) => updateField("valor", formatCurrencyInput(event.target.value))}
+            onChange={(event) => {
+              setIsTotalManuallyEdited(true);
+              updateField("valorTotal", formatCurrencyInput(event.target.value));
+            }}
             placeholder="0,00"
             type="text"
-            value={values.valor}
+            value={values.valorTotal}
           />
         </label>
-      </div>
 
-      <div className="grid grid-cols-2 gap-2 sm:gap-3">
-        <label className="block min-w-0 space-y-2">
-          <span className="text-sm font-medium text-ink">Inicio</span>
+        <label className="block space-y-2">
+          <span className="text-sm font-medium text-ink">Horario final calculado</span>
           <div className="relative">
             <input
-              className="app-input px-3 pr-8 text-sm sm:px-4 sm:pr-10 sm:text-base"
-              onChange={(event) => updateField("horarioInicial", event.target.value)}
+              className="app-input bg-slate-50 px-3 pr-8 text-sm text-slate-500 sm:px-4 sm:pr-10 sm:text-base"
+              readOnly
               type="time"
-              value={values.horarioInicial}
-            />
-            <ClockIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 sm:right-4" />
-          </div>
-        </label>
-
-        <label className="block min-w-0 space-y-2">
-          <span className="text-sm font-medium text-ink">Fim</span>
-          <div className="relative">
-            <input
-              className="app-input px-3 pr-8 text-sm sm:px-4 sm:pr-10 sm:text-base"
-              onChange={(event) => updateField("horarioFinal", event.target.value)}
-              type="time"
-              value={values.horarioFinal}
+              value={computedEndTime}
             />
             <ClockIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 sm:right-4" />
           </div>
@@ -538,8 +871,16 @@ export function NewAppointment({
                 "--"}
             </p>
           ) : null}
-          <p>Horario: {values.horarioInicial || "--"} - {values.horarioFinal || "--"}</p>
-          <p>Valor: R$ {(parseCurrencyInput(values.valor) ?? 0).toFixed(2)}</p>
+          <p>Horario: {values.horarioInicial || "--"} - {computedEndTime || "--"}</p>
+          <p>Duracao total: {totalDuration > 0 ? formatDuration(totalDuration) : "--"}</p>
+          <p>Subtotal dos servicos: {formatCurrencyDisplay(subtotal)}</p>
+          {adjustmentValue !== 0 ? (
+            <p>
+              Ajuste no total: {adjustmentValue > 0 ? "+" : ""}
+              {formatCurrencyDisplay(adjustmentValue)}
+            </p>
+          ) : null}
+          <p className="text-base font-semibold">Total final: {formatCurrencyDisplay(totalValue)}</p>
         </div>
       </Card>
 

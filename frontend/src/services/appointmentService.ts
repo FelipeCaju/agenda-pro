@@ -10,6 +10,18 @@ export type AgendaView = "day" | "week" | "month";
 export type AppointmentStatus = "pendente" | "confirmado" | "concluido" | "cancelado";
 export type AppointmentPaymentStatus = "pendente" | "pago";
 
+export type AppointmentItem = {
+  id: string;
+  appointmentId?: string;
+  servicoId: string | null;
+  servicoNome: string;
+  servicoCor: string;
+  ordem: number;
+  duracaoMinutos: number;
+  valorUnitario: number;
+  valorTotal: number;
+};
+
 export type Appointment = {
   id: string;
   organizationId?: string;
@@ -25,6 +37,7 @@ export type Appointment = {
   horarioInicial: string;
   horarioFinal: string;
   valor: number;
+  ajusteValor: number;
   status: AppointmentStatus;
   paymentStatus: AppointmentPaymentStatus;
   observacoes: string;
@@ -39,8 +52,17 @@ export type Appointment = {
   recurrenceSeriesId: string | null;
   recurrenceType: "none" | "weekly" | "biweekly" | "monthly";
   recurrenceIndex: number;
+  items: AppointmentItem[];
   createdAt?: string;
   updatedAt?: string;
+};
+
+export type AppointmentItemInput = {
+  id?: string;
+  serviceId: string;
+  durationMinutes: number;
+  unitPrice: number;
+  totalPrice?: number;
 };
 
 export type AppointmentInput = {
@@ -57,6 +79,7 @@ export type AppointmentInput = {
   confirmacaoCliente?: string;
   quoteId?: string | null;
   serviceOrderId?: string | null;
+  items?: AppointmentItemInput[];
   recurrence?: {
     type: "none" | "weekly" | "biweekly" | "monthly";
     count: number;
@@ -96,6 +119,7 @@ type AppointmentApiModel = {
   horario_inicial: string;
   horario_final: string;
   valor: number;
+  ajuste_valor?: number;
   status: AppointmentStatus;
   payment_status: AppointmentPaymentStatus;
   observacoes?: string | null;
@@ -110,11 +134,54 @@ type AppointmentApiModel = {
   recurrence_series_id?: string | null;
   recurrence_type?: "none" | "weekly" | "biweekly" | "monthly";
   recurrence_index?: number;
+  items?: AppointmentItemApiModel[];
   created_at?: string;
   updated_at?: string;
 };
 
+type AppointmentItemApiModel = {
+  id: string;
+  appointment_id?: string;
+  servico_id: string | null;
+  servico_nome: string;
+  servico_cor?: string | null;
+  ordem?: number;
+  duracao_minutos: number;
+  valor_unitario: number;
+  valor_total: number;
+};
+
+function fromApiItem(model: AppointmentItemApiModel): AppointmentItem {
+  return {
+    id: model.id,
+    appointmentId: model.appointment_id,
+    servicoId: model.servico_id ?? null,
+    servicoNome: model.servico_nome,
+    servicoCor: normalizeServiceColor(model.servico_cor),
+    ordem: Number(model.ordem ?? 0),
+    duracaoMinutos: Number(model.duracao_minutos ?? 0),
+    valorUnitario: Number(model.valor_unitario ?? 0),
+    valorTotal: Number(model.valor_total ?? 0),
+  };
+}
+
 function fromApi(model: AppointmentApiModel): Appointment {
+  const items = (model.items ?? []).length
+    ? (model.items ?? []).map(fromApiItem)
+    : [
+        {
+          id: `${model.id}-legacy-item`,
+          appointmentId: model.id,
+          servicoId: model.servico_id ?? null,
+          servicoNome: model.servico_nome,
+          servicoCor: normalizeServiceColor(model.servico_cor),
+          ordem: 0,
+          duracaoMinutos: Math.max(0, timeRangeToMinutes(model.horario_inicial, model.horario_final)),
+          valorUnitario: Number(model.valor ?? 0),
+          valorTotal: Number(model.valor ?? 0),
+        },
+      ];
+
   return {
     id: model.id,
     organizationId: model.organization_id,
@@ -130,6 +197,7 @@ function fromApi(model: AppointmentApiModel): Appointment {
     horarioInicial: model.horario_inicial,
     horarioFinal: model.horario_final,
     valor: Number(model.valor ?? 0),
+    ajusteValor: Number(model.ajuste_valor ?? 0),
     status: model.status,
     paymentStatus: model.payment_status ?? "pendente",
     observacoes: model.observacoes ?? "",
@@ -144,9 +212,26 @@ function fromApi(model: AppointmentApiModel): Appointment {
     recurrenceSeriesId: model.recurrence_series_id ?? null,
     recurrenceType: model.recurrence_type ?? "none",
     recurrenceIndex: Number(model.recurrence_index ?? 0),
+    items,
     createdAt: model.created_at,
     updatedAt: model.updated_at,
   };
+}
+
+function timeRangeToMinutes(start: string, end: string) {
+  const [startHours, startMinutes] = start.split(":").map(Number);
+  const [endHours, endMinutes] = end.split(":").map(Number);
+
+  if (
+    !Number.isFinite(startHours) ||
+    !Number.isFinite(startMinutes) ||
+    !Number.isFinite(endHours) ||
+    !Number.isFinite(endMinutes)
+  ) {
+    return 0;
+  }
+
+  return endHours * 60 + endMinutes - (startHours * 60 + startMinutes);
 }
 
 function toApi(input: AppointmentInput) {
@@ -164,6 +249,13 @@ function toApi(input: AppointmentInput) {
     confirmacao_cliente: input.confirmacaoCliente ?? "pendente",
     quote_id: input.quoteId ?? null,
     service_order_id: input.serviceOrderId ?? null,
+    items: input.items?.map((item) => ({
+      id: item.id,
+      servico_id: item.serviceId,
+      duracao_minutos: Number(item.durationMinutes),
+      valor_unitario: Number(item.unitPrice),
+      valor_total: Number(item.totalPrice ?? item.unitPrice),
+    })),
     recurrence:
       input.recurrence && input.recurrence.type !== "none"
         ? input.recurrence

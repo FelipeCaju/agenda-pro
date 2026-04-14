@@ -56,8 +56,28 @@ export function AppointmentDetail({
               ? "Semanal"
               : appointment.recurrenceType === "biweekly"
                 ? "Quinzenal"
-                : "Mensal"}
+            : "Mensal"}
           </p>
+        ) : null}
+
+        {appointment.items.length ? (
+          <div className="mt-4 space-y-2 rounded-2xl border border-slate-100 bg-white px-4 py-4">
+            <p className="text-sm font-semibold text-ink">Servicos do atendimento</p>
+            {appointment.items.map((item) => (
+              <div className="flex items-center justify-between gap-3 text-sm text-slate-600" key={item.id}>
+                <div>
+                  <p className="font-medium text-ink">{item.servicoNome}</p>
+                  <p>{item.duracaoMinutos} min</p>
+                </div>
+                <p className="font-semibold text-ink">
+                  {new Intl.NumberFormat("pt-BR", {
+                    style: "currency",
+                    currency: "BRL",
+                  }).format(item.valorTotal)}
+                </p>
+              </div>
+            ))}
+          </div>
         ) : null}
 
         <div className="mt-4 space-y-2 rounded-2xl border border-slate-100 bg-slate-50/80 px-4 py-4">

@@ -390,9 +390,9 @@ export async function rejectQuote({ organizationId, quoteId }) {
 
 export async function createQuoteAppointmentDraft({ organizationId, quoteId }) {
   const quote = await getQuote({ organizationId, quoteId });
-  const primaryServiceItem = quote.itens.find((item) => item.servico_id);
+  const appointmentItems = quote.itens.filter((item) => item.servico_id);
 
-  if (!primaryServiceItem?.servico_id) {
+  if (!appointmentItems.length) {
     throw buildError(
       "Para agendar este orcamento, pelo menos um item precisa estar vinculado a um servico cadastrado.",
       409,
@@ -402,7 +402,13 @@ export async function createQuoteAppointmentDraft({ organizationId, quoteId }) {
   return {
     quote_id: quote.id,
     cliente_id: quote.cliente_id,
-    servico_id: primaryServiceItem.servico_id,
+    servico_id: appointmentItems[0].servico_id,
+    items: appointmentItems.map((item) => ({
+      id: item.id,
+      servico_id: item.servico_id,
+      valor_unitario: item.valor_unitario,
+      valor_total: item.valor_total,
+    })),
     observacoes: buildQuoteDraftNotes(quote),
   };
 }

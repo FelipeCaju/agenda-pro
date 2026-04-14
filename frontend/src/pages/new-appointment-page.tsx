@@ -18,6 +18,12 @@ type NewAppointmentLocationState = {
     quoteId: string;
     clientId: string;
     serviceId: string;
+    items?: Array<{
+      id: string;
+      serviceId: string;
+      unitPrice: number;
+      totalPrice: number;
+    }>;
     notes: string;
   };
 };
@@ -109,9 +115,29 @@ export function NewAppointmentPage() {
           data: selectedDate,
           horarioInicial: selectedTime,
           clienteId: quoteDraft?.clientId ?? "",
-          servicoId: quoteDraft?.serviceId ?? "",
           observacoes: quoteDraft?.notes ?? "",
           quoteId: quoteDraft?.quoteId ?? "",
+          items:
+            quoteDraft?.items?.length
+              ? quoteDraft.items.map((item) => ({
+                  id: item.id,
+                  serviceId: item.serviceId,
+                  durationMinutes: "",
+                  unitPrice: item.unitPrice.toLocaleString("pt-BR", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  }),
+                }))
+              : quoteDraft?.serviceId
+                ? [
+                    {
+                      id: crypto.randomUUID(),
+                      serviceId: quoteDraft.serviceId,
+                      durationMinutes: "",
+                      unitPrice: "",
+                    },
+                  ]
+                : [],
         }}
         isSubmitting={isCreating}
         onSubmit={handleSubmit}

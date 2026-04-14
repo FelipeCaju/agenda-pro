@@ -189,7 +189,195 @@ function normalizeDeleteScope(scope) {
   return normalized;
 }
 
-function buildPayload({ client, service, professional, input }) {
+function normalizeMoney(value, fallback = Number.NaN) {
+  if (value === undefined || value === null || value === "") {
+    return fallback;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? Number(parsed.toFixed(2)) : Number.NaN;
+}
+
+function addMinutesToTime(time, minutesToAdd) {
+  if (!time || !Number.isFinite(minutesToAdd)) {
+    return "";
+  }
+
+  const totalMinutes = timeToMinutes(time) + minutesToAdd;
+
+  if (totalMinutes < 0 || totalMinutes > 24 * 60) {
+    return "";
+  }
+
+  const hours = String(Math.floor(totalMinutes / 60)).padStart(2, "0");
+  const minutes = String(totalMinutes % 60).padStart(2, "0");
+  return `${hours}:${minutes}`;
+}
+
+async function normalizeAppointmentItems({
+  organizationId,
+  input,
+  fallbackServiceId,
+  fallbackValue,
+  fallbackDurationMinutes,
+}) {
+  const rawItems = Array.isArray(input.items) ? input.items : [];
+  const serviceCache = new Map();
+
+  async function loadService(serviceId) {
+    if (serviceCache.has(serviceId)) {
+      return serviceCache.get(serviceId);
+    }
+
+    const service = await getServiceByIdForOrganization(organizationId, serviceId);
+    serviceCache.set(serviceId, service ?? null);
+    return service ?? null;
+  }
+
+  if (!rawItems.length) {
+    const legacyServiceId = normalizeString(fallbackServiceId);
+
+    if (!legacyServiceId) {
+      throw buildError("Servico e obrigatorio.", 400);
+    }
+
+    const service = await loadService(legacyServiceId);
+
+    if (!service) {
+      throw buildError("Servico nao encontrado.", 404);
+    }
+
+    const unitValue = normalizeMoney(fallbackValue, service.valor_padrao);
+
+    if (!Number.isFinite(unitValue) || unitValue < 0) {
+      throw buildError("Valor invalido.", 400);
+    }
+
+    const durationMinutes = Number.isInteger(fallbackDurationMinutes) && fallbackDurationMinutes > 0
+      ? fallbackDurationMinutes
+      : Number(service.duracao_minutos ?? 0);
+
+    return {
+      primaryService: service,
+      items: [
+        {
+          servico_id: service.id,
+          servico_nome: service.nome,
+          servico_cor: normalizeServiceColor(service.cor),
+          duracao_minutos: durationMinutes,
+          valor_unitario: unitValue,
+          valor_total: unitValue,
+          ordem: 0,
+        },
+      ],
+      usedExplicitItems: false,
+    };
+  }
+
+  const normalizedItems = [];
+  let primaryService = null;
+
+  for (let index = 0; index < rawItems.length; index += 1) {
+    const rawItem = rawItems[index];
+    const serviceId = normalizeString(rawItem.servico_id ?? rawItem.serviceId);
+
+    if (!serviceId) {
+      throw buildError("Cada item do agendamento precisa de um servico.", 400);
+    }
+
+    const service = await loadService(serviceId);
+
+    if (!service) {
+      throw buildError("Servico do agendamento nao encontrado.", 404);
+    }
+
+    if (!primaryService) {
+      primaryService = service;
+    }
+
+    const unitValue = normalizeMoney(rawItem.valor_unitario ?? rawItem.unitPrice, service.valor_padrao);
+    const totalValue = normalizeMoney(rawItem.valor_total ?? rawItem.totalPrice, unitValue);
+    const duration = Number(rawItem.duracao_minutos ?? rawItem.durationMinutes ?? service.duracao_minutos);
+
+    if (!Number.isFinite(unitValue) || unitValue < 0 || !Number.isFinite(totalValue) || totalValue < 0) {
+      throw buildError("Valor invalido nos itens do agendamento.", 400);
+    }
+
+    if (!Number.isInteger(duration) || duration <= 0) {
+      throw buildError("Duracao invalida nos itens do agendamento.", 400);
+    }
+
+    normalizedItems.push({
+      id: normalizeString(rawItem.id) || undefined,
+      servico_id: service.id,
+      servico_nome: service.nome,
+      servico_cor: normalizeServiceColor(service.cor),
+      duracao_minutos: duration,
+      valor_unitario: unitValue,
+      valor_total: totalValue,
+      ordem: index,
+    });
+  }
+
+  return {
+    primaryService,
+    items: normalizedItems,
+    usedExplicitItems: true,
+  };
+}
+
+async function resolveProfessionalForItems({ organizationId, serviceIds, professionalId }) {
+  const normalizedProfessionalId = normalizeString(professionalId);
+  const serviceProfessionalLists = await Promise.all(
+    serviceIds.map((serviceId) => listProfessionalsByService(organizationId, serviceId)),
+  );
+  const serviceListsWithRestrictions = serviceProfessionalLists.filter((professionals) => professionals.length > 0);
+
+  if (!normalizedProfessionalId) {
+    if (!serviceListsWithRestrictions.length) {
+      return null;
+    }
+
+    const allowedIds = serviceListsWithRestrictions.reduce((currentAllowedIds, serviceProfessionals) => {
+      const serviceIdsSet = new Set(serviceProfessionals.map((professional) => professional.id));
+
+      if (!currentAllowedIds) {
+        return serviceIdsSet;
+      }
+
+      return new Set([...currentAllowedIds].filter((id) => serviceIdsSet.has(id)));
+    }, null);
+
+    if (allowedIds?.size === 1) {
+      const selectedId = [...allowedIds][0];
+      return serviceListsWithRestrictions[0].find((professional) => professional.id === selectedId) ?? null;
+    }
+
+    if (allowedIds?.size > 1) {
+      throw buildError("Selecione o profissional responsavel por esse atendimento.", 400);
+    }
+
+    throw buildError("Nao existe um profissional em comum para os servicos selecionados.", 400);
+  }
+
+  const professional = await getProfessionalByIdForOrganization(organizationId, normalizedProfessionalId);
+
+  if (!professional || !professional.ativo) {
+    throw buildError("Funcionario nao encontrado ou inativo.", 404);
+  }
+
+  const isAllowedForAllServices = serviceListsWithRestrictions.every((serviceProfessionals) =>
+    serviceProfessionals.some((serviceProfessional) => serviceProfessional.id === professional.id),
+  );
+
+  if (!isAllowedForAllServices) {
+    throw buildError("O funcionario selecionado nao atende todos os servicos desse atendimento.", 400);
+  }
+
+  return professional;
+}
+
+function buildPayload({ client, service, professional, items, input, finalValue, adjustmentValue }) {
   return {
     cliente_id: client.id,
     cliente_nome: client.nome,
@@ -202,7 +390,8 @@ function buildPayload({ client, service, professional, input }) {
     data: input.data,
     horario_inicial: input.horario_inicial,
     horario_final: input.horario_final,
-    valor: input.valor === undefined ? service.valor_padrao : Number(input.valor),
+    valor: finalValue,
+    ajuste_valor: adjustmentValue,
     status: input.status ?? "pendente",
     payment_status: input.payment_status ?? "pendente",
     observacoes: input.observacoes ?? "",
@@ -217,25 +406,20 @@ function buildPayload({ client, service, professional, input }) {
     recurrence_series_id: input.recurrence_series_id ?? null,
     recurrence_type: input.recurrence_type ?? "none",
     recurrence_index: Number(input.recurrence_index ?? 0),
+    items,
   };
 }
 
 async function validateAppointmentInput({ organizationId, input, appointmentId }) {
   const clientId = normalizeString(input.cliente_id);
-  const serviceId = normalizeString(input.servico_id);
   const professionalId = normalizeString(input.profissional_id ?? input.professional_id);
   const quoteId = normalizeString(input.quote_id ?? input.quoteId);
   const serviceOrderId = normalizeString(input.service_order_id ?? input.serviceOrderId);
   const data = normalizeString(input.data);
   const start = normalizeString(input.horario_inicial);
-  const end = normalizeString(input.horario_final);
 
   if (!clientId) {
     throw buildError("Cliente e obrigatorio.", 400);
-  }
-
-  if (!serviceId) {
-    throw buildError("Servico e obrigatorio.", 400);
   }
 
   if (!data || !isValidDate(data)) {
@@ -248,14 +432,6 @@ async function validateAppointmentInput({ organizationId, input, appointmentId }
 
   if (!start || !isValidTime(start)) {
     throw buildError("Horario inicial obrigatorio e invalido.", 400);
-  }
-
-  if (!end || !isValidTime(end)) {
-    throw buildError("Horario final obrigatorio e invalido.", 400);
-  }
-
-  if (timeToMinutes(end) <= timeToMinutes(start)) {
-    throw buildError("Horario final deve ser maior que o horario inicial.", 400);
   }
 
   if (input.status && !VALID_STATUS.includes(input.status)) {
@@ -276,34 +452,49 @@ async function validateAppointmentInput({ organizationId, input, appointmentId }
     throw buildError("Cliente nao encontrado.", 404);
   }
 
-  const service = await getServiceByIdForOrganization(organizationId, serviceId);
+  const normalizedItems = await normalizeAppointmentItems({
+    organizationId,
+    input,
+    fallbackServiceId: input.servico_id,
+    fallbackValue: input.valor,
+    fallbackDurationMinutes:
+      isValidTime(normalizeString(input.horario_final))
+        ? timeToMinutes(normalizeString(input.horario_final)) - timeToMinutes(start)
+        : undefined,
+  });
+  const totalDuration = normalizedItems.items.reduce(
+    (sum, item) => sum + Number(item.duracao_minutos ?? 0),
+    0,
+  );
+  const expectedEnd = normalizedItems.usedExplicitItems
+    ? addMinutesToTime(start, totalDuration)
+    : normalizeString(input.horario_final);
 
-  if (!service) {
-    throw buildError("Servico nao encontrado.", 404);
+  if (!expectedEnd || !isValidTime(expectedEnd)) {
+    throw buildError("Horario final obrigatorio e invalido.", 400);
   }
 
-  const serviceProfessionals = await listProfessionalsByService(organizationId, serviceId);
-  let professional = null;
-
-  if (serviceProfessionals.length === 1 && !professionalId) {
-    professional = serviceProfessionals[0];
-  } else if (professionalId) {
-    professional = await getProfessionalByIdForOrganization(organizationId, professionalId);
-
-    if (!professional || !professional.ativo) {
-      throw buildError("Funcionario nao encontrado ou inativo.", 404);
-    }
-
-    const isAllowedForService = serviceProfessionals.some(
-      (serviceProfessional) => serviceProfessional.id === professional.id,
-    );
-
-    if (serviceProfessionals.length > 0 && !isAllowedForService) {
-      throw buildError("O funcionario selecionado nao atende esse servico.", 400);
-    }
-  } else if (serviceProfessionals.length > 1) {
-    throw buildError("Selecione o profissional responsavel por esse atendimento.", 400);
+  if (timeToMinutes(expectedEnd) <= timeToMinutes(start)) {
+    throw buildError("Horario final deve ser maior que o horario inicial.", 400);
   }
+
+  const subtotalItems = Number(
+    normalizedItems.items
+      .reduce((sum, item) => sum + Number(item.valor_total ?? 0), 0)
+      .toFixed(2),
+  );
+  const finalValue = normalizeMoney(input.valor, subtotalItems);
+
+  if (!Number.isFinite(finalValue) || finalValue < 0) {
+    throw buildError("Valor invalido.", 400);
+  }
+
+  const adjustmentValue = Number((finalValue - subtotalItems).toFixed(2));
+  const professional = await resolveProfessionalForItems({
+    organizationId,
+    serviceIds: [...new Set(normalizedItems.items.map((item) => item.servico_id))],
+    professionalId,
+  });
 
   const settings = await getAppSettingsByOrganization(organizationId);
   const allowConflict = settings?.permitir_conflito ?? false;
@@ -324,7 +515,7 @@ async function validateAppointmentInput({ organizationId, input, appointmentId }
       {
         data,
         horario_inicial: start,
-        horario_final: end,
+        horario_final: expectedEnd,
         profissional_id: professional?.id ?? professionalId ?? null,
       },
       appointmentId,
@@ -337,7 +528,7 @@ async function validateAppointmentInput({ organizationId, input, appointmentId }
     hasBlockedConflict(blockedSlots, {
       data,
       horario_inicial: start,
-      horario_final: end,
+      horario_final: expectedEnd,
       profissional_id: professional?.id ?? professionalId ?? null,
     })
   ) {
@@ -346,16 +537,19 @@ async function validateAppointmentInput({ organizationId, input, appointmentId }
 
   return {
     client,
-    service,
+    service: normalizedItems.primaryService,
     payload: buildPayload({
       client,
-      service,
+      service: normalizedItems.primaryService,
       professional,
+      items: normalizedItems.items,
+      finalValue,
+      adjustmentValue,
       input: {
         ...input,
         data,
         horario_inicial: start,
-        horario_final: end,
+        horario_final: expectedEnd,
         quote_id: quoteId || null,
         service_order_id: serviceOrderId || null,
       },
