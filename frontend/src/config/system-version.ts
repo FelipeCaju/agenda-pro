@@ -1,2 +1,2 @@
-export const SYSTEM_VERSION = "2026.04.13";
-export const SYSTEM_UPDATED_AT = "14/04/2026";
+export const SYSTEM_VERSION = "20260415";
+export const SYSTEM_UPDATED_AT = "15/04/2026";
