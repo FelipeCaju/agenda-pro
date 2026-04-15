@@ -41,11 +41,11 @@ Ele foi pensado para permitir continuidade em outra sessao sem perder o contexto
 - [OK] ETAPA 9 - Integracoes e compatibilidade
 - [ ] ETAPA 10 - Validacoes mobile e desktop
 - [OK] ETAPA 11 - Testes e revisao de regressao
-- [ ] ETAPA 12 - Resumo final tecnico
+- [OK] ETAPA 12 - Resumo final tecnico
 
 ## Bloqueios
 
-- Nenhum bloqueio registrado ate o momento.
+- Validacao visual real de mobile e desktop continua dependendo de browser/dispositivo em uso manual.
 
 ---
 
@@ -505,9 +505,9 @@ Validar tecnicamente a implementacao e reduzir o risco de quebrar o que ja funci
 - [OK] Validar criacao multi-servico
 - [OK] Validar edicao multi-servico
 - [OK] Validar exclusao
-- [ ] Validar recorrencia
+- [OK] Validar recorrencia
 - [OK] Validar integracao com orcamento
-- [ ] Registrar lacunas honestamente
+- [OK] Registrar lacunas honestamente
 
 ## Status
 
@@ -525,6 +525,7 @@ Validar tecnicamente a implementacao e reduzir o risco de quebrar o que ja funci
 - `node --check src/lib/data.js` em `backend/`
 - `node --check src/services/appointment.service.js` em `backend/`
 - `node --check src/services/quote.service.js` em `backend/`
+- `node --check src/controllers/auth.controller.js` em `backend/`
 - `npm.cmd test` em `backend/` com `8/8` testes passando
 - Smoke test real via API local autenticada em conta existente:
   - criacao de agendamento legado simples
@@ -536,14 +537,26 @@ Validar tecnicamente a implementacao e reduzir o risco de quebrar o que ja funci
   - leitura em `GET /agenda?date=...&view=day`
 - Smoke test de integracao com orcamento:
   - rascunho de agendamento passou a carregar multiplos itens pelo contrato atualizado
+- Aplicacao/confirmacao da infraestrutura no MySQL real via `initDataStore()`:
+  - coluna `appointments.ajuste_valor` confirmada
+  - tabela `appointment_items` confirmada
+  - migracao progressiva de itens legados confirmada
+- Smoke test funcional de recorrencia no MySQL real:
+  - criacao de serie semanal
+  - `27` ocorrencias criadas e encontradas no banco
+  - leitura da agenda confirmada
+  - exclusao da serie validada
 
 ## Lacunas atuais
 
 - Ainda nao foi validado manualmente o comportamento visual no mobile.
 - Ainda nao foi validado manualmente o comportamento visual no desktop pela interface.
-- Ainda nao foi feito teste funcional real de recorrencia multi-servico.
-- Durante a tentativa de onboarding de conta temporaria apareceu um ponto fora do escopo desta entrega:
-  o controller de onboarding atual nao repassa os campos novos de billing para o service.
+- A validacao visual continua pendente por exigir browser/dispositivo real.
+
+## Ajuste adicional realizado nesta etapa
+
+- Corrigido o controller de onboarding para repassar os campos de billing e documento que o service ja exigia.
+- Essa correcao nao muda a agenda, mas fecha uma inconsistencia real encontrada durante os testes da sessao.
 
 ---
 
@@ -555,20 +568,70 @@ Deixar o projeto documentado e a sessao encerrada de forma continuavel.
 
 ## Itens
 
-- [ ] Atualizar este arquivo com tudo que foi concluido
-- [ ] Listar arquivos criados
-- [ ] Listar arquivos alterados
-- [ ] Registrar comandos usados para validacao
-- [ ] Registrar pontos pendentes, se houver
-- [ ] Escrever resumo final da arquitetura adotada
+- [OK] Atualizar este arquivo com tudo que foi concluido
+- [OK] Listar arquivos criados
+- [OK] Listar arquivos alterados
+- [OK] Registrar comandos usados para validacao
+- [OK] Registrar pontos pendentes, se houver
+- [OK] Escrever resumo final da arquitetura adotada
 
 ## Status
 
-**Situacao:** PENDENTE
+**Situacao:** OK
 
 ## Criterio de conclusao
 
 - Outro agente ou outra sessao consegue continuar sem precisar redescobrir o trabalho feito
+
+## Arquivos criados
+
+- `backend/db/migrations/017_appointment_multi_service_mysql.sql`
+- `docs/DIAGNOSTICO_AGENDAMENTO_MULTI_SERVICO.md`
+- `docs/PLANO_ACAO_AGENDAMENTO_MULTI_SERVICO.md`
+
+## Arquivos alterados
+
+- `backend/db/schema_current_mysql.sql`
+- `backend/src/controllers/auth.controller.js`
+- `backend/src/lib/data.js`
+- `backend/src/models/schema-definitions.js`
+- `backend/src/services/appointment.service.js`
+- `backend/src/services/quote.service.js`
+- `frontend/src/components/agenda/appointment-detail.tsx`
+- `frontend/src/components/agenda/new-appointment.tsx`
+- `frontend/src/pages/appointment-detail-page.tsx`
+- `frontend/src/pages/new-appointment-page.tsx`
+- `frontend/src/services/appointmentService.ts`
+- `frontend/src/services/dashboardService.ts`
+- `frontend/src/services/orcamentoService.ts`
+- `frontend/src/utils/appointment.ts`
+
+## Comandos usados para validacao
+
+- `npm.cmd run build`
+- `node --check src/server.js`
+- `node --check src/lib/data.js`
+- `node --check src/services/appointment.service.js`
+- `node --check src/services/quote.service.js`
+- `node --check src/controllers/auth.controller.js`
+- `npm.cmd test`
+- script Node com `initDataStore()` para aplicar e confirmar a infraestrutura no MySQL real
+- script Node para smoke test real de recorrencia com limpeza da serie ao final
+
+## Pontos pendentes
+
+- Validacao visual real do fluxo multi-servico no mobile
+- Validacao visual real do fluxo multi-servico no desktop
+
+## Resumo final da arquitetura adotada
+
+- `appointments` permanece como cabecalho do agendamento e continua guardando os campos legados de compatibilidade.
+- `appointment_items` virou a estrutura oficial dos servicos de cada atendimento.
+- `appointments.valor` representa o total final da agenda.
+- `appointments.ajuste_valor` representa a diferenca entre a soma dos itens e o total final editado.
+- O backend aceita tanto o payload novo com `items` quanto o fluxo legado de um unico servico.
+- O frontend passou a criar, editar e detalhar multiplos servicos no mesmo atendimento com layout adaptado para mobile e desktop.
+- A migracao foi feita de forma progressiva: cada agendamento antigo passa a ter um item legado correspondente sem perder leitura no sistema atual.
 
 ---
 

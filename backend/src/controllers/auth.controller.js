@@ -31,7 +31,19 @@ export async function getSession(request, response) {
 export async function finishOnboarding(request, response) {
   try {
     const token = readToken(request);
-    const { nome, nomeEmpresa, telefone, senha } = request.body ?? {};
+    const {
+      nome,
+      nomeEmpresa,
+      telefone,
+      cpfCnpj,
+      billingAddress,
+      billingAddressNumber,
+      billingAddressComplement,
+      billingPostalCode,
+      billingProvince,
+      billingCityIbge,
+      senha,
+    } = request.body ?? {};
 
     response.json(
       await completeOnboarding({
@@ -39,6 +51,13 @@ export async function finishOnboarding(request, response) {
         nome,
         nomeEmpresa,
         telefone,
+        cpfCnpj,
+        billingAddress,
+        billingAddressNumber,
+        billingAddressComplement,
+        billingPostalCode,
+        billingProvince,
+        billingCityIbge,
         senha,
       }),
     );
