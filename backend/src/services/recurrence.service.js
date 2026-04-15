@@ -933,6 +933,19 @@ async function generateChargeForProfile({
   return getRecurringCharge({ organizationId, chargeId });
 }
 
+async function getPendingChargesWithoutWhatsapp({ organizationId, targetDate }) {
+  const rows = await query(
+    `SELECT * FROM recurring_charges
+      WHERE organization_id = ?
+        AND referencia_data_cobranca = ?
+        AND status = 'pendente'
+        AND whatsapp_enviado = 0
+      ORDER BY created_at ASC`,
+    [organizationId, targetDate],
+  );
+  return rows.map(mapRecurringCharge);
+}
+
 async function markOverdueChargesForOrganization({ organizationId, targetDate }) {
   const settings = await getAppSettingsByOrganization(organizationId);
 
@@ -963,6 +976,7 @@ export async function processRecurringAutomation({
     processedOrganizations: 0,
     generatedCharges: 0,
     sentWhatsapp: 0,
+    retriedWhatsapp: 0,
     errors: [],
   };
 
@@ -1000,13 +1014,21 @@ export async function processRecurringAutomation({
           result.generatedCharges += 1;
 
           if (sendWhatsapp && settings?.recurring_whatsapp_automatico) {
-            await sendChargeWhatsappInternal({
-              organizationId: organization.id,
-              charge,
-              profile,
-              createdByUserId,
-            });
-            result.sentWhatsapp += 1;
+            try {
+              await sendChargeWhatsappInternal({
+                organizationId: organization.id,
+                charge,
+                profile,
+                createdByUserId,
+              });
+              result.sentWhatsapp += 1;
+            } catch (whatsappError) {
+              result.errors.push({
+                organizationId: organization.id,
+                profileId: profile.id,
+                message: whatsappError.message ?? "Falha ao enviar WhatsApp da cobranca recorrente.",
+              });
+            }
           }
         } catch (error) {
           if (error?.code === "ER_DUP_ENTRY") {
@@ -1018,6 +1040,30 @@ export async function processRecurringAutomation({
             profileId: profile.id,
             message: error.message ?? "Erro ao processar recorrencia.",
           });
+        }
+      }
+
+      if (sendWhatsapp && settings?.recurring_whatsapp_automatico) {
+        const pendingCharges = await getPendingChargesWithoutWhatsapp({
+          organizationId: organization.id,
+          targetDate,
+        });
+
+        for (const charge of pendingCharges) {
+          try {
+            await sendChargeWhatsappInternal({
+              organizationId: organization.id,
+              charge,
+              createdByUserId,
+            });
+            result.retriedWhatsapp += 1;
+          } catch (retryError) {
+            result.errors.push({
+              organizationId: organization.id,
+              chargeId: charge.id,
+              message: retryError.message ?? "Falha ao reenviar WhatsApp de cobranca pendente.",
+            });
+          }
         }
       }
     } catch (error) {
