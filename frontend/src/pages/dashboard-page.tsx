@@ -659,11 +659,6 @@ export function DashboardPage() {
                 />
               </div>
 
-              <ServiceFinanceChart
-                currencyFormatter={currencyFormatter}
-                items={agendaData.charts.servicesFinancial}
-              />
-
               {(agendaData.lists.upcomingAppointments ?? []).length ? (
                 <>
                   <div className="space-y-3 md:hidden">
@@ -732,6 +727,11 @@ export function DashboardPage() {
                   message="Nenhum agendamento encontrado para a Agenda."
                 />
               )}
+
+              <ServiceFinanceChart
+                currencyFormatter={currencyFormatter}
+                items={agendaData.charts.servicesFinancial}
+              />
             </>
           ) : null}
         </>
