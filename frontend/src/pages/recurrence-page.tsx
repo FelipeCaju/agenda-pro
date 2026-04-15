@@ -15,6 +15,7 @@ import {
 } from "@/hooks/use-recurrence-query";
 import { useServicesQuery } from "@/hooks/use-services-query";
 import type { RecurringProfile } from "@/services/recurrenceService";
+import { formatMonthYearBr } from "@/utils/date";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("pt-BR", {
@@ -90,6 +91,12 @@ export function RecurrencePage() {
           </p>
         </Card>
       </div>
+
+      {summary?.referenceMonth ? (
+        <Card className="rounded-[18px] border border-slate-200/70 bg-white px-4 py-3">
+          <p className="text-sm text-slate-500">Competencia atual: {formatMonthYearBr(summary.referenceMonth)}</p>
+        </Card>
+      ) : null}
 
       <div className="grid gap-3 md:grid-cols-[1fr_180px_180px]">
         <Card className="rounded-[18px] border border-slate-200/70 bg-white px-4 py-3">

@@ -1,60 +1,19 @@
-function parseDateValue(value?: string | null) {
+export function formatDateBr(value?: string | null) {
   if (!value) {
-    return null;
+    return "-";
   }
 
-  const normalized = value.trim();
-
-  if (!normalized) {
-    return null;
-  }
-
-  if (/^\d{4}-\d{2}$/.test(normalized)) {
-    const [year, month] = normalized.split("-").map(Number);
-    return new Date(year, month - 1, 1, 12, 0, 0);
-  }
-
-  if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
-    const [year, month, day] = normalized.split("-").map(Number);
-    return new Date(year, month - 1, day, 12, 0, 0);
-  }
-
-  const parsed = new Date(normalized);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
-
-export function formatDateBR(value?: string | null) {
-  const parsed = parseDateValue(value);
-
-  if (!parsed) {
-    return "Nao informado";
-  }
-
+  const normalized = value.includes("T") ? value : `${value}T12:00:00`;
   return new Intl.DateTimeFormat("pt-BR", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
-  }).format(parsed);
+  }).format(new Date(normalized));
 }
 
-export function formatMonthYearBR(value?: string | null) {
-  const parsed = parseDateValue(value);
-
-  if (!parsed) {
-    return "Nao informado";
-  }
-
-  return new Intl.DateTimeFormat("pt-BR", {
-    month: "2-digit",
-    year: "numeric",
-  }).format(parsed);
-}
-
-export function formatShortDate(value: string) {
-  const parsed = parseDateValue(value);
-
-  if (!parsed) {
-    return "--";
+export function formatDateTimeBr(value?: string | null) {
+  if (!value) {
+    return "-";
   }
 
   return new Intl.DateTimeFormat("pt-BR", {
@@ -63,5 +22,39 @@ export function formatShortDate(value: string) {
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-  }).format(parsed);
+  }).format(new Date(value));
+}
+
+export function formatMonthYearBr(value?: string | null) {
+  if (!value) {
+    return "-";
+  }
+
+  const [year, month] = value.split("-");
+  if (!year || !month) {
+    return value;
+  }
+
+  return `${month.padStart(2, "0")}/${year}`;
+}
+
+export function formatShortDate(value?: string | null) {
+  return formatDateTimeBr(value);
+}
+
+export const formatDateBR = formatDateBr;
+export const formatMonthYearBR = formatMonthYearBr;
+
+export function formatDateForInput(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
+    date.getDate(),
+  ).padStart(2, "0")}`;
+}
+
+export function getCurrentMonthRange() {
+  const now = new Date();
+  return {
+    start: formatDateForInput(new Date(now.getFullYear(), now.getMonth(), 1)),
+    end: formatDateForInput(new Date(now.getFullYear(), now.getMonth() + 1, 0)),
+  };
 }

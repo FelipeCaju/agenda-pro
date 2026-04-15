@@ -23,54 +23,14 @@ import {
   type RecurringCharge,
   type RecurringChargeFilters,
 } from "@/services/recurrenceService";
+import { formatDateBr, formatDateTimeBr, getCurrentMonthRange } from "@/utils/date";
 
 type DashboardView = "agenda" | "recorrencia" | "orcamentos";
 type RecurrenceDashboardStatus = "all" | "pendente" | "pago" | "vencido" | "cancelado";
 
-function formatDateForInput(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
-    date.getDate(),
-  ).padStart(2, "0")}`;
-}
-
-function getMonthRange() {
-  const now = new Date();
-  return {
-    start: formatDateForInput(new Date(now.getFullYear(), now.getMonth(), 1)),
-    end: formatDateForInput(new Date(now.getFullYear(), now.getMonth() + 1, 0)),
-  };
-}
-
 function safeNumber(value: unknown) {
   const parsed = Number(value ?? 0);
   return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function formatDate(value?: string | null) {
-  if (!value) {
-    return "-";
-  }
-
-  const normalized = value.includes("T") ? value : `${value}T12:00:00`;
-  return new Intl.DateTimeFormat("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(new Date(normalized));
-}
-
-function formatDateTime(value?: string | null) {
-  if (!value) {
-    return "-";
-  }
-
-  return new Intl.DateTimeFormat("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
 }
 
 function normalizeDay(value?: string | null) {
@@ -293,7 +253,7 @@ function MobileDataCard({
 }
 
 export function DashboardPage() {
-  const monthRange = useMemo(() => getMonthRange(), []);
+  const monthRange = useMemo(() => getCurrentMonthRange(), []);
   const [activeView, setActiveView] = useState<DashboardView>("agenda");
   const [startDate, setStartDate] = useState(monthRange.start);
   const [endDate, setEndDate] = useState(monthRange.end);
@@ -620,6 +580,22 @@ export function DashboardPage() {
             </select>
           </label>
         </div>
+
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[18px] bg-slate-50 px-4 py-3 text-sm text-slate-500">
+          <span>
+            Periodo selecionado: {formatDateBr(startDate)} ate {formatDateBr(endDate)}
+          </span>
+          <button
+            className="font-semibold text-brand-600"
+            onClick={() => {
+              setStartDate(monthRange.start);
+              setEndDate(monthRange.end);
+            }}
+            type="button"
+          >
+            Voltar para mes atual
+          </button>
+        </div>
       </Card>
 
       {activeView === "agenda" ? (
@@ -705,7 +681,7 @@ export function DashboardPage() {
                           { label: "Horario", value: `${appointment.horarioInicial} - ${appointment.horarioFinal}` },
                           { label: "Valor", value: currencyFormatter.format(safeNumber(appointment.valor)) },
                         ]}
-                        title={formatDate(appointment.data)}
+                        title={formatDateBr(appointment.data)}
                       />
                     ))}
                   </div>
@@ -729,7 +705,7 @@ export function DashboardPage() {
                         <tbody>
                           {agendaData.lists.upcomingAppointments.map((appointment) => (
                             <tr className="border-t border-slate-100" key={appointment.id}>
-                              <td className="px-5 py-3 text-ink">{formatDate(appointment.data)}</td>
+                              <td className="px-5 py-3 text-ink">{formatDateBr(appointment.data)}</td>
                               <td className="px-5 py-3 text-ink">{appointment.clienteNome}</td>
                               <td className="px-5 py-3 text-ink">{appointment.servicoNome}</td>
                               <td className="px-5 py-3 text-slate-500">
@@ -833,7 +809,7 @@ export function DashboardPage() {
                         }
                         key={quote.id}
                         rows={[
-                          { label: "Criado em", value: formatDateTime(quote.createdAt) },
+                          { label: "Criado em", value: formatDateTimeBr(quote.createdAt) },
                           { label: "Itens", value: String(quote.items.length) },
                           { label: "Valor", value: currencyFormatter.format(safeNumber(quote.total)) },
                         ]}
@@ -861,7 +837,7 @@ export function DashboardPage() {
                           {filteredQuotes.map((quote) => (
                             <tr className="border-t border-slate-100" key={quote.id}>
                               <td className="px-5 py-3 text-ink">{quote.clientName}</td>
-                              <td className="px-5 py-3 text-slate-500">{formatDateTime(quote.createdAt)}</td>
+                              <td className="px-5 py-3 text-slate-500">{formatDateTimeBr(quote.createdAt)}</td>
                               <td className="px-5 py-3 text-ink">{quote.items.length}</td>
                               <td className="px-5 py-3">
                                 <span className={`rounded-full px-3 py-1 text-xs font-semibold ${getQuoteStatusTone(quote.status)}`}>
@@ -962,7 +938,7 @@ export function DashboardPage() {
                         key={charge.id}
                         rows={[
                           { label: "Servico", value: charge.serviceName },
-                          { label: "Vencimento", value: formatDate(charge.dataVencimento) },
+                          { label: "Vencimento", value: formatDateBr(charge.dataVencimento) },
                           { label: "Valor", value: currencyFormatter.format(safeNumber(charge.valor)) },
                         ]}
                         title={charge.clientName}
@@ -991,7 +967,7 @@ export function DashboardPage() {
                             <tr className="border-t border-slate-100" key={charge.id}>
                               <td className="px-5 py-3 text-ink">{charge.clientName}</td>
                               <td className="px-5 py-3 text-ink">{charge.serviceName}</td>
-                              <td className="px-5 py-3 text-slate-500">{formatDate(charge.dataVencimento)}</td>
+                              <td className="px-5 py-3 text-slate-500">{formatDateBr(charge.dataVencimento)}</td>
                               <td className="px-5 py-3 text-ink">{charge.status === "pago" ? "Pago" : "Nao pago"}</td>
                               <td className="px-5 py-3">
                                 <span className={`rounded-full px-3 py-1 text-xs font-semibold ${getRecurringStatusTone(charge.status)}`}>

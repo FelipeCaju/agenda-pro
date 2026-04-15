@@ -3,6 +3,7 @@ import { MobilePageHeader } from "@/components/layout/mobile-page-header";
 import { Card } from "@/components/ui/card";
 import { FloatingActionButton } from "@/components/ui/floating-action-button";
 import { useOrcamentosQuery } from "@/hooks/use-orcamentos-query";
+import { formatDateBr } from "@/utils/date";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("pt-BR", {
@@ -58,7 +59,9 @@ export function OrcamentosPage() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-base font-semibold text-ink">{quote.clientName}</p>
-                  <p className="text-sm text-slate-500">{quote.items.length} item(ns)</p>
+                  <p className="text-sm text-slate-500">
+                    {quote.items.length} item(ns) • Criado em {formatDateBr(quote.createdAt)}
+                  </p>
                 </div>
                 <span className="rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700">
                   {getStatusLabel(quote.status)}

@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import type { RecurringCharge } from "@/services/recurrenceService";
+import { formatDateBr, formatMonthYearBr } from "@/utils/date";
 
 type RecurringChargeListProps = {
   items: RecurringCharge[];
@@ -65,10 +66,10 @@ export function RecurringChargeList({
                 <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-500">
                   <span>{charge.serviceName}</span>
                   <span>{formatCurrency(charge.valor)}</span>
-                  <span>Vencimento {charge.dataVencimento}</span>
+                  <span>Vencimento {formatDateBr(charge.dataVencimento)}</span>
                 </div>
                 <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-500">
-                  <span>Competencia {charge.referenciaCompetencia}</span>
+                  <span>Competencia {formatMonthYearBr(charge.referenciaCompetencia)}</span>
                   <span>{charge.whatsappEnviado ? "WhatsApp enviado" : "WhatsApp pendente"}</span>
                   <span>Tentativas {charge.whatsappTentativas}</span>
                 </div>

@@ -10,20 +10,22 @@ import { useRecurrenceMutations } from "@/hooks/use-recurrence-mutations";
 import { useRecurringChargesQuery } from "@/hooks/use-recurrence-query";
 import { useServicesQuery } from "@/hooks/use-services-query";
 import type { RecurringCharge } from "@/services/recurrenceService";
+import { formatDateBr, getCurrentMonthRange } from "@/utils/date";
 
 type ChargesLocationState = {
   profileId?: string;
 };
 
 export function RecurringChargesPage() {
+  const monthRange = useMemo(() => getCurrentMonthRange(), []);
   const navigate = useNavigate();
   const location = useLocation();
   const state = (location.state as ChargesLocationState | null) ?? null;
   const [clientId, setClientId] = useState("");
   const [serviceId, setServiceId] = useState("");
   const [status, setStatus] = useState<"all" | "pendente" | "pago" | "vencido" | "cancelado">("all");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const [startDate, setStartDate] = useState(monthRange.start);
+  const [endDate, setEndDate] = useState(monthRange.end);
   const [selectedCharge, setSelectedCharge] = useState<RecurringCharge | null>(null);
   const [dialogMode, setDialogMode] = useState<"pay" | "cancel" | null>(null);
 
@@ -120,6 +122,12 @@ export function RecurringChargesPage() {
           value={endDate}
         />
       </div>
+
+      <Card className="rounded-[18px] border border-slate-200/70 bg-white px-4 py-3">
+        <p className="text-sm text-slate-500">
+          Periodo selecionado: {formatDateBr(startDate)} ate {formatDateBr(endDate)}
+        </p>
+      </Card>
 
       {isLoading ? (
         <Card>

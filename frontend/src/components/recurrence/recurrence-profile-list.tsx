@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import type { Client } from "@/services/clientService";
 import type { BusinessService } from "@/services/serviceService";
 import type { RecurringProfile } from "@/services/recurrenceService";
+import { formatDateBr } from "@/utils/date";
 
 type RecurrenceProfileListProps = {
   items: RecurringProfile[];
@@ -81,9 +82,9 @@ export function RecurrenceProfileList({
                   <span>{formatCurrency(profile.valor)}</span>
                 </div>
                 <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-500">
-                  <span>Inicio {profile.dataInicio}</span>
+                  <span>Inicio {formatDateBr(profile.dataInicio)}</span>
                   <span>Dia do pagamento {profile.diaCobranca}</span>
-                  {profile.dataFim ? <span>Fim {profile.dataFim}</span> : <span>Sem data final</span>}
+                  {profile.dataFim ? <span>Fim {formatDateBr(profile.dataFim)}</span> : <span>Sem data final</span>}
                 </div>
               </div>
             </div>
