@@ -295,17 +295,17 @@ export function AgendaPage() {
             </div>
           </div>
 
-          <Card className="mt-0 hidden border-slate-200/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(244,248,252,0.96))] p-7 shadow-[0_26px_55px_rgba(15,23,42,0.08)] xl:block xl:mt-0">
-          <div className="flex items-start justify-between gap-8">
+          <Card className="mt-0 hidden border-slate-200/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(244,248,252,0.96))] p-6 shadow-[0_26px_55px_rgba(15,23,42,0.08)] xl:block xl:mt-0 2xl:p-7">
+          <div className="flex flex-col gap-6 2xl:flex-row 2xl:items-start 2xl:justify-between 2xl:gap-8">
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-brand-700">Agenda de trabalho</p>
-              <div className="mt-3 flex items-end gap-4">
-                <p className="text-[2.8rem] font-bold tracking-[-0.06em] text-ink">{heroDateLabel}</p>
-                <p className="pb-2 text-sm text-slate-500">{desktopPeriodLabel}</p>
+              <div className="mt-3 flex flex-col gap-2 2xl:flex-row 2xl:items-end 2xl:gap-4">
+                <p className="text-[2.4rem] font-bold tracking-[-0.06em] text-ink 2xl:text-[2.8rem]">{heroDateLabel}</p>
+                <p className="text-sm text-slate-500 2xl:pb-2">{desktopPeriodLabel}</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center justify-start gap-3 2xl:justify-end">
               <button
                 className={`rounded-full px-4 py-2.5 text-sm font-semibold transition ${
                   isToday ? "bg-brand-50 text-brand-700" : "bg-white text-slate-500 shadow-sm"
@@ -318,7 +318,7 @@ export function AgendaPage() {
               <ArrowButton direction="left" onClick={() => navigateDate("prev")} />
               <ArrowButton direction="right" onClick={() => navigateDate("next")} />
               <button
-                className="ml-2 inline-flex h-12 items-center justify-center rounded-[18px] bg-brand-500 px-6 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(29,140,248,0.22)] transition hover:bg-brand-600"
+                className="inline-flex h-12 min-w-[220px] items-center justify-center rounded-[18px] bg-brand-500 px-6 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(29,140,248,0.22)] transition hover:bg-brand-600 2xl:ml-2 2xl:min-w-0"
                 onClick={() => navigate("/agenda/novo", { state: { selectedDate } })}
                 type="button"
               >
@@ -327,7 +327,7 @@ export function AgendaPage() {
             </div>
           </div>
 
-          <div className="mt-6 grid grid-cols-[minmax(0,340px)_240px_1fr] items-center gap-4">
+          <div className="mt-6 grid gap-4 xl:grid-cols-1 2xl:grid-cols-[minmax(0,340px)_240px_1fr] 2xl:items-center">
             <div className="relative">
               <select
                 className="app-select h-14 appearance-none bg-white pr-10 text-sm"
@@ -363,19 +363,19 @@ export function AgendaPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4 2xl:grid-cols-4">
               {headerStats.map((item) => (
                 <div
-                  className="rounded-[20px] border border-slate-200/80 bg-white/90 px-4 py-4 text-left shadow-[0_12px_24px_rgba(15,23,42,0.05)]"
+                  className="min-w-0 rounded-[20px] border border-slate-200/80 bg-white/90 px-4 py-4 text-left shadow-[0_12px_24px_rgba(15,23,42,0.05)]"
                   key={item.label}
                 >
                   <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">{item.label}</p>
-                  <p className="mt-2 text-[1.65rem] font-semibold tracking-[-0.05em] text-ink">{item.value}</p>
+                  <p className="mt-2 break-words text-[1.45rem] font-semibold tracking-[-0.05em] text-ink 2xl:text-[1.65rem]">{item.value}</p>
                 </div>
               ))}
-              <div className="rounded-[20px] border border-slate-200/80 bg-slate-950/[0.03] px-4 py-4">
+              <div className="min-w-0 rounded-[20px] border border-slate-200/80 bg-slate-950/[0.03] px-4 py-4">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Contexto</p>
-                <p className="mt-2 text-base font-semibold text-ink">{selectedProfessionalName}</p>
+                <p className="mt-2 break-words text-base font-semibold text-ink">{selectedProfessionalName}</p>
                 <p className="mt-1 text-xs text-slate-500">{agendaTimezoneLabel}</p>
               </div>
             </div>
