@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { useAdminMutations } from "@/hooks/use-admin-mutations";
 import { useAdminOrganizationQuery } from "@/hooks/use-admin-organization-query";
 import type { AdminOrganizationPayment } from "@/services/adminService";
+import { formatCurrencyInput, formatCurrencyValue, parseCurrencyInput } from "@/utils/currency-input";
 import { formatDateBR, formatMonthYearBR } from "@/utils/date";
 
 const statusOptions = ["active", "overdue", "blocked", "trial", "canceled"] as const;
@@ -29,30 +30,6 @@ function getPlanoLabel(plan: string) {
   return plan === "trial" ? "Trial" : "Pro";
 }
 
-function formatCurrencyInput(value: string) {
-  const digits = value.replace(/\D/g, "");
-
-  if (!digits) {
-    return "";
-  }
-
-  const amount = Number(digits) / 100;
-  return amount.toLocaleString("pt-BR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-}
-
-function parseCurrencyInput(value: string) {
-  if (!value.trim()) {
-    return undefined;
-  }
-
-  const normalized = value.replace(/\./g, "").replace(",", ".");
-  const parsed = Number(normalized);
-  return Number.isFinite(parsed) ? parsed : NaN;
-}
-
 export function PlatformOrganizationPage() {
   const { organizationId } = useParams();
   const { data, error, isLoading, isError } = useAdminOrganizationQuery(organizationId);
@@ -69,9 +46,7 @@ export function PlatformOrganizationPage() {
   const normalizedPlan = organization?.subscriptionPlan === "trial" ? "trial" : "pro";
   const [subscriptionStatus, setSubscriptionStatus] = useState(organization?.subscriptionStatus ?? "active");
   const [subscriptionPlan, setSubscriptionPlan] = useState<"trial" | "pro">(normalizedPlan);
-  const [monthlyAmount, setMonthlyAmount] = useState(
-    formatCurrencyInput(String(organization?.monthlyAmount ?? 0)),
-  );
+  const [monthlyAmount, setMonthlyAmount] = useState(formatCurrencyValue(organization?.monthlyAmount ?? 0));
   const [dueDate, setDueDate] = useState(organization?.dueDate ?? "");
   const [trialEnd, setTrialEnd] = useState(organization?.trialEnd ?? "");
   const [referenceMonth, setReferenceMonth] = useState(new Date().toISOString().slice(0, 7));
@@ -89,7 +64,7 @@ export function PlatformOrganizationPage() {
 
     setSubscriptionStatus(organization.subscriptionStatus);
     setSubscriptionPlan(organization.subscriptionPlan === "trial" ? "trial" : "pro");
-    setMonthlyAmount(formatCurrencyInput(String(organization.monthlyAmount ?? 0)));
+    setMonthlyAmount(formatCurrencyValue(organization.monthlyAmount ?? 0));
     setDueDate(organization.dueDate ?? "");
     setTrialEnd(organization.trialEnd ?? "");
   }, [organization]);

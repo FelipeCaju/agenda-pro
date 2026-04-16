@@ -2,6 +2,7 @@ import {
   createOrganization,
   createUser,
   deactivateUserById,
+  getPlatformSettings,
   getUserByAppleId,
   getOrganizationById,
   getUserByGoogleId,
@@ -622,6 +623,12 @@ export async function completeOnboarding({
     throw error;
   }
 
+  const platformSettings = await getPlatformSettings();
+  const defaultTrialDays = Number(platformSettings?.default_trial_days ?? 5);
+  const trialLength = Number.isInteger(defaultTrialDays) && defaultTrialDays > 0 ? defaultTrialDays : 5;
+  const trialEnd = new Date();
+  trialEnd.setDate(trialEnd.getDate() + trialLength);
+
   const organization = await createOrganization({
     emailResponsavel: email,
     nomeEmpresa: nomeEmpresa.trim(),
@@ -633,6 +640,9 @@ export async function completeOnboarding({
     billingPostalCode: normalizeDocument(billingPostalCode),
     billingProvince: billingProvince.trim(),
     billingCityIbge: normalizeDocument(billingCityIbge),
+    subscriptionPlan: "trial",
+    subscriptionStatus: "trial",
+    trialEnd: trialEnd.toISOString().slice(0, 10),
   });
 
   const user = await createUser({

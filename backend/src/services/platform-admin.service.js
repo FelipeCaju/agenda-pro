@@ -379,8 +379,15 @@ export async function updatePlatformSettingsForAdmin(input) {
   const adminWhatsappNumber = normalizeString(
     input.admin_whatsapp_number ?? input.adminWhatsappNumber,
   );
+  const defaultTrialDays = Number(input.default_trial_days ?? input.defaultTrialDays ?? 5);
   const paymentGraceDays = Number(input.payment_grace_days ?? input.paymentGraceDays ?? 5);
   const paymentAlertDays = Number(input.payment_alert_days ?? input.paymentAlertDays ?? 5);
+
+  if (!Number.isInteger(defaultTrialDays) || defaultTrialDays < 1 || defaultTrialDays > 365) {
+    const error = new Error("Dias padrao de trial invalidos. Use entre 1 e 365 dias.");
+    error.statusCode = 400;
+    throw error;
+  }
 
   if (!Number.isInteger(paymentGraceDays) || paymentGraceDays < 0 || paymentGraceDays > 60) {
     const error = new Error("Folga de pagamento invalida. Use entre 0 e 60 dias.");
@@ -397,6 +404,7 @@ export async function updatePlatformSettingsForAdmin(input) {
   return updatePlatformSettings({
     pix_key: pixKey,
     admin_whatsapp_number: adminWhatsappNumber,
+    default_trial_days: defaultTrialDays,
     payment_grace_days: paymentGraceDays,
     payment_alert_days: paymentAlertDays,
   });

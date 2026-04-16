@@ -4,6 +4,11 @@ import { Button } from "@/components/ui/button";
 import type { Client } from "@/services/clientService";
 import type { BusinessService } from "@/services/serviceService";
 import type { RecurringProfileInput } from "@/services/recurrenceService";
+import {
+  formatCurrencyInput,
+  formatCurrencyValue,
+  parseCurrencyInput,
+} from "@/utils/currency-input";
 
 type RecurrenceFormValues = {
   clientId: string;
@@ -44,37 +49,13 @@ const EMPTY_VALUES: RecurrenceFormValues = {
   ativo: true,
 };
 
-function formatCurrencyInput(value: string) {
-  const digits = value.replace(/\D/g, "");
-
-  if (!digits) {
-    return "";
-  }
-
-  const amount = Number(digits) / 100;
-  return amount.toLocaleString("pt-BR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-}
-
-function parseCurrencyInput(value: string) {
-  if (!value.trim()) {
-    return undefined;
-  }
-
-  const normalized = value.replace(/\./g, "").replace(",", ".");
-  const parsed = Number(normalized);
-  return Number.isFinite(parsed) ? parsed : NaN;
-}
-
 function getInitialValues(initialValues?: Partial<RecurrenceFormValues>): RecurrenceFormValues {
   return {
     ...EMPTY_VALUES,
     ...initialValues,
     valor:
       initialValues?.valor !== undefined
-        ? formatCurrencyInput(String(initialValues.valor))
+        ? formatCurrencyValue(initialValues.valor)
         : EMPTY_VALUES.valor,
   };
 }
@@ -116,7 +97,7 @@ export function RecurrenceForm({
       }
 
       if (!current.valor.trim()) {
-        next.valor = formatCurrencyInput(String(selectedService.valorPadrao));
+        next.valor = formatCurrencyValue(selectedService.valorPadrao);
       }
 
       return next;

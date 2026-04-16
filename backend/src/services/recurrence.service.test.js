@@ -7,6 +7,7 @@ const {
   normalizeRecurringInput,
   resolveBillingDateForMonth,
   shouldGenerateChargeForDate,
+  shouldSendRecurringWhatsappNow,
 } = __testables;
 
 test("normalizeRecurringInput aceita payload valido em camelCase", () => {
@@ -81,5 +82,24 @@ test("buildTemplateMessage substitui placeholders do WhatsApp", () => {
   assert.equal(
     message,
     "Ola Maria - Ballet - 150,00 - 20/04/2026 - pix-chave - AgendaPro Studio",
+  );
+});
+
+test("shouldSendRecurringWhatsappNow limita envio para janelas da manha e tarde", () => {
+  assert.equal(
+    shouldSendRecurringWhatsappNow(new Date("2026-04-15T11:30:00.000Z"), "America/Sao_Paulo"),
+    true,
+  );
+  assert.equal(
+    shouldSendRecurringWhatsappNow(new Date("2026-04-15T18:00:00.000Z"), "America/Sao_Paulo"),
+    false,
+  );
+  assert.equal(
+    shouldSendRecurringWhatsappNow(new Date("2026-04-15T19:30:00.000Z"), "America/Sao_Paulo"),
+    true,
+  );
+  assert.equal(
+    shouldSendRecurringWhatsappNow(new Date("2026-04-16T00:24:00.000Z"), "America/Sao_Paulo"),
+    false,
   );
 });

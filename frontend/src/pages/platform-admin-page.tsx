@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { MobilePageHeader } from "@/components/layout/mobile-page-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { PasswordField } from "@/components/ui/password-field";
 import { useAdminPlatformSettingsQuery } from "@/hooks/use-admin-platform-settings-query";
 import { useAdminMutations } from "@/hooks/use-admin-mutations";
 import { useAdminOrganizationsQuery } from "@/hooks/use-admin-organizations-query";
@@ -36,63 +35,19 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
-function formatCurrencyInput(value: string) {
-  const digits = value.replace(/\D/g, "");
-
-  if (!digits) {
-    return "";
-  }
-
-  const amount = Number(digits) / 100;
-  return amount.toLocaleString("pt-BR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-}
-
-function parseCurrencyInput(value: string) {
-  if (!value.trim()) {
-    return undefined;
-  }
-
-  const normalized = value.replace(/\./g, "").replace(",", ".");
-  const parsed = Number(normalized);
-  return Number.isFinite(parsed) ? parsed : NaN;
-}
-
-function normalizeDocument(value: string) {
-  return value.replace(/\D+/g, "").trim();
-}
-
-function isValidCpfCnpj(value: string) {
-  const digits = normalizeDocument(value);
-  return digits.length === 11 || digits.length === 14;
-}
-
 export function PlatformAdminPage() {
   const navigate = useNavigate();
   const { data = [], error, isLoading, isError } = useAdminOrganizationsQuery();
   const {
-    createOrganization,
-    createOrganizationError,
-    isCreatingOrganization,
     isUpdatingPlatformSettings,
     updatePlatformSettings,
     updatePlatformSettingsError,
   } = useAdminMutations();
   const { data: platformSettings } = useAdminPlatformSettingsQuery();
-  const [nomeEmpresa, setNomeEmpresa] = useState("");
-  const [ownerName, setOwnerName] = useState("");
-  const [emailResponsavel, setEmailResponsavel] = useState("");
-  const [initialPassword, setInitialPassword] = useState("");
-  const [telefone, setTelefone] = useState("");
-  const [cpfCnpj, setCpfCnpj] = useState("");
-  const [monthlyAmount, setMonthlyAmount] = useState("29,90");
-  const [subscriptionPlan, setSubscriptionPlan] = useState<"trial" | "pro">("trial");
-  const [trialDays, setTrialDays] = useState("5");
   const [successMessage, setSuccessMessage] = useState("");
   const [pixKey, setPixKey] = useState("");
   const [adminWhatsappNumber, setAdminWhatsappNumber] = useState("");
+  const [defaultTrialDays, setDefaultTrialDays] = useState("5");
   const [paymentGraceDays, setPaymentGraceDays] = useState("5");
   const [paymentAlertDays, setPaymentAlertDays] = useState("5");
 
@@ -103,6 +58,7 @@ export function PlatformAdminPage() {
 
     setPixKey(platformSettings.pixKey ?? "");
     setAdminWhatsappNumber(platformSettings.adminWhatsappNumber ?? "");
+    setDefaultTrialDays(String(platformSettings.defaultTrialDays ?? 5));
     setPaymentGraceDays(String(platformSettings.paymentGraceDays ?? 5));
     setPaymentAlertDays(String(platformSettings.paymentAlertDays ?? 5));
   }, [platformSettings]);
@@ -114,47 +70,11 @@ export function PlatformAdminPage() {
       await updatePlatformSettings({
         pixKey,
         adminWhatsappNumber,
+        defaultTrialDays: Number(defaultTrialDays),
         paymentGraceDays: Number(paymentGraceDays),
         paymentAlertDays: Number(paymentAlertDays),
       });
-      setSuccessMessage("Configuracoes financeiras da plataforma atualizadas com sucesso.");
-    } catch {
-      return;
-    }
-  }
-
-  async function handleCreateOrganization(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (!isValidCpfCnpj(cpfCnpj)) {
-      setSuccessMessage("");
-      return;
-    }
-
-    try {
-      const created = await createOrganization({
-        nomeEmpresa,
-        ownerName,
-        emailResponsavel,
-        initialPassword,
-        telefone,
-        cpfCnpj: normalizeDocument(cpfCnpj),
-        monthlyAmount: parseCurrencyInput(monthlyAmount) ?? 0,
-        subscriptionPlan,
-        trialDays: Number(trialDays),
-      });
-
-      setSuccessMessage("Empresa criada com sucesso.");
-      setNomeEmpresa("");
-      setOwnerName("");
-      setEmailResponsavel("");
-      setInitialPassword("");
-      setTelefone("");
-      setCpfCnpj("");
-      setMonthlyAmount("29,90");
-      setSubscriptionPlan("trial");
-      setTrialDays("5");
-      navigate(`/admin/organizacoes/${created.organization.id}`);
+      setSuccessMessage("Configuracoes da plataforma atualizadas com sucesso.");
     } catch {
       return;
     }
@@ -165,8 +85,8 @@ export function PlatformAdminPage() {
       <MobilePageHeader subtitle="Empresas, mensalidade e pagamento do mes" title="Empresas" />
 
       <Card>
-        <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Financeiro da plataforma</p>
-        <h3 className="mt-2 text-lg font-semibold text-ink">Pix e tolerancia de pagamento</h3>
+        <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Plataforma</p>
+        <h3 className="mt-2 text-lg font-semibold text-ink">Pix, trial e tolerancia de pagamento</h3>
 
         <form className="mt-4 space-y-4" onSubmit={handlePlatformSettingsSubmit}>
           <div className="space-y-2">
@@ -184,7 +104,18 @@ export function PlatformAdminPage() {
             />
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-ink">Dias padrao de trial</label>
+              <input
+                className="app-input"
+                min="1"
+                onChange={(event) => setDefaultTrialDays(event.target.value)}
+                step="1"
+                type="number"
+                value={defaultTrialDays}
+              />
+            </div>
             <div className="space-y-2">
               <label className="text-sm font-medium text-ink">Dias de folga apos o vencimento</label>
               <input
@@ -211,6 +142,9 @@ export function PlatformAdminPage() {
 
           <div className="rounded-[22px] border border-slate-200 bg-slate-50/80 px-4 py-4 text-sm text-slate-600">
             <p>
+              Novos cadastros entram em <strong>trial</strong> por <strong>{defaultTrialDays || "0"}</strong> dia(s).
+            </p>
+            <p className="mt-2">
               Exemplo: vencimento no dia <strong>5</strong> com folga de <strong>{paymentGraceDays || "0"}</strong>{" "}
               dia(s) bloqueia somente depois do dia <strong>{5 + Number(paymentGraceDays || 0)}</strong>.
             </p>
@@ -220,127 +154,13 @@ export function PlatformAdminPage() {
             </p>
           </div>
 
+          {successMessage ? <p className="text-sm text-emerald-700">{successMessage}</p> : null}
           {updatePlatformSettingsError ? (
             <p className="text-sm text-rose-600">{updatePlatformSettingsError.message}</p>
           ) : null}
 
           <Button disabled={isUpdatingPlatformSettings} type="submit">
-            {isUpdatingPlatformSettings ? "Salvando..." : "Salvar configuracoes financeiras"}
-          </Button>
-        </form>
-      </Card>
-
-      <Card>
-        <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Nova empresa</p>
-        <h3 className="mt-2 text-lg font-semibold text-ink">Cadastrar cliente SaaS</h3>
-
-        <form className="mt-4 space-y-4" onSubmit={handleCreateOrganization}>
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-ink">Nome da empresa</label>
-            <input className="app-input" onChange={(event) => setNomeEmpresa(event.target.value)} value={nomeEmpresa} />
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-ink">Responsavel</label>
-              <input className="app-input" onChange={(event) => setOwnerName(event.target.value)} value={ownerName} />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-ink">Email de acesso</label>
-              <input
-                className="app-input"
-                onChange={(event) => setEmailResponsavel(event.target.value)}
-                type="email"
-                value={emailResponsavel}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-ink">Senha inicial</label>
-            <PasswordField
-              inputClassName="app-input pr-14"
-              onChange={(event) => setInitialPassword(event.target.value)}
-              placeholder="Minimo de 8 caracteres"
-              value={initialPassword}
-            />
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-ink">Telefone</label>
-              <input className="app-input" onChange={(event) => setTelefone(event.target.value)} value={telefone} />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-ink">CPF ou CNPJ do assinante</label>
-              <input className="app-input" onChange={(event) => setCpfCnpj(event.target.value)} value={cpfCnpj} />
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-ink">Mensalidade</label>
-              <input
-                className="app-input"
-                inputMode="numeric"
-                onChange={(event) => setMonthlyAmount(formatCurrencyInput(event.target.value))}
-                placeholder="0,00"
-                type="text"
-                value={monthlyAmount}
-              />
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-ink">Plano</label>
-              <select
-                className="app-select"
-                onChange={(event) => setSubscriptionPlan(event.target.value as "trial" | "pro")}
-                value={subscriptionPlan}
-              >
-                <option value="trial">Trial</option>
-                <option value="pro">Pro</option>
-              </select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-ink">Dias de trial</label>
-              <input
-                className="app-input"
-                disabled={subscriptionPlan !== "trial"}
-                min="1"
-                onChange={(event) => setTrialDays(event.target.value)}
-                step="1"
-                type="number"
-                value={trialDays}
-              />
-            </div>
-          </div>
-
-          <div className="rounded-[22px] border border-slate-200 bg-slate-50/80 px-4 py-4 text-sm text-slate-600">
-            {subscriptionPlan === "trial" ? (
-              <p>
-                Esta empresa entra em <strong>Trial</strong> e pode usar o sistema por{" "}
-                <strong>{trialDays || "0"} dia(s)</strong>. Ao vencer, o acesso fica bloqueado ate o pagamento.
-              </p>
-            ) : (
-              <p>
-                Esta empresa entra no plano <strong>Pro</strong>. O acesso nasce liberado e o controle financeiro
-                continua pelo historico de cobranca.
-              </p>
-            )}
-          </div>
-
-          {successMessage ? <p className="text-sm text-emerald-700">{successMessage}</p> : null}
-          {!isValidCpfCnpj(cpfCnpj) && cpfCnpj.trim() ? (
-            <p className="text-sm text-rose-600">Informe um CPF ou CNPJ valido para cadastrar a empresa.</p>
-          ) : null}
-          {createOrganizationError ? (
-            <p className="text-sm text-rose-600">{createOrganizationError.message}</p>
-          ) : null}
-
-          <Button disabled={isCreatingOrganization} type="submit">
-            {isCreatingOrganization ? "Criando..." : "Cadastrar empresa"}
+            {isUpdatingPlatformSettings ? "Salvando..." : "Salvar configuracoes"}
           </Button>
         </form>
       </Card>

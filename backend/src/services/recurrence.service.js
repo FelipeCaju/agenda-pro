@@ -11,6 +11,7 @@ import { sendWhatsappMessage } from "./whatsapp.service.js";
 
 const DEFAULT_RECURRING_WHATSAPP_TEMPLATE =
   "Oie {NOME_CLIENTE}!\n\nAqui e a equipe da {EMPRESA_NOME}.\n\nPassando para te lembrar da sua cobranca de {NOME_SERVICO}.\n\nValor: R$ {VALOR}\nVencimento: {DATA_VENCIMENTO}\nChave Pix: {CHAVE_PIX}\n\nSe o pagamento ja foi realizado, pode desconsiderar esta mensagem.\nObrigada!";
+const DEFAULT_RECURRING_TIMEZONE = "America/Sao_Paulo";
 
 function buildError(message, statusCode) {
   const error = new Error(message);
@@ -73,6 +74,32 @@ function getCompetencia(date) {
 function parseDateParts(date) {
   const [year, month] = String(date).split("-").map(Number);
   return { year, month };
+}
+
+function getDatePartsForTimezone(referenceDate = new Date(), timezone = DEFAULT_RECURRING_TIMEZONE) {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone || DEFAULT_RECURRING_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  const parts = Object.fromEntries(
+    formatter.formatToParts(referenceDate).map((part) => [part.type, part.value]),
+  );
+
+  return {
+    date: `${parts.year}-${parts.month}-${parts.day}`,
+    hour: Number(parts.hour ?? 0),
+    minute: Number(parts.minute ?? 0),
+  };
+}
+
+function shouldSendRecurringWhatsappNow(referenceDate = new Date(), timezone = DEFAULT_RECURRING_TIMEZONE) {
+  const { hour } = getDatePartsForTimezone(referenceDate, timezone);
+  return hour === 8 || (hour >= 16 && hour < 18);
 }
 
 function mapRecurringProfile(row) {
@@ -952,9 +979,24 @@ async function markOverdueChargesForOrganization({ organizationId, targetDate })
   return { updated: Number(result.affectedRows ?? 0) };
 }
 
+async function listPendingChargesForAutomaticWhatsapp({ organizationId, targetDate }) {
+  const rows = await query(
+    `SELECT *
+      FROM recurring_charges
+      WHERE organization_id = ?
+        AND status = 'pendente'
+        AND data_vencimento = ?
+        AND whatsapp_enviado = 0
+      ORDER BY created_at ASC`,
+    [organizationId, targetDate],
+  );
+
+  return rows.map(mapRecurringCharge);
+}
+
 export async function processRecurringAutomation({
   organizationId = null,
-  targetDate = new Date().toISOString().slice(0, 10),
+  targetDate = null,
   createdByUserId = null,
   sendWhatsapp = true,
 } = {}) {
@@ -980,13 +1022,20 @@ export async function processRecurringAutomation({
         continue;
       }
 
+      const timezone = normalizeString(settings?.timezone) || DEFAULT_RECURRING_TIMEZONE;
+      const resolvedTargetDate = targetDate || getDatePartsForTimezone(new Date(), timezone).date;
+      const automaticWhatsappEnabled =
+        sendWhatsapp &&
+        settings?.recurring_whatsapp_automatico &&
+        shouldSendRecurringWhatsappNow(new Date(), timezone);
+
       await markOverdueChargesForOrganization({
         organizationId: organization.id,
-        targetDate,
+        targetDate: resolvedTargetDate,
       });
 
       for (const profile of profiles) {
-        if (!shouldGenerateChargeForDate(profile, targetDate)) {
+        if (!shouldGenerateChargeForDate(profile, resolvedTargetDate)) {
           continue;
         }
 
@@ -994,20 +1043,10 @@ export async function processRecurringAutomation({
           const charge = await generateChargeForProfile({
             organizationId: organization.id,
             profile,
-            targetDate,
+            targetDate: resolvedTargetDate,
             createdByUserId,
           });
           result.generatedCharges += 1;
-
-          if (sendWhatsapp && settings?.recurring_whatsapp_automatico) {
-            await sendChargeWhatsappInternal({
-              organizationId: organization.id,
-              charge,
-              profile,
-              createdByUserId,
-            });
-            result.sentWhatsapp += 1;
-          }
         } catch (error) {
           if (error?.code === "ER_DUP_ENTRY") {
             continue;
@@ -1017,6 +1056,35 @@ export async function processRecurringAutomation({
             organizationId: organization.id,
             profileId: profile.id,
             message: error.message ?? "Erro ao processar recorrencia.",
+          });
+        }
+      }
+
+      if (!automaticWhatsappEnabled) {
+        continue;
+      }
+
+      const pendingCharges = await listPendingChargesForAutomaticWhatsapp({
+        organizationId: organization.id,
+        targetDate: resolvedTargetDate,
+      });
+
+      for (const charge of pendingCharges) {
+        try {
+          const profile = await getRecurringProfileOrFail(organization.id, charge.recurring_profile_id);
+          await sendChargeWhatsappInternal({
+            organizationId: organization.id,
+            charge,
+            profile,
+            createdByUserId,
+          });
+          result.sentWhatsapp += 1;
+        } catch (error) {
+          result.errors.push({
+            organizationId: organization.id,
+            profileId: charge.recurring_profile_id,
+            chargeId: charge.id,
+            message: error.message ?? "Erro ao enviar cobranca recorrente por WhatsApp.",
           });
         }
       }
@@ -1037,4 +1105,5 @@ export const __testables = {
   normalizeRecurringInput,
   resolveBillingDateForMonth,
   shouldGenerateChargeForDate,
+  shouldSendRecurringWhatsappNow,
 };

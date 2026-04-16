@@ -35,6 +35,7 @@ export type AdminOrganizationPayment = {
 export type PlatformSettings = {
   pixKey: string;
   adminWhatsappNumber: string;
+  defaultTrialDays: number;
   paymentGraceDays: number;
   paymentAlertDays: number;
 };
@@ -260,6 +261,7 @@ export const adminService = {
     return {
       pixKey: response.data.pix_key ?? "",
       adminWhatsappNumber: response.data.admin_whatsapp_number ?? "",
+      defaultTrialDays: Number(response.data.default_trial_days ?? 5),
       paymentGraceDays: Number(response.data.payment_grace_days ?? 5),
       paymentAlertDays: Number(response.data.payment_alert_days ?? 5),
     } satisfies PlatformSettings;
@@ -268,12 +270,14 @@ export const adminService = {
     const response = await apiClient.patch<any>("/admin/platform-settings", {
       pix_key: input.pixKey,
       admin_whatsapp_number: input.adminWhatsappNumber,
+      default_trial_days: input.defaultTrialDays,
       payment_grace_days: input.paymentGraceDays,
       payment_alert_days: input.paymentAlertDays,
     });
     return {
       pixKey: response.data.pix_key ?? "",
       adminWhatsappNumber: response.data.admin_whatsapp_number ?? "",
+      defaultTrialDays: Number(response.data.default_trial_days ?? 5),
       paymentGraceDays: Number(response.data.payment_grace_days ?? 5),
       paymentAlertDays: Number(response.data.payment_alert_days ?? 5),
     } satisfies PlatformSettings;

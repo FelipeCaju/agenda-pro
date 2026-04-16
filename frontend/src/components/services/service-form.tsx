@@ -2,6 +2,11 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import type { BusinessServiceInput } from "@/services/serviceService";
+import {
+  formatCurrencyInput,
+  formatCurrencyValue,
+  parseCurrencyInput,
+} from "@/utils/currency-input";
 
 export type ServiceFormValues = {
   nome: string;
@@ -39,37 +44,13 @@ function isValidColor(color: string) {
   return /^#([0-9a-fA-F]{6})$/.test(color);
 }
 
-function formatCurrencyInput(value: string) {
-  const digits = value.replace(/\D/g, "");
-
-  if (!digits) {
-    return "";
-  }
-
-  const amount = Number(digits) / 100;
-  return amount.toLocaleString("pt-BR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-}
-
-function parseCurrencyInput(value: string) {
-  if (!value.trim()) {
-    return undefined;
-  }
-
-  const normalized = value.replace(/\./g, "").replace(",", ".");
-  const parsed = Number(normalized);
-  return Number.isFinite(parsed) ? parsed : NaN;
-}
-
 function getInitialValues(initialValues?: Partial<ServiceFormValues>): ServiceFormValues {
   return {
     ...EMPTY_VALUES,
     ...initialValues,
     valorPadrao:
       initialValues?.valorPadrao !== undefined
-        ? formatCurrencyInput(String(initialValues.valorPadrao))
+        ? formatCurrencyValue(initialValues.valorPadrao)
         : EMPTY_VALUES.valorPadrao,
   };
 }

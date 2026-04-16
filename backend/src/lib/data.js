@@ -846,6 +846,7 @@ function mapPlatformSettings(row) {
       id: "default",
       pix_key: "",
       admin_whatsapp_number: "",
+      default_trial_days: 5,
       payment_grace_days: 5,
       payment_alert_days: 5,
       created_at: null,
@@ -857,6 +858,7 @@ function mapPlatformSettings(row) {
     id: row.id,
     pix_key: row.pix_key ?? "",
     admin_whatsapp_number: row.admin_whatsapp_number ?? "",
+    default_trial_days: Number(row.default_trial_days ?? 5),
     payment_grace_days: Number(row.payment_grace_days ?? 5),
     payment_alert_days: Number(row.payment_alert_days ?? 5),
     created_at: normalizeDateTime(row.created_at),
@@ -1085,6 +1087,7 @@ async function ensurePlatformSettingsInfrastructure() {
       id VARCHAR(64) PRIMARY KEY,
       pix_key TEXT NULL,
       admin_whatsapp_number VARCHAR(32) NULL,
+      default_trial_days INT NOT NULL DEFAULT 5,
       payment_grace_days INT NOT NULL DEFAULT 5,
       payment_alert_days INT NOT NULL DEFAULT 5,
       created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -1094,14 +1097,21 @@ async function ensurePlatformSettingsInfrastructure() {
 
   await execute(
     `INSERT IGNORE INTO platform_settings (
-      id, pix_key, admin_whatsapp_number, payment_grace_days, payment_alert_days
-    ) VALUES ('default', '', '', 5, 5)`,
+      id, pix_key, admin_whatsapp_number, default_trial_days, payment_grace_days, payment_alert_days
+    ) VALUES ('default', '', '', 5, 5, 5)`,
   );
 
   if (!(await hasColumn("platform_settings", "admin_whatsapp_number"))) {
     await execute(
       `ALTER TABLE platform_settings
         ADD COLUMN admin_whatsapp_number VARCHAR(32) NULL AFTER pix_key`,
+    );
+  }
+
+  if (!(await hasColumn("platform_settings", "default_trial_days"))) {
+    await execute(
+      `ALTER TABLE platform_settings
+        ADD COLUMN default_trial_days INT NOT NULL DEFAULT 5 AFTER admin_whatsapp_number`,
     );
   }
 
@@ -1947,6 +1957,7 @@ export async function updatePlatformSettings(input) {
   const statement = buildUpdateStatement(input, [
     "pix_key",
     "admin_whatsapp_number",
+    "default_trial_days",
     "payment_grace_days",
     "payment_alert_days",
   ]);
