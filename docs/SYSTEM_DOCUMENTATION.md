@@ -340,7 +340,10 @@ O sistema suporta recorrencia no cadastro com opcoes como:
 
 - sem recorrencia
 - recorrencia semanal
+- recorrencia quinzenal
 - recorrencia mensal
+
+As recorrencias de agenda sao geradas por 1 ano a partir da data inicial.
 
 O retorno da criacao informa quantos agendamentos foram criados quando a recorrencia gera mais de um registro.
 
@@ -1210,4 +1213,3 @@ Agora este documento passa a funcionar como referencia funcional detalhada do Ag
 - assinatura e cobranca
 - mobile
 - integracoes
-

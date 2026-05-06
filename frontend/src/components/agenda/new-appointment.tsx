@@ -487,15 +487,15 @@ export function NewAppointment({
 
   function getRecurrenceSummary() {
     if (values.repetir === "semanal") {
-      return "Semanal por 6 meses";
+      return "Semanal por 1 ano";
     }
 
     if (values.repetir === "quinzenal") {
-      return "Quinzenal por 6 meses";
+      return "Quinzenal por 1 ano";
     }
 
     if (values.repetir === "mensal") {
-      return "Mensal por 6 meses";
+      return "Mensal por 1 ano";
     }
 
     return "Nao repetir";
@@ -836,9 +836,9 @@ export function NewAppointment({
               value={values.repetir}
             >
               <option value="nao_repetir">Nao repetir</option>
-              <option value="semanal">Semanal (mesmo dia por 6 meses)</option>
-              <option value="quinzenal">Quinzenal (a cada 15 dias por 6 meses)</option>
-              <option value="mensal">Mensal (mesmo dia por 6 meses)</option>
+              <option value="semanal">Semanal (mesmo dia por 1 ano)</option>
+              <option value="quinzenal">Quinzenal (a cada 15 dias por 1 ano)</option>
+              <option value="mensal">Mensal (mesmo dia por 1 ano)</option>
             </select>
             <ChevronDownIcon className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           </div>

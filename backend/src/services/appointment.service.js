@@ -28,6 +28,7 @@ const VALID_PAYMENT_STATUS = ["pendente", "pago"];
 const VALID_CONFIRMATION = ["pendente", "confirmado", "cancelado", "sem_resposta"];
 const VALID_RECURRENCE_TYPES = ["none", "weekly", "biweekly", "monthly"];
 const VALID_DELETE_SCOPES = ["single", "series"];
+const RECURRENCE_MONTHS_WINDOW = 12;
 
 function normalizeString(value) {
   return typeof value === "string" ? value.trim() : "";
@@ -126,8 +127,8 @@ function addMonthsToDate(date, amount) {
   return value.toISOString().slice(0, 10);
 }
 
-function isDateBeforeOrEqual(leftDate, rightDate) {
-  return new Date(`${leftDate}T12:00:00`).getTime() <= new Date(`${rightDate}T12:00:00`).getTime();
+function isDateBefore(leftDate, rightDate) {
+  return new Date(`${leftDate}T12:00:00`).getTime() < new Date(`${rightDate}T12:00:00`).getTime();
 }
 
 function normalizeRecurrence(input) {
@@ -148,7 +149,7 @@ function normalizeRecurrence(input) {
     throw buildError("Quantidade de repeticoes invalida.", 400);
   }
 
-  return { type, count, monthsWindow: type === "none" ? 0 : 6 };
+  return { type, count, monthsWindow: type === "none" ? 0 : RECURRENCE_MONTHS_WINDOW };
 }
 
 function buildRecurrenceDates(baseDate, recurrence) {
@@ -168,7 +169,7 @@ function buildRecurrenceDates(baseDate, recurrence) {
           ? addDaysToDate(baseDate, index * 15)
           : addMonthsToDate(baseDate, index);
 
-    if (!isDateBeforeOrEqual(occurrenceDate, limitDate)) {
+    if (!isDateBefore(occurrenceDate, limitDate)) {
       break;
     }
 
@@ -590,8 +591,8 @@ export async function getAppointment({ organizationId, appointmentId }) {
 export async function createAppointment({ organizationId, input }) {
   const recurrence = normalizeRecurrence(input);
   const occurrenceDates = buildRecurrenceDates(input.data, recurrence);
-  const createdAppointments = [];
   const recurrenceSeriesId = recurrence.type === "none" ? null : randomUUID();
+  const validatedOccurrences = [];
 
   for (let index = 0; index < occurrenceDates.length; index += 1) {
     const occurrenceDate = occurrenceDates[index];
@@ -600,16 +601,22 @@ export async function createAppointment({ organizationId, input }) {
       data: occurrenceDate,
     };
     const { payload } = await validateAppointmentInput({ organizationId, input: occurrenceInput });
+    validatedOccurrences.push({ payload, index });
+  }
+
+  const createdAppointments = [];
+
+  for (const occurrence of validatedOccurrences) {
     const created = await createAppointmentForOrganization(organizationId, {
-      ...payload,
+      ...occurrence.payload,
       recurrence_series_id: recurrenceSeriesId,
       recurrence_type: recurrence.type,
-      recurrence_index: index,
+      recurrence_index: occurrence.index,
     });
-    if (payload.quote_id) {
+    if (occurrence.payload.quote_id) {
       await linkQuoteToAppointment({
         organizationId,
-        quoteId: payload.quote_id,
+        quoteId: occurrence.payload.quote_id,
         appointmentId: created.id,
       });
     }
@@ -622,6 +629,11 @@ export async function createAppointment({ organizationId, input }) {
     appointments: createdAppointments,
   };
 }
+
+export const __testables = {
+  buildRecurrenceDates,
+  normalizeRecurrence,
+};
 
 export async function updateAppointment({ organizationId, appointmentId, input }) {
   const current = await getAppointmentByIdForOrganization(organizationId, appointmentId);
