@@ -2771,6 +2771,27 @@ export async function listAppointmentsByOrganization(
   return enrichAppointmentsWithServiceData(organizationId, rows.map(mapAppointment));
 }
 
+export async function listRecentAppointmentsByClientForOrganization(
+  organizationId,
+  clientId,
+  { limit = 3 } = {},
+) {
+  await ensureInitialized();
+  const normalizedLimit = Number.isFinite(Number(limit))
+    ? Math.max(1, Math.min(10, Number(limit)))
+    : 3;
+  const rows = await query(
+    `SELECT * FROM appointments
+      WHERE organization_id = ?
+        AND cliente_id = ?
+      ORDER BY data DESC, horario_inicial DESC
+      LIMIT ${normalizedLimit}`,
+    [organizationId, clientId],
+  );
+
+  return enrichAppointmentsWithServiceData(organizationId, rows.map(mapAppointment));
+}
+
 export async function listUpcomingAppointmentsByOrganization(
   organizationId,
   { daysAhead = 45, professionalId } = {},

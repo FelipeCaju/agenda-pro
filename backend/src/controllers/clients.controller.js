@@ -2,6 +2,7 @@ import { getRequestActiveAuthContext } from "../lib/request-auth.js";
 import {
   createClient,
   getClient,
+  listClientRecentAppointments,
   listClients,
   removeClient,
   toggleClientActive,
@@ -43,6 +44,26 @@ export async function getClientController(request, response) {
 
     response.json({
       data: client,
+    });
+  } catch (error) {
+    sendError(response, error);
+  }
+}
+
+export async function listClientRecentAppointmentsController(request, response) {
+  try {
+    const { organization } = await getRequestActiveAuthContext(request);
+    const appointments = await listClientRecentAppointments({
+      organizationId: organization.id,
+      clientId: request.params.clientId,
+      limit: request.query.limit,
+    });
+
+    response.json({
+      data: appointments,
+      meta: {
+        total: appointments.length,
+      },
     });
   } catch (error) {
     sendError(response, error);
