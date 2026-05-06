@@ -26,6 +26,16 @@ function formatDate(value: string) {
   return `${day}/${month}/${year}`;
 }
 
+function formatShortDate(value: string) {
+  const [year, month, day] = value.split("-");
+
+  if (!year || !month || !day) {
+    return value;
+  }
+
+  return `${day}/${month}/${year.slice(-2)}`;
+}
+
 function getServiceLabel(appointment: Appointment) {
   const firstService = appointment.items[0]?.servicoNome || appointment.servicoNome || "Servico";
   const extraServices = Math.max(0, appointment.items.length - 1);
@@ -41,8 +51,8 @@ function AppointmentStatusIcon({ appointment }: { appointment: Appointment }) {
       aria-label={done ? "Realizado" : "Nao realizado"}
       className={
         done
-          ? "inline-flex h-7 w-7 items-center justify-center rounded-full bg-emerald-50 text-xs font-bold text-emerald-700"
-          : "inline-flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-500"
+          ? "inline-flex h-6 w-6 items-center justify-center rounded-full bg-emerald-50 text-[10px] font-bold text-emerald-700 sm:h-7 sm:w-7 sm:text-xs"
+          : "inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-[10px] font-bold text-slate-500 sm:h-7 sm:w-7 sm:text-xs"
       }
       title={done ? "Realizado" : "Nao realizado"}
     >
@@ -58,8 +68,8 @@ function PaymentBadge({ appointment }: { appointment: Appointment }) {
     <span
       className={
         paid
-          ? "inline-flex min-w-[72px] justify-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700"
-          : "inline-flex min-w-[72px] justify-center rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700"
+          ? "inline-flex min-w-[52px] justify-center rounded-full bg-emerald-50 px-1.5 py-1 text-[10px] font-semibold text-emerald-700 sm:min-w-[72px] sm:px-2.5 sm:text-xs"
+          : "inline-flex min-w-[52px] justify-center rounded-full bg-amber-50 px-1.5 py-1 text-[10px] font-semibold text-amber-700 sm:min-w-[72px] sm:px-2.5 sm:text-xs"
       }
     >
       {paid ? "PG" : "Pendente"}
@@ -102,14 +112,23 @@ function ClientAppointmentHistory({
       ) : null}
 
       {!isLoading && !isError && data.length ? (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[520px] text-left text-sm">
-            <thead className="text-xs uppercase text-slate-400">
+        <div className="w-full overflow-hidden">
+          <table className="w-full table-fixed text-left text-[11px] sm:text-sm">
+            <colgroup>
+              <col className="w-[62px] sm:w-[120px]" />
+              <col />
+              <col className="w-[52px] sm:w-[110px]" />
+              <col className="w-[66px] sm:w-[130px]" />
+            </colgroup>
+            <thead className="text-[10px] uppercase text-slate-400 sm:text-xs">
               <tr>
-                <th className="py-2 pr-3 font-semibold">Data</th>
-                <th className="px-3 py-2 font-semibold">Servico</th>
-                <th className="px-3 py-2 text-center font-semibold">Status</th>
-                <th className="py-2 pl-3 text-center font-semibold">Pagamento</th>
+                <th className="py-2 pr-1 font-semibold sm:pr-3">Data</th>
+                <th className="px-1 py-2 font-semibold sm:px-3">Servico</th>
+                <th className="px-1 py-2 text-center font-semibold sm:px-3">Status</th>
+                <th className="py-2 pl-1 text-center font-semibold sm:pl-3">
+                  <span className="sm:hidden">PGTO</span>
+                  <span className="hidden sm:inline">Pagamento</span>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -119,16 +138,17 @@ function ClientAppointmentHistory({
                   key={appointment.id}
                   onClick={() => onOpenAppointment(appointment)}
                 >
-                  <td className="py-2.5 pr-3 font-medium text-ink">
-                    {formatDate(appointment.data)}
+                  <td className="whitespace-nowrap py-2.5 pr-1 font-medium text-ink sm:pr-3">
+                    <span className="sm:hidden">{formatShortDate(appointment.data)}</span>
+                    <span className="hidden sm:inline">{formatDate(appointment.data)}</span>
                   </td>
-                  <td className="max-w-[220px] truncate px-3 py-2.5 text-slate-600">
+                  <td className="truncate px-1 py-2.5 text-slate-600 sm:px-3">
                     {getServiceLabel(appointment)}
                   </td>
-                  <td className="px-3 py-2.5 text-center">
+                  <td className="px-1 py-2.5 text-center sm:px-3">
                     <AppointmentStatusIcon appointment={appointment} />
                   </td>
-                  <td className="py-2.5 pl-3 text-center">
+                  <td className="py-2.5 pl-1 text-center sm:pl-3">
                     <PaymentBadge appointment={appointment} />
                   </td>
                 </tr>
