@@ -176,8 +176,11 @@ function AppointmentBlock({
 }) {
   const width = `calc(${100 / laneCount}% - 6px)`;
   const left = `calc(${(100 / laneCount) * lane}% + 3px)`;
+  const durationMinutes = timeToMinutes(appointment.horarioFinal) - timeToMinutes(appointment.horarioInicial);
+  const isShortAppointment = durationMinutes < 30;
   const isTiny = position.height < 5.6;
   const isCompact = position.height < 9;
+  const shortLabel = `${getAppointmentServiceLabel(appointment)} - ${appointment.clienteNome} - ${formatTimeRange(appointment)}`;
 
   return (
     <button
@@ -198,20 +201,28 @@ function AppointmentBlock({
       }}
       type="button"
     >
-      <div className="flex h-full min-h-0 flex-col justify-between gap-1">
-        <div className="min-h-0">
-          <p className="truncate text-sm font-semibold text-white">{getAppointmentServiceLabel(appointment)}</p>
-          {!isTiny ? (
-            <p className="truncate text-[12px] font-medium text-white/92">{appointment.clienteNome}</p>
+      {isShortAppointment ? (
+        <div className="flex h-full min-h-0 items-center">
+          <p className="truncate text-[12px] font-semibold leading-none text-white" title={shortLabel}>
+            {shortLabel}
+          </p>
+        </div>
+      ) : (
+        <div className="flex h-full min-h-0 flex-col justify-between gap-1">
+          <div className="min-h-0">
+            <p className="truncate text-sm font-semibold text-white">{getAppointmentServiceLabel(appointment)}</p>
+            {!isTiny ? (
+              <p className="truncate text-[12px] font-medium text-white/92">{appointment.clienteNome}</p>
+            ) : null}
+          </div>
+
+          {!isCompact ? (
+            <p className="truncate text-[12px] font-semibold text-white/95">{formatTimeRange(appointment)}</p>
+          ) : !isTiny ? (
+            <p className="truncate text-[12px] font-semibold text-white/95">{appointment.horarioInicial}</p>
           ) : null}
         </div>
-
-        {!isCompact ? (
-          <p className="truncate text-[12px] font-semibold text-white/95">{formatTimeRange(appointment)}</p>
-        ) : !isTiny ? (
-          <p className="truncate text-[12px] font-semibold text-white/95">{appointment.horarioInicial}</p>
-        ) : null}
-      </div>
+      )}
     </button>
   );
 }
