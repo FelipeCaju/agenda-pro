@@ -1095,12 +1095,6 @@ async function ensurePlatformSettingsInfrastructure() {
     )`,
   );
 
-  await execute(
-    `INSERT IGNORE INTO platform_settings (
-      id, pix_key, admin_whatsapp_number, default_trial_days, payment_grace_days, payment_alert_days
-    ) VALUES ('default', '', '', 5, 5, 5)`,
-  );
-
   if (!(await hasColumn("platform_settings", "admin_whatsapp_number"))) {
     await execute(
       `ALTER TABLE platform_settings
@@ -1114,6 +1108,26 @@ async function ensurePlatformSettingsInfrastructure() {
         ADD COLUMN default_trial_days INT NOT NULL DEFAULT 5 AFTER admin_whatsapp_number`,
     );
   }
+
+  if (!(await hasColumn("platform_settings", "payment_grace_days"))) {
+    await execute(
+      `ALTER TABLE platform_settings
+        ADD COLUMN payment_grace_days INT NOT NULL DEFAULT 5 AFTER default_trial_days`,
+    );
+  }
+
+  if (!(await hasColumn("platform_settings", "payment_alert_days"))) {
+    await execute(
+      `ALTER TABLE platform_settings
+        ADD COLUMN payment_alert_days INT NOT NULL DEFAULT 5 AFTER payment_grace_days`,
+    );
+  }
+
+  await execute(
+    `INSERT IGNORE INTO platform_settings (
+      id, pix_key, admin_whatsapp_number, default_trial_days, payment_grace_days, payment_alert_days
+    ) VALUES ('default', '', '', 5, 5, 5)`,
+  );
 
   if (await hasTable("organization_payments")) {
     if (!(await hasColumn("organization_payments", "customer_notified_paid_at"))) {
