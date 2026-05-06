@@ -36,6 +36,7 @@ import {
   createClientController,
   deleteClientController,
   getClientController,
+  listClientRecentAppointmentsController,
   listClientsController,
   toggleClientActiveController,
   updateClientController,
@@ -177,6 +178,7 @@ router.patch("/agenda/:appointmentId/status", updateAppointmentStatusController)
 router.patch("/agenda/:appointmentId/payment-status", updateAppointmentPaymentStatusController);
 router.delete("/agenda/:appointmentId", deleteAppointmentController);
 router.get("/clients", listClientsController);
+router.get("/clients/:clientId/appointments", listClientRecentAppointmentsController);
 router.get("/clients/:clientId", getClientController);
 router.post("/clients", createClientController);
 router.put("/clients/:clientId", updateClientController);

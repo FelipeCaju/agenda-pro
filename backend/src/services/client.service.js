@@ -2,6 +2,7 @@ import {
   createClientForOrganization,
   getClientByIdForOrganization,
   listClientsByOrganization,
+  listRecentAppointmentsByClientForOrganization,
   removeClientForOrganization,
   updateClientForOrganization,
 } from "../lib/data.js";
@@ -54,6 +55,16 @@ export async function getClient({ organizationId, clientId }) {
   }
 
   return client;
+}
+
+export async function listClientRecentAppointments({ organizationId, clientId, limit }) {
+  const client = await getClientByIdForOrganization(organizationId, clientId);
+
+  if (!client) {
+    throw buildError("Cliente nao encontrado.", 404);
+  }
+
+  return listRecentAppointmentsByClientForOrganization(organizationId, clientId, { limit });
 }
 
 export async function createClient({ organizationId, input }) {

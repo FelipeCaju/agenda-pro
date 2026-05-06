@@ -11,6 +11,8 @@ export const agendaKeys = {
   lists: () => [...agendaKeys.all, "list"] as const,
   list: (date: string, view: AgendaView, professionalId?: string) =>
     [...agendaKeys.lists(), { date, view, professionalId: professionalId ?? "" }] as const,
+  clientRecent: (clientId: string, limit: number) =>
+    [...agendaKeys.all, "client-recent", { clientId, limit }] as const,
   details: () => [...agendaKeys.all, "detail"] as const,
   detail: (appointmentId: string) => [...agendaKeys.details(), appointmentId] as const,
 };
@@ -32,5 +34,28 @@ export function useAgendaQuery({
     retry: (failureCount, error) => shouldRetryTransientQuery(error, failureCount),
     retryDelay: 1500,
     placeholderData: (previousData) => previousData,
+  });
+}
+
+export function useClientRecentAppointmentsQuery(
+  clientId: string | undefined,
+  { limit = 3, enabled = true }: { limit?: number; enabled?: boolean } = {},
+) {
+  const canFetch = Boolean(clientId) && enabled;
+
+  return useQuery({
+    queryKey: clientId ? agendaKeys.clientRecent(clientId, limit) : agendaKeys.clientRecent("empty", limit),
+    queryFn: () => {
+      if (!clientId) {
+        throw new Error("Cliente invalido para consulta de agendamentos.");
+      }
+
+      return appointmentService.listByClient({ clientId, limit });
+    },
+    enabled: canFetch,
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+    retry: (failureCount, error) => shouldRetryTransientQuery(error, failureCount),
+    retryDelay: 1500,
   });
 }

@@ -99,6 +99,11 @@ export type UpcomingAppointmentFilters = {
   professionalId?: string;
 };
 
+export type ClientAppointmentFilters = {
+  clientId: string;
+  limit?: number;
+};
+
 export type AppointmentCreateResult = {
   appointment: Appointment;
   createdCount: number;
@@ -307,6 +312,25 @@ export const appointmentService = {
       },
       {
         errorMessage: "Nao foi possivel carregar os proximos agendamentos.",
+      },
+    );
+  },
+  async listByClient(filters: ClientAppointmentFilters) {
+    return executeServiceCall(
+      async () => {
+        const response = await apiClient.get<AppointmentApiModel[]>(
+          `/clients/${filters.clientId}/appointments`,
+          {
+            query: {
+              limit: filters.limit ?? 3,
+            },
+          },
+        );
+
+        return (response.data ?? []).map(fromApi);
+      },
+      {
+        errorMessage: "Nao foi possivel carregar os agendamentos do cliente.",
       },
     );
   },

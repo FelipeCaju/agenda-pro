@@ -10,6 +10,7 @@ import { useClientsQuery } from "@/hooks/use-clients-query";
 export function ClientsPage() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const deferredSearch = useDeferredValue(search);
   const { data = [], error, isLoading, isError } = useClientsQuery(deferredSearch);
 
@@ -45,7 +46,15 @@ export function ClientsPage() {
       ) : null}
 
       {!isLoading && !isError ? (
-        <ClientList items={data} onEdit={(client) => navigate(`/clientes/${client.id}/editar`)} />
+        <ClientList
+          items={data}
+          onEdit={(client) => navigate(`/clientes/${client.id}/editar`)}
+          onOpenAppointment={(appointment) => navigate(`/agenda/${appointment.id}`)}
+          onSelect={(client) =>
+            setSelectedClientId((currentClientId) => (currentClientId === client.id ? null : client.id))
+          }
+          selectedClientId={selectedClientId}
+        />
       ) : null}
 
       <FloatingActionButton label="Novo" onClick={() => navigate("/clientes/novo")} />
