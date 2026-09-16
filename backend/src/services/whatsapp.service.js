@@ -5,6 +5,10 @@ loadEnvironment();
 
 const lastTestByOrganization = new Map();
 
+function isWhatsappEnabled() {
+  return String(process.env.WHATSAPP_ENABLED ?? "false").trim().toLowerCase() === "true";
+}
+
 function buildError(message, statusCode) {
   const error = new Error(message);
   error.statusCode = statusCode;
@@ -21,6 +25,10 @@ function getEnvironmentConfig() {
 }
 
 function getPlatformProviderConfig() {
+  if (!isWhatsappEnabled()) {
+    return { provider: "disabled", instanceId: "", token: "", baseUrl: "", clientToken: "" };
+  }
+
   const envConfig = getEnvironmentConfig();
 
   return {
@@ -63,6 +71,10 @@ async function getOrganizationSettings(organizationId) {
 }
 
 function getProviderConfig(settings) {
+  if (!isWhatsappEnabled()) {
+    return { provider: "disabled", instanceId: "", token: "", baseUrl: "", clientToken: "" };
+  }
+
   const envConfig = getEnvironmentConfig();
   const hasEnvZApiConfig = Boolean(
     envConfig.baseUrl && envConfig.instanceId && envConfig.token && envConfig.clientToken,
@@ -167,6 +179,10 @@ export async function sendWhatsappMessage({ organizationId, phone, message }) {
     throw buildError("WhatsApp desativado para esta empresa.", 400);
   }
 
+  if (!isWhatsappEnabled()) {
+    throw buildError("Envios por WhatsApp estao indisponiveis no momento.", 503);
+  }
+
   if (!normalizedPhone) {
     throw buildError("Telefone obrigatorio para envio via WhatsApp.", 400);
   }
@@ -226,6 +242,11 @@ export async function sendPlatformWhatsappMessage({ phone, message }) {
     sentAt: new Date().toISOString(),
     providerResponse,
   };
+}
+
+export async function isWhatsappDeliveryAvailable({ organizationId }) {
+  const status = await getWhatsappStatus({ organizationId });
+  return status.ativo && status.configurado;
 }
 
 export async function sendWhatsappTestMessage({ organizationId, input }) {

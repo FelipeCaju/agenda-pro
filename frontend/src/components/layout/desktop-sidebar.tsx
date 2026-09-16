@@ -1,5 +1,6 @@
 import { NavLink } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { AppBrandIcon } from "@/components/ui/app-brand-icon";
 import { CalendarIcon, ScissorsIcon, UsersIcon } from "@/components/ui/icons";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -141,7 +142,10 @@ export function DesktopSidebar() {
     <aside className="hidden xl:sticky xl:top-0 xl:flex xl:h-screen xl:flex-col xl:gap-5 xl:overflow-y-auto xl:py-6">
       <div className="rounded-[28px] border border-slate-200 bg-white px-5 py-5 shadow-soft">
         <div className="space-y-4">
-          <p className="text-[11px] uppercase tracking-[0.32em] text-brand-700">AgendaPro</p>
+          <div className="flex items-center gap-2">
+            <AppBrandIcon className="h-9 w-9 shrink-0 rounded-2xl p-0" />
+            <p className="text-[11px] uppercase tracking-[0.32em] text-brand-700">AgendaPro</p>
+          </div>
           <h2 className="text-[1.55rem] font-semibold tracking-[-0.04em] text-ink">
             Gestao elegante em qualquer tela
           </h2>

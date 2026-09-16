@@ -168,6 +168,9 @@ Exemplos:
 
 ## Execucao Local
 
+Para o ambiente Windows ja preparado neste computador, abra `INICIAR-AGENDAPRO.cmd`.
+Contas de demonstracao, comandos para encerrar e roteiro de validacao: [Teste local](docs/TESTE_LOCAL.md).
+
 Na raiz do projeto:
 
 ```powershell
@@ -234,6 +237,8 @@ Configuracao recomendada:
 Variavel obrigatoria:
 
 - `VITE_API_URL=https://SUA_API_PUBLICA/api`
+
+Para Vercel + Render, incluindo as variaveis de producao e a pausa segura do WhatsApp, veja [Deploy Vercel e Render](docs/DEPLOY_VERCEL_RENDER.md).
 
 ## Status Atual do Produto
 

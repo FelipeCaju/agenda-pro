@@ -165,6 +165,7 @@ function AppointmentBlock({
   isHighlighted,
   lane,
   laneCount,
+  gridHeight,
   onOpen,
 }: {
   appointment: Appointment;
@@ -172,20 +173,25 @@ function AppointmentBlock({
   isHighlighted: boolean;
   lane: number;
   laneCount: number;
+  gridHeight: number;
   onOpen: (appointment: Appointment) => void;
 }) {
   const width = `calc(${100 / laneCount}% - 6px)`;
   const left = `calc(${(100 / laneCount) * lane}% + 3px)`;
-  const durationMinutes = timeToMinutes(appointment.horarioFinal) - timeToMinutes(appointment.horarioInicial);
-  const isShortAppointment = durationMinutes < 30;
+  const blockHeight = (position.height / 100) * gridHeight;
+  const useInlineLayout = blockHeight < 72;
   const isTiny = position.height < 5.6;
   const isCompact = position.height < 9;
-  const shortLabel = `${getAppointmentServiceLabel(appointment)} - ${appointment.clienteNome} - ${formatTimeRange(appointment)}`;
+  const statusLabel = appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1);
+  const shortLabel = `${getAppointmentServiceLabel(appointment)} - ${statusLabel} - ${formatTimeRange(appointment)} - ${appointment.clienteNome}`;
 
   return (
     <button
+      aria-label={shortLabel}
+      title={shortLabel}
       className={cn(
         "absolute z-20 overflow-hidden rounded-[18px] border px-3 py-2 text-left shadow-[0_10px_24px_rgba(15,23,42,0.14)] transition hover:brightness-[0.98]",
+        useInlineLayout && "!px-2 !py-1",
         isHighlighted
           ? "ring-2 ring-brand-200 ring-offset-2 ring-offset-white"
           : "ring-1 ring-white/40",
@@ -201,11 +207,22 @@ function AppointmentBlock({
       }}
       type="button"
     >
-      {isShortAppointment ? (
-        <div className="flex h-full min-h-0 items-center">
-          <p className="truncate text-[12px] font-semibold leading-none text-white" title={shortLabel}>
-            {shortLabel}
-          </p>
+      {useInlineLayout ? (
+        <div className="flex h-full min-h-0 flex-col justify-center gap-1">
+          <div className="flex min-w-0 items-center gap-1.5 text-[11px] leading-4 text-white">
+            <span className="min-w-0 flex-1 truncate font-semibold" title={getAppointmentServiceLabel(appointment)}>
+              {getAppointmentServiceLabel(appointment)}
+            </span>
+            <span className="max-w-[28%] truncate rounded bg-black/15 px-1 font-medium" title={statusLabel}>
+              {statusLabel}
+            </span>
+            <span className="min-w-0 max-w-[40%] truncate font-semibold" title={formatTimeRange(appointment)}>
+              {formatTimeRange(appointment)}
+            </span>
+          </div>
+          {blockHeight >= 48 ? (
+            <p className="truncate text-[11px] leading-4 text-white/95">{appointment.clienteNome}</p>
+          ) : null}
         </div>
       ) : (
         <div className="flex h-full min-h-0 flex-col justify-between gap-1">
@@ -492,6 +509,7 @@ export function TimeGrid({
                     key={appointment.id}
                     lane={lane}
                     laneCount={laneCount}
+                    gridHeight={(totalMinutes / 60) * HOUR_ROW_HEIGHT}
                     onOpen={onOpenAppointment}
                     position={buildPosition(
                       timeToMinutes(appointment.horarioInicial),

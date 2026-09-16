@@ -538,3 +538,12 @@ Implementar no sistema atual AgendaPro um módulo novo chamado **Recorrência**,
 
 - [ ] Ainda falta executar a migration em um banco de teste e validar o SQL em runtime
 - [OK] O frontend do modulo compilou com `npm.cmd run build --workspace frontend`
+
+## Validacao local - 2026-09-16
+
+- [OK] Instalacao do schema consolidado e bootstrap em MySQL 8.4 local novo.
+- [OK] Corrigidas FKs compostas de `recurring_logs` no schema, migration 016 e `lib/data.js`: `SET NULL` nao e valido para `organization_id NOT NULL`; aplicado `RESTRICT`.
+- [OK] Exclusao em `recurrence.service.js` desvincula apenas o perfil nos logs, preservando tenant e auditoria na mesma transacao.
+- [OK] Criacao e exclusao de recorrencia sem cobrancas validadas pelo teste `scripts/smoke-local.mjs`.
+- [ ] Envio externo de WhatsApp e homologacao completa de cobrancas permanecem fora desta preparacao.
+- Detalhes e contas de teste: `docs/TESTE_LOCAL.md`.

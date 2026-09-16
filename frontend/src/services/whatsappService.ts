@@ -6,6 +6,7 @@ export type WhatsappStatus = {
   provider: string | null;
   instanceId: string | null;
   ultimoTesteEm: string | null;
+  configurado: boolean;
 };
 
 export type WhatsappMessageInput = {

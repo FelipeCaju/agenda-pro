@@ -20,16 +20,17 @@ export function MobilePageHeader({
   return (
     <div
       className={cn(
-        "sticky top-0 z-[55] -mx-3 border-b border-slate-100 bg-white/95 px-3 backdrop-blur-xl sm:-mx-4 sm:px-4 xl:static xl:mx-0 xl:border-b-0 xl:bg-transparent xl:px-0 xl:pb-1 xl:backdrop-blur-none",
+        "sticky top-0 z-[55] -mx-3 border-b border-slate-100 bg-white/95 px-3 backdrop-blur-xl sm:-mx-4 sm:px-4 xl:static xl:mx-0 xl:border-b-0 xl:bg-transparent xl:px-0 xl:backdrop-blur-none",
+        !leading && !action && "xl:hidden xl:[&+*]:!mt-0",
         className,
       )}
       style={{ paddingTop: "env(safe-area-inset-top)" }}
     >
-      <div className="mx-auto flex min-h-14 items-center justify-between gap-3 xl:min-h-[76px] xl:max-w-none xl:items-end">
+      <div className="mx-auto flex min-h-14 items-center justify-between gap-3 xl:min-h-0 xl:max-w-none">
         <div className="flex min-w-0 flex-1 items-center gap-2 xl:gap-3">
           {leading ? <div className="flex shrink-0 items-center">{leading}</div> : null}
-          <AppBrandIcon className="h-9 w-9 shrink-0 rounded-2xl p-0 shadow-[0_8px_18px_rgba(15,23,42,0.12)] xl:h-11 xl:w-11" />
-          <div className="min-w-0">
+          <AppBrandIcon className="h-9 w-9 shrink-0 rounded-2xl p-0 shadow-[0_8px_18px_rgba(15,23,42,0.12)] xl:hidden" />
+          <div className="min-w-0 xl:sr-only">
             <h1 className="truncate text-lg font-semibold text-slate-900 xl:text-[1.9rem] xl:tracking-[-0.04em]">
               {title}
             </h1>

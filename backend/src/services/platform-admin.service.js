@@ -11,6 +11,12 @@ import {
 } from "../lib/data.js";
 import { hashPassword, isValidPassword } from "../lib/password.js";
 import { evaluateSubscriptionAccess, isValidSubscriptionStatus } from "../lib/subscription.js";
+import {
+  getOrganizationSubscriptionByOrganizationId,
+  runBillingTransaction,
+  updateOrganizationSubscription,
+  upsertOrganizationAccessLock,
+} from "../repositories/billing.repository.js";
 
 function normalizeString(value) {
   return typeof value === "string" ? value.trim() : "";
@@ -117,6 +123,54 @@ async function syncSubscriptionAfterPayment(organizationId, paymentInput) {
   await updateOrganizationById(organizationId, {
     subscription_status: nextStatus,
     due_date: paymentInput.due_date ?? undefined,
+  });
+
+  const billingSubscription = await getOrganizationSubscriptionByOrganizationId(organizationId);
+
+  if (!billingSubscription) {
+    return;
+  }
+
+  const now = new Date().toISOString();
+  const billingStatus =
+    paymentInput.status === "paid"
+      ? "active"
+      : paymentInput.status === "overdue"
+        ? "past_due"
+        : "cancelled";
+  const isLocked = paymentInput.status === "canceled";
+
+  await runBillingTransaction(async (connection) => {
+    await updateOrganizationSubscription(
+      billingSubscription.id,
+      {
+        status: billingStatus,
+        next_due_date: paymentInput.due_date ?? undefined,
+        grace_until: paymentInput.status === "paid" ? null : undefined,
+        blocked_at: isLocked ? now : null,
+        cancelled_at: isLocked ? now : null,
+        reactivated_at: paymentInput.status === "paid" ? now : undefined,
+        last_payment_at: paymentInput.status === "paid" ? now : undefined,
+        last_status_change_at: now,
+      },
+      connection,
+    );
+    await upsertOrganizationAccessLock(
+      organizationId,
+      {
+        is_locked: isLocked,
+        lock_reason: isLocked ? "subscription_cancelled" : null,
+        locked_at: isLocked ? now : null,
+        unlocked_at: isLocked ? undefined : now,
+        grace_until: paymentInput.status === "paid" ? null : undefined,
+        related_subscription_id: billingSubscription.id,
+        notes:
+          paymentInput.status === "paid"
+            ? "Acesso liberado apos registro manual de pagamento."
+            : undefined,
+      },
+      connection,
+    );
   });
 }
 

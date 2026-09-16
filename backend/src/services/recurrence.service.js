@@ -7,7 +7,7 @@ import {
   getServiceByIdForOrganization,
   listOrganizations,
 } from "../lib/data.js";
-import { sendWhatsappMessage } from "./whatsapp.service.js";
+import { isWhatsappDeliveryAvailable, sendWhatsappMessage } from "./whatsapp.service.js";
 
 const DEFAULT_RECURRING_WHATSAPP_TEMPLATE =
   "Oie {NOME_CLIENTE}!\n\nAqui e a equipe da {EMPRESA_NOME}.\n\nPassando para te lembrar da sua cobranca de {NOME_SERVICO}.\n\nValor: R$ {VALOR}\nVencimento: {DATA_VENCIMENTO}\nChave Pix: {CHAVE_PIX}\n\nSe o pagamento ja foi realizado, pode desconsiderar esta mensagem.\nObrigada!";
@@ -684,11 +684,18 @@ export async function deleteRecurringProfile({
       organizationId,
       recurringProfileId: profileId,
       tipoEvento: "recorrencia_excluida",
-      descricao: "Recorrencia excluida.",
+      descricao: `Recorrencia excluida: ${profileId}.`,
       createdByUserId: deletedByUserId,
       connection,
     });
 
+    // A FK composta inclui organization_id, que nunca pode ser nulo.
+    // Desvincular apenas o perfil preserva o tenant e o historico dos logs.
+    await connection.execute(
+      `UPDATE recurring_logs SET recurring_profile_id = NULL
+        WHERE organization_id = ? AND recurring_profile_id = ?`,
+      [organizationId, profileId],
+    );
     await connection.execute(
       `DELETE FROM recurring_profiles WHERE organization_id = ? AND id = ?`,
       [organizationId, profileId],
@@ -1027,6 +1034,7 @@ export async function processRecurringAutomation({
       const automaticWhatsappEnabled =
         sendWhatsapp &&
         settings?.recurring_whatsapp_automatico &&
+        (await isWhatsappDeliveryAvailable({ organizationId: organization.id })) &&
         shouldSendRecurringWhatsappNow(new Date(), timezone);
 
       await markOverdueChargesForOrganization({

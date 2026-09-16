@@ -7,6 +7,7 @@ import { FullscreenState } from "@/components/ui/fullscreen-state";
 import { useAuth } from "@/hooks/use-auth";
 import { useSettingsMutations } from "@/hooks/use-settings-mutations";
 import { useSettingsQuery } from "@/hooks/use-settings-query";
+import { useWhatsappStatusQuery } from "@/hooks/use-whatsapp-status-query";
 
 const WHATSAPP_REMINDER_TEMPLATE =
   "Oie {{cliente_nome}}!\n\nAqui e a equipe da {{nome_organizacao}}.\n\nPassando para te lembrar do seu horario de {{servico_nome}}.\n\nData: {{data}}\nHorario: {{horario}}\n\nEstamos te aguardando por aqui.\n\nConfirmar agendamento?\nResponda com Sim ou Nao.";
@@ -99,6 +100,7 @@ export function WhatsappSettingsPage() {
     isError,
     isLoading,
   } = useSettingsQuery();
+  const { data: whatsappStatus } = useWhatsappStatusQuery();
   const { updateSettings, isUpdatingSettings, updateSettingsError } = useSettingsMutations();
   const [lembretesAtivos, setLembretesAtivos] = useState(true);
   const [whatsappAtivo, setWhatsappAtivo] = useState(false);
@@ -118,13 +120,16 @@ export function WhatsappSettingsPage() {
     setNomeNegocio(settings.nomeNegocio ?? "AgendaPro");
   }, [settings]);
 
-  const whatsappEnabled = lembretesAtivos && whatsappAtivo;
+  const isDeliveryAvailable = Boolean(whatsappStatus?.configurado);
+  const whatsappEnabled = isDeliveryAvailable && lembretesAtivos && whatsappAtivo;
   const subtitleHelper = useMemo(
     () =>
-      whatsappEnabled
+      !isDeliveryAvailable
+        ? "O envio por WhatsApp esta pausado porque nao ha provedor configurado."
+        : whatsappEnabled
         ? "O sistema envia a mensagem automaticamente no WhatsApp antes do atendimento."
         : "As mensagens automaticas do WhatsApp ficam pausadas para esta empresa.",
-    [whatsappEnabled],
+    [isDeliveryAvailable, whatsappEnabled],
   );
   const whatsappPreviewMessage = useMemo(
     () => buildPreviewMessage(normalizeReminderTemplate(settings?.lembreteMensagem), nomeNegocio.trim()),
@@ -208,7 +213,9 @@ export function WhatsappSettingsPage() {
                   Lembretes por WhatsApp
                 </h3>
                 <p className="mt-1 text-sm text-slate-500">
-                  Envio automatico antes do atendimento, sem uso de email.
+                  {isDeliveryAvailable
+                    ? "Envio automatico antes do atendimento, sem uso de email."
+                    : "Envios pausados enquanto o provedor de WhatsApp estiver desativado."}
                 </p>
               </div>
             </div>
@@ -217,8 +224,9 @@ export function WhatsappSettingsPage() {
               <div className="flex items-start gap-3">
                 <ShieldNoteIcon />
                 <p className="text-sm font-medium leading-6 text-emerald-700">
-                  Integracao gerenciada automaticamente pelo sistema. Nenhuma configuracao tecnica
-                  necessaria.
+                  {isDeliveryAvailable
+                    ? "Integracao gerenciada automaticamente pelo sistema. Nenhuma configuracao tecnica necessaria."
+                    : "Nenhuma mensagem sera enviada por este sistema ate um provedor de WhatsApp ser reativado."}
                 </p>
               </div>
             </div>
@@ -234,11 +242,17 @@ export function WhatsappSettingsPage() {
                     aria-pressed={whatsappEnabled}
                     className="app-switch"
                     data-state={whatsappEnabled ? "checked" : "unchecked"}
+                    disabled={!isDeliveryAvailable}
                     onClick={() => {
+                      if (!isDeliveryAvailable) {
+                        return;
+                      }
+
                       const nextValue = !whatsappEnabled;
                       setLembretesAtivos(nextValue);
                       setWhatsappAtivo(nextValue);
                     }}
+                    title={isDeliveryAvailable ? undefined : "WhatsApp indisponivel sem provedor configurado"}
                     type="button"
                   >
                     <span className="app-switch-thumb" />

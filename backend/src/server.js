@@ -75,7 +75,7 @@ async function startServer() {
       console.error(error.message ?? error);
     }
 
-    app.listen(PORT, () => {
+    app.listen(PORT, process.env.HOST || undefined, () => {
       const target = describeDatabaseTarget();
       console.log(`AgendaPro backend ativo em http://localhost:${PORT}`);
       console.log(

@@ -1512,12 +1512,12 @@ async function ensureRecurringInfrastructure() {
       CONSTRAINT fk_recurring_logs_profile_same_tenant
         FOREIGN KEY (organization_id, recurring_profile_id)
         REFERENCES recurring_profiles (organization_id, id)
-        ON DELETE SET NULL
+        ON DELETE RESTRICT
         ON UPDATE CASCADE,
       CONSTRAINT fk_recurring_logs_charge_same_tenant
         FOREIGN KEY (organization_id, recurring_charge_id)
         REFERENCES recurring_charges (organization_id, id)
-        ON DELETE SET NULL
+        ON DELETE RESTRICT
         ON UPDATE CASCADE,
       CONSTRAINT fk_recurring_logs_created_by_user
         FOREIGN KEY (created_by_user_id)

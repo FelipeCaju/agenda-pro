@@ -8,7 +8,7 @@ import {
   listOrganizations,
   updateAppointmentForOrganization,
 } from "../lib/data.js";
-import { sendWhatsappMessage } from "./whatsapp.service.js";
+import { isWhatsappDeliveryAvailable, sendWhatsappMessage } from "./whatsapp.service.js";
 
 const VALID_REPLY_STATUS = ["pendente", "confirmado", "cancelado", "sem_resposta"];
 const DEFAULT_WHATSAPP_REMINDER_TEMPLATE =
@@ -243,7 +243,11 @@ export async function processAutomaticReminders() {
     ]);
     const clientsById = new Map(clients.map((client) => [client.id, client]));
 
-    if (!settings.lembretes_ativos || !settings.whatsapp_ativo) {
+    if (
+      !settings.lembretes_ativos ||
+      !settings.whatsapp_ativo ||
+      !(await isWhatsappDeliveryAvailable({ organizationId: organization.id }))
+    ) {
       continue;
     }
 

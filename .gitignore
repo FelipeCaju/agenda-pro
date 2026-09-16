@@ -15,3 +15,6 @@ frontend/android/.idea/
 frontend/ios/App/App/public
 frontend/tsconfig.tsbuildinfo
 .codex-*.log
+
+# Ambiente local de testes (banco, ferramentas, backups e logs)
+.local/
