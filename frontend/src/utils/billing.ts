@@ -123,6 +123,7 @@ export function getBillingAlert(
   const paymentAccess = getBillingPaymentAccessFromOrganization(organization, latestPayment);
   const alertWindowDays = Number(organization?.paymentAlertDays ?? 5);
   const dueInDays = differenceInDays(organization?.dueDate ?? latestPayment?.dueDate ?? null);
+  const hasOpenLatestPayment = latestPayment?.status === "pending" || latestPayment?.status === "overdue";
 
   if (!organization) {
     return {
@@ -184,7 +185,7 @@ export function getBillingAlert(
     };
   }
 
-  if (dueInDays !== null && dueInDays < 0) {
+  if (hasOpenLatestPayment && dueInDays !== null && dueInDays < 0) {
     return {
       hasAlert: true,
       tone: "danger" as const,
@@ -193,7 +194,7 @@ export function getBillingAlert(
     };
   }
 
-  if (dueInDays !== null && dueInDays <= alertWindowDays) {
+  if (hasOpenLatestPayment && dueInDays !== null && dueInDays <= alertWindowDays) {
     return {
       hasAlert: true,
       tone: "warning" as const,
