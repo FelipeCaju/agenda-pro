@@ -1,8 +1,9 @@
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useBillingOverviewQuery } from "@/hooks/use-billing-query";
 import { formatDateBR } from "@/utils/date";
 import { getBillingPaymentAccessFromOverview, getSubscriptionStatusLabel } from "@/utils/billing";
+import { buildNavigationState } from "@/utils/navigation";
 
 function differenceInDays(dateValue?: string | null) {
   if (!dateValue || !/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
@@ -19,6 +20,7 @@ function differenceInDays(dateValue?: string | null) {
 
 export function BillingAlertBanner() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { data: overview } = useBillingOverviewQuery();
   const paymentAccess = getBillingPaymentAccessFromOverview(overview?.access, overview?.currentCharge);
   const dueDate = overview?.currentCharge?.dueDate ?? overview?.access.dueDate ?? null;
@@ -54,10 +56,14 @@ export function BillingAlertBanner() {
           </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
-          <Button onClick={() => navigate("/meu-plano")} type="button" variant="secondary">
+          <Button
+            onClick={() => navigate("/meu-plano", { state: buildNavigationState(location.pathname) })}
+            type="button"
+            variant="secondary"
+          >
             Meu plano
           </Button>
-          <Button onClick={() => navigate("/pagamento")} type="button">
+          <Button onClick={() => navigate("/pagamento", { state: buildNavigationState(location.pathname) })} type="button">
             Abrir pagamentos
           </Button>
         </div>

@@ -552,7 +552,7 @@ export function SettingsPage() {
             </Button>
             <Button
               className="w-full sm:w-auto"
-              onClick={() => navigate("/funcionarios")}
+              onClick={() => navigate("/funcionarios", { state: buildNavigationState(location.pathname) })}
               type="button"
               variant="secondary"
             >
@@ -560,7 +560,7 @@ export function SettingsPage() {
             </Button>
             <Button
               className="w-full sm:w-auto"
-              onClick={() => navigate("/bloqueios")}
+              onClick={() => navigate("/bloqueios", { state: buildNavigationState(location.pathname) })}
               type="button"
               variant="secondary"
             >

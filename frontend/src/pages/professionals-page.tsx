@@ -106,7 +106,7 @@ export function ProfessionalsPage() {
   return (
     <section className="space-y-4">
       <MobilePageHeader
-        leading={
+        action={
           <Button onClick={() => navigate("/configuracoes")} type="button" variant="secondary">
             Voltar
           </Button>
