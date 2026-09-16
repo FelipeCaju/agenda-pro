@@ -350,7 +350,9 @@ async function findAppointmentByIncomingReply({ phone }) {
   }
 
   const organizations = await listOrganizations();
-  let matched = null;
+  const matches = [];
+  const earliestAllowed = new Date();
+  earliestAllowed.setDate(earliestAllowed.getDate() - 1);
 
   for (const organization of organizations) {
     const [appointments, clients] = await Promise.all([
@@ -360,7 +362,12 @@ async function findAppointmentByIncomingReply({ phone }) {
     const clientsById = new Map(clients.map((client) => [client.id, client]));
 
     for (const appointment of appointments) {
-      if (!appointment.lembrete_enviado || appointment.status === "cancelado") {
+      if (
+        !appointment.lembrete_enviado ||
+        appointment.status === "cancelado" ||
+        appointment.confirmacao_cliente !== "pendente" ||
+        new Date(buildScheduledAt(appointment)) < earliestAllowed
+      ) {
         continue;
       }
 
@@ -370,19 +377,15 @@ async function findAppointmentByIncomingReply({ phone }) {
         continue;
       }
 
-      if (
-        !matched ||
-        (appointment.data_envio_lembrete ?? "") > (matched.appointment.data_envio_lembrete ?? "")
-      ) {
-        matched = {
-          organizationId: organization.id,
-          appointment,
-        };
-      }
+      matches.push({ organizationId: organization.id, appointment });
     }
   }
 
-  return matched;
+  if (matches.length !== 1) {
+    return { match: null, ambiguous: matches.length > 1 };
+  }
+
+  return { match: matches[0], ambiguous: false };
 }
 
 export async function processIncomingWhatsappReply({ phone, message }) {
@@ -396,7 +399,15 @@ export async function processIncomingWhatsappReply({ phone, message }) {
     };
   }
 
-  const match = await findAppointmentByIncomingReply({ phone });
+  const { match, ambiguous } = await findAppointmentByIncomingReply({ phone });
+
+  if (ambiguous) {
+    return {
+      success: false,
+      ignored: true,
+      reason: "Resposta ambigua: existem lembretes pendentes em mais de uma empresa para este telefone.",
+    };
+  }
 
   if (!match) {
     return {

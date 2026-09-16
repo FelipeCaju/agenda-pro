@@ -58,6 +58,26 @@ function readIncomingPhone(body) {
   );
 }
 
+function validateWebhookSecret(request) {
+  const expected = String(process.env.WHATSAPP_WEBHOOK_SECRET ?? "").trim();
+
+  if (!expected) {
+    const error = new Error("Webhook do WhatsApp sem chave secreta configurada.");
+    error.statusCode = 503;
+    throw error;
+  }
+
+  const provided = String(
+    request.get("x-whatsapp-webhook-secret") ?? request.query?.secret ?? "",
+  ).trim();
+
+  if (provided !== expected) {
+    const error = new Error("Webhook do WhatsApp nao autorizado.");
+    error.statusCode = 401;
+    throw error;
+  }
+}
+
 function readIncomingMessage(body) {
   return (
     body?.message ??
@@ -78,6 +98,7 @@ function readIncomingMessage(body) {
 
 export async function receiveWhatsappWebhookController(request, response) {
   try {
+    validateWebhookSecret(request);
     const data = await processIncomingWhatsappReply({
       phone: readIncomingPhone(request.body ?? {}),
       message: readIncomingMessage(request.body ?? {}),
