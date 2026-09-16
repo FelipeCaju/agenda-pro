@@ -11,6 +11,7 @@ import { useOrganization } from "@/hooks/use-organization";
 import { useSettingsQuery } from "@/hooks/use-settings-query";
 import { getBillingAlert } from "@/utils/billing";
 import { cn } from "@/utils/cn";
+import { SYSTEM_UPDATED_AT, SYSTEM_VERSION } from "@/config/system-version";
 
 const links = [
   { to: "/agenda", label: "Agenda", icon: "calendar" },
@@ -175,6 +176,9 @@ export function DesktopSidebar() {
           >
             Sair
           </Button>
+          <p className="text-center text-[10px] leading-4 text-slate-400" aria-label={`Versao ${SYSTEM_VERSION}`}>
+            V {SYSTEM_VERSION} · Atualizado em {SYSTEM_UPDATED_AT}
+          </p>
         </div>
       </div>
 

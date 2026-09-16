@@ -2,6 +2,10 @@ plugins {
     id 'com.android.application'
 }
 
+import groovy.json.JsonSlurper
+
+def appVersion = new JsonSlurper().parse(file('../app-version.json'))
+
 android {
     namespace "com.agendapro.app"
     compileSdk rootProject.ext.compileSdkVersion
@@ -9,8 +13,8 @@ android {
         applicationId "com.agendapro.app"
         minSdk rootProject.ext.minSdkVersion
         targetSdk rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode appVersion.androidVersionCode as int
+        versionName appVersion.version
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
