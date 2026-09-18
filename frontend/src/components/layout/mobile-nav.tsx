@@ -15,6 +15,8 @@ const links = [
   { to: "/servicos", label: "Servicos", icon: "scissors" },
   { to: "/", label: "Painel", icon: "grid" },
   { to: "/gestao", label: "Gestao", icon: "settings" },
+  { to: "/configuracoes", label: "Config.", icon: "settings" },
+  { to: "/dados-da-empresa", label: "Empresa", icon: "building" },
 ];
 
 function NavIcon({ icon }: { icon: (typeof links)[number]["icon"] }) {
@@ -87,6 +89,16 @@ function NavIcon({ icon }: { icon: (typeof links)[number]["icon"] }) {
         <rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5" />
         <rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5" />
         <rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5" />
+      </svg>
+    );
+  }
+
+  if (icon === "building") {
+    return (
+      <svg {...baseProps}>
+        <path d="M4 20V5.5A1.5 1.5 0 0 1 5.5 4h8A1.5 1.5 0 0 1 15 5.5V20" />
+        <path d="M15 9h3.5A1.5 1.5 0 0 1 20 10.5V20" />
+        <path d="M8 8h3M8 12h3M8 16h3M17 13h.01M17 16h.01M3 20h18" />
       </svg>
     );
   }
