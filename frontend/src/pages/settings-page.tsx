@@ -69,7 +69,12 @@ function getPaymentStatusLabel(status?: string | null) {
   return "Sem status";
 }
 
-export function SettingsPage() {
+type SettingsPageProps = {
+  section?: "company";
+};
+
+export function SettingsPage({ section }: SettingsPageProps) {
+  const isCompanyPage = section === "company";
   const navigate = useNavigate();
   const location = useLocation();
   const { deleteAccount, signOut } = useAuth();
@@ -371,8 +376,8 @@ export function SettingsPage() {
         title="Nao foi possivel abrir a pagina"
         description={organizationError?.message ?? settingsError?.message ?? "Erro inesperado."}
         action={
-          <Button onClick={() => navigate("/gestao")} type="button">
-            Voltar para gestao
+          <Button onClick={() => navigate(isCompanyPage ? "/dados-da-empresa" : "/gestao")} type="button">
+            {isCompanyPage ? "Tentar novamente" : "Voltar para gestao"}
           </Button>
         }
       />
@@ -395,8 +400,8 @@ export function SettingsPage() {
             Gestao
           </Button>
         }
-        subtitle="Empresa, agenda e conta"
-        title="Configuracoes"
+        subtitle={isCompanyPage ? "Cadastro e dados para cobranca" : "Agenda, notificacoes e conta"}
+        title={isCompanyPage ? "Dados da empresa" : "Configuracoes"}
       />
 
       {successMessage ? (
@@ -405,6 +410,7 @@ export function SettingsPage() {
         </Card>
       ) : null}
 
+      {isCompanyPage ? (
       <Card>
         <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Empresa</p>
         <h3 className="mt-1 text-lg font-semibold text-ink">Dados da organizacao</h3>
@@ -569,7 +575,10 @@ export function SettingsPage() {
           </div>
         </form>
       </Card>
+      ) : null}
 
+      {!isCompanyPage ? (
+      <>
       <Card>
         <p className="text-xs uppercase tracking-[0.2em] text-slate-500">App</p>
         <h3 className="mt-1 text-lg font-semibold text-ink">Agenda principal</h3>
@@ -855,6 +864,8 @@ export function SettingsPage() {
           </div>
         </div>
       </Card>
+      </>
+      ) : null}
     </section>
   );
 }

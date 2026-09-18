@@ -57,9 +57,7 @@ const ServicesPage = lazy(async () => ({
 const ServiceFormPage = lazy(async () => ({
   default: (await import("@/pages/service-form-page")).ServiceFormPage,
 }));
-const SettingsPage = lazy(async () => ({
-  default: (await import("@/pages/settings-page")).SettingsPage,
-}));
+const SettingsPage = lazy(async () => ({ default: (await import("@/pages/settings-page")).SettingsPage }));
 const WhatsappSettingsPage = lazy(async () => ({
   default: (await import("@/pages/whatsapp-settings-page")).WhatsappSettingsPage,
 }));
@@ -217,6 +215,10 @@ export const router = createBrowserRouter([
                 element: withRouteSuspense(<OrcamentoFormPage />),
               },
               { path: "/configuracoes", element: withRouteSuspense(<SettingsPage />) },
+              {
+                path: "/dados-da-empresa",
+                element: withRouteSuspense(<SettingsPage section="company" />),
+              },
               {
                 path: "/configuracoes/whatsapp",
                 element: withRouteSuspense(<WhatsappSettingsPage />),

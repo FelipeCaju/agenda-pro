@@ -52,20 +52,7 @@ export function ManagementPage() {
 
   return (
     <section className="space-y-4 xl:space-y-5">
-      <MobilePageHeader
-        action={
-          <Button
-            className="min-h-8 rounded-xl px-3 py-2 text-xs md:min-h-[46px] md:rounded-[18px] md:px-4 md:py-3 md:text-sm"
-            onClick={() => navigate("/configuracoes")}
-            type="button"
-            variant="secondary"
-          >
-            Configuracoes
-          </Button>
-        }
-        subtitle="Pagamento, equipe e operacao"
-        title="Gestao"
-      />
+      <MobilePageHeader subtitle="Pagamento, equipe e operacao" title="Gestao" />
 
       {isInitialLoading ? (
         <Card>

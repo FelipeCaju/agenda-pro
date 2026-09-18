@@ -21,6 +21,8 @@ const links = [
   { to: "/servicos", label: "Servicos", icon: "scissors" },
   { to: "/", label: "Painel", icon: "grid" },
   { to: "/gestao", label: "Gestao", icon: "settings" },
+  { to: "/configuracoes", label: "Configuracoes", icon: "settings" },
+  { to: "/dados-da-empresa", label: "Dados da empresa", icon: "building" },
 ] as const;
 
 function SidebarIcon({ icon }: { icon: (typeof links)[number]["icon"] }) {
@@ -90,6 +92,16 @@ function SidebarIcon({ icon }: { icon: (typeof links)[number]["icon"] }) {
     );
   }
 
+  if (icon === "building") {
+    return (
+      <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" viewBox="0 0 24 24">
+        <path d="M4 20V5.5A1.5 1.5 0 0 1 5.5 4h8A1.5 1.5 0 0 1 15 5.5V20" />
+        <path d="M15 9h3.5A1.5 1.5 0 0 1 20 10.5V20" />
+        <path d="M8 8h3M8 12h3M8 16h3M17 13h.01M17 16h.01M3 20h18" />
+      </svg>
+    );
+  }
+
   return (
     <svg
       className="h-5 w-5"
@@ -115,7 +127,7 @@ function SidebarIcon({ icon }: { icon: (typeof links)[number]["icon"] }) {
 
 export function DesktopSidebar() {
   const { signOut, user } = useAuth();
-  const { organization, role, isSubscriptionBlocked } = useOrganization();
+  const { organization, role } = useOrganization();
   const { data: currentOrganization } = useOrganizationQuery();
   const { data: payments = [] } = useOrganizationPaymentsQuery();
   const { data: settings } = useSettingsQuery();
@@ -126,64 +138,25 @@ export function DesktopSidebar() {
       (link.to !== "/recorrencia" || settings?.criarRecorrencias !== false),
   );
 
-  const subscriptionLabel =
-    organization?.subscriptionStatus === "active"
-      ? "Assinatura ativa"
-      : organization?.subscriptionStatus === "trial"
-        ? "Periodo de teste"
-        : organization?.subscriptionStatus === "overdue"
-          ? "Pagamento em atraso"
-          : organization?.subscriptionStatus === "blocked"
-            ? "Acesso bloqueado"
-            : organization?.subscriptionStatus === "canceled"
-              ? "Assinatura cancelada"
-              : null;
-
   return (
-    <aside className="hidden xl:sticky xl:top-0 xl:flex xl:h-screen xl:flex-col xl:gap-5 xl:overflow-y-auto xl:py-6">
-      <div className="rounded-[28px] border border-slate-200 bg-white px-5 py-5 shadow-soft">
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <AppBrandIcon className="h-9 w-9 shrink-0 rounded-2xl p-0" />
-            <p className="text-[11px] uppercase tracking-[0.32em] text-brand-700">AgendaPro</p>
-          </div>
-          <h2 className="text-[1.55rem] font-semibold tracking-[-0.04em] text-ink">
-            Gestao elegante em qualquer tela
-          </h2>
-          <p className="text-sm leading-6 text-slate-500">
-            Operacao rapida no celular, visual organizado no desktop e tudo em um so lugar.
+    <aside className="hidden xl:sticky xl:top-0 xl:flex xl:h-screen xl:py-3">
+      <div className="flex min-h-0 w-full flex-col rounded-[28px] border border-slate-200 bg-white p-3 shadow-soft">
+        <div className="flex items-center gap-2 px-2 py-1">
+          <AppBrandIcon className="h-9 w-9 shrink-0 rounded-2xl p-0" />
+          <p className="text-[11px] uppercase tracking-[0.32em] text-brand-700">AgendaPro</p>
+        </div>
+
+        <div className="mt-3 rounded-[22px] bg-slate-50/90 px-4 py-3">
+          <p className="truncate text-base font-semibold text-ink">
+            {organization?.nomeEmpresa ?? "Configuracao inicial em andamento"}
           </p>
-
-          <div className="space-y-2 rounded-[24px] bg-slate-50/90 p-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="app-pill">Empresa ativa</span>
-              {subscriptionLabel ? <span className="app-pill">{subscriptionLabel}</span> : null}
-            </div>
-            <p className="text-base font-semibold text-ink">
-              {organization?.nomeEmpresa ?? "Configuracao inicial em andamento"}
-            </p>
-            <p className="text-sm text-slate-500">
-              {user?.nome ?? "Usuario"} - {role ?? "sem perfil"}
-            </p>
-            {isSubscriptionBlocked ? (
-              <p className="text-sm font-medium text-amber-700">Acesso limitado por assinatura</p>
-            ) : null}
-          </div>
-
-          <Button
-            className="w-full bg-night text-white hover:bg-ink"
-            onClick={() => void signOut()}
-          >
-            Sair
-          </Button>
-          <p className="text-center text-[10px] leading-4 text-slate-400" aria-label={SYSTEM_VERSION_LABEL}>
-            {SYSTEM_VERSION_LABEL}
+          <p className="mt-1 truncate text-sm text-slate-500">
+            {user?.nome ?? "Usuario"} - {role ?? "sem perfil"}
           </p>
         </div>
-      </div>
 
-      <nav className="rounded-[28px] border border-slate-200 bg-white p-3 shadow-soft">
-        <div className="space-y-1.5">
+        <nav className="mt-3 min-h-0 flex-1 overflow-y-auto">
+          <div className="space-y-1.5">
           {visibleLinks.map((link) => (
             <NavLink
               key={link.to}
@@ -202,8 +175,18 @@ export function DesktopSidebar() {
               {link.label}
             </NavLink>
           ))}
+          </div>
+        </nav>
+
+        <div className="mt-3 border-t border-slate-100 pt-3">
+          <Button className="w-full bg-night text-white hover:bg-ink" onClick={() => void signOut()}>
+            Sair
+          </Button>
+          <p className="mt-3 text-center text-[10px] leading-4 text-slate-400" aria-label={SYSTEM_VERSION_LABEL}>
+            {SYSTEM_VERSION_LABEL}
+          </p>
         </div>
-      </nav>
+      </div>
     </aside>
   );
 }
