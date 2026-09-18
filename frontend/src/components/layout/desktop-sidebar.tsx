@@ -134,8 +134,8 @@ export function DesktopSidebar() {
   const billingAlert = getBillingAlert(currentOrganization, payments);
   const visibleLinks = links.filter(
     (link) =>
-      (link.to !== "/orcamentos" || settings?.criarOrcamentos !== false) &&
-      (link.to !== "/recorrencia" || settings?.criarRecorrencias !== false),
+      (link.to !== "/orcamentos" || settings?.criarOrcamentos === true) &&
+      (link.to !== "/recorrencia" || settings?.criarRecorrencias === true),
   );
 
   return (
@@ -156,14 +156,14 @@ export function DesktopSidebar() {
         </div>
 
         <nav className="mt-3 min-h-0 flex-1 overflow-y-auto">
-          <div className="space-y-1.5">
+          <div className="space-y-1">
           {visibleLinks.map((link) => (
             <NavLink
               key={link.to}
               to={link.to}
               className={({ isActive }) =>
                 cn(
-                  "relative flex items-center gap-3 rounded-[20px] px-4 py-3 text-sm font-semibold text-slate-500 transition",
+                  "relative flex items-center gap-2.5 rounded-[18px] px-3 py-2.5 text-[13px] font-semibold text-slate-500 transition",
                   isActive && "bg-brand-50 text-brand-700 shadow-soft",
                 )
               }

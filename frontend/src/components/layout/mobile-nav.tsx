@@ -113,8 +113,8 @@ export function MobileNav() {
   const billingAlert = getBillingAlert(organization, payments);
   const visibleLinks = links.filter(
     (link) =>
-      (link.to !== "/orcamentos" || settings?.criarOrcamentos !== false) &&
-      (link.to !== "/recorrencia" || settings?.criarRecorrencias !== false),
+      (link.to !== "/orcamentos" || settings?.criarOrcamentos === true) &&
+      (link.to !== "/recorrencia" || settings?.criarRecorrencias === true),
   );
 
   return (
