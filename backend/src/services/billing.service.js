@@ -1061,12 +1061,12 @@ export async function startHostedCardCheckout({ organizationId, frontendOrigin =
     customer: customer.id,
     billingTypes: ["CREDIT_CARD"],
     chargeTypes: ["RECURRENT"],
+    minutesToExpire: 60,
     callback: buildCheckoutCallbacks(frontendOrigin),
+    externalReference: buildCheckoutExternalReference(organizationId),
     subscription: {
       cycle: mapCycleToAsaas(plan.billing_cycle),
-      value: formatCurrencyCentsToValue(chargeAmountCents),
       nextDueDate: resolveCheckoutDueDate(organization.trial_end),
-      description: plan.name,
     },
     items: [
       {

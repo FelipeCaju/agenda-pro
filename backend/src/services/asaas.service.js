@@ -38,7 +38,7 @@ function getAsaasBaseUrl() {
   const environment = String(process.env.ASAAS_ENV ?? "sandbox").trim().toLowerCase();
   return environment === "production"
     ? "https://api.asaas.com/v3"
-    : "https://sandbox.asaas.com/api/v3";
+    : "https://api-sandbox.asaas.com/v3";
 }
 
 function getAsaasAppBaseUrl() {
@@ -155,9 +155,11 @@ export async function createAsaasCheckout(input) {
       customer: input.customer ?? undefined,
       billingTypes: input.billingTypes ?? ["CREDIT_CARD"],
       chargeTypes: input.chargeTypes ?? ["RECURRENT"],
+      minutesToExpire: input.minutesToExpire ?? 60,
       callback: input.callback ?? undefined,
       subscription: input.subscription ?? undefined,
       items: input.items ?? [],
+      externalReference: input.externalReference ?? undefined,
     },
   });
 }
