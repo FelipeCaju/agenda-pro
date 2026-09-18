@@ -6,7 +6,7 @@ loadEnvironment();
 const lastTestByOrganization = new Map();
 
 function isWhatsappEnabled() {
-  return String(process.env.WHATSAPP_ENABLED ?? "false").trim().toLowerCase() === "true";
+  return String(process.env.WHATSAPP_ENABLED ?? "true").trim().toLowerCase() === "true";
 }
 
 function buildError(message, statusCode) {

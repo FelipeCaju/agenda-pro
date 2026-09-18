@@ -9,5 +9,5 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      - key: WHATSAPP_ENABLED
-        value: "false"
+          - key: WHATSAPP_ENABLED
+            value: "true"
