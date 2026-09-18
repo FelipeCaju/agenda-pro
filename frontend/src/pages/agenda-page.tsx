@@ -340,7 +340,15 @@ export function AgendaPage() {
                   key={item.label}
                 >
                   <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">{item.label}</p>
-                  <p className="mt-2 break-words text-[1.45rem] font-semibold tracking-[-0.05em] text-ink 2xl:text-[1.65rem]">{item.value}</p>
+                  <p
+                    className={`mt-2 break-words font-semibold text-ink ${
+                      item.label === "Janela"
+                        ? "text-[1.15rem] tracking-[-0.04em]"
+                        : "text-[1.45rem] tracking-[-0.05em] 2xl:text-[1.65rem]"
+                    }`}
+                  >
+                    {item.value}
+                  </p>
                 </div>
               ))}
               <div className="min-w-0 rounded-[20px] border border-slate-200/80 bg-slate-950/[0.03] px-4 py-4">
