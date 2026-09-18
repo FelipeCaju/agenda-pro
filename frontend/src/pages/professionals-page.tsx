@@ -107,9 +107,14 @@ export function ProfessionalsPage() {
     <section className="space-y-4">
       <MobilePageHeader
         action={
-          <Button onClick={() => navigate("/configuracoes")} type="button" variant="secondary">
-            Voltar
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button className="hidden xl:inline-flex" onClick={handleNewProfessional} type="button">
+              Novo funcionario
+            </Button>
+            <Button onClick={() => navigate("/configuracoes")} type="button" variant="secondary">
+              Voltar
+            </Button>
+          </div>
         }
         subtitle="Equipe que atende seus servicos"
         title="Funcionarios"

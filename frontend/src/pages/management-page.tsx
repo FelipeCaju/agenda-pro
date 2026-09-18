@@ -14,7 +14,6 @@ import {
   getPaymentStatusLabel,
   getSubscriptionStatusLabel,
 } from "@/utils/billing";
-import { SYSTEM_VERSION_LABEL } from "@/config/system-version";
 import { formatDateBR, formatMonthYearBR } from "@/utils/date";
 import { buildNavigationState } from "@/utils/navigation";
 
@@ -285,13 +284,6 @@ export function ManagementPage() {
             </Card>
           </div>
 
-          <div className="flex justify-center xl:justify-end">
-            <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-white/80 px-4 py-2 text-xs text-slate-500 shadow-[0_10px_24px_rgba(15,23,42,0.05)]">
-              <span className="font-semibold uppercase tracking-[0.18em] text-slate-400">Sistema</span>
-              <span className="text-slate-300">•</span>
-              <span className="font-medium text-slate-600">{SYSTEM_VERSION_LABEL}</span>
-            </div>
-          </div>
         </>
       ) : null}
     </section>

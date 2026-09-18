@@ -12,8 +12,7 @@ import { useBlockedSlotsQuery } from "@/hooks/use-blocked-slots-query";
 import { useProfessionalsQuery } from "@/hooks/use-professionals-query";
 import { useSettingsQuery } from "@/hooks/use-settings-query";
 import type { AgendaView, Appointment } from "@/services/appointmentService";
-import { addDays, formatAgendaHeroDate, getTodayDate, getWeekDates } from "@/utils/agenda";
-import { formatDateBR } from "@/utils/date";
+import { addDays, formatAgendaHeroDate, getTodayDate } from "@/utils/agenda";
 
 type AgendaLocationState = {
   successMessage?: string;
@@ -55,31 +54,6 @@ function ArrowButton({
       </svg>
     </button>
   );
-}
-
-function formatDesktopPeriodLabel(view: AgendaView, selectedDate: string) {
-  const baseDate = new Date(`${selectedDate}T12:00:00`);
-
-  if (view === "week") {
-    const weekDates = getWeekDates(selectedDate);
-    const start = formatDateBR(weekDates[0]);
-    const end = formatDateBR(weekDates[weekDates.length - 1]);
-    return `Semana de ${start} a ${end}`;
-  }
-
-  if (view === "month") {
-    return new Intl.DateTimeFormat("pt-BR", {
-      month: "long",
-      year: "numeric",
-    }).format(baseDate);
-  }
-
-  return new Intl.DateTimeFormat("pt-BR", {
-    weekday: "long",
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  }).format(baseDate);
 }
 
 export function AgendaPage() {
@@ -168,7 +142,6 @@ export function AgendaPage() {
   }, [highlightedAppointmentIds, notificationMessage]);
 
   const heroDateLabel = useMemo(() => formatAgendaHeroDate(selectedDate), [selectedDate]);
-  const desktopPeriodLabel = useMemo(() => formatDesktopPeriodLabel(view, selectedDate), [selectedDate, view]);
   const isToday = selectedDate === getTodayDate();
   const agendaStartHour = settings?.horaInicioAgenda ?? "08:00";
   const agendaEndHour = settings?.horaFimAgenda ?? "18:00";
@@ -295,17 +268,14 @@ export function AgendaPage() {
             </div>
           </div>
 
-          <Card className="mt-0 hidden border-slate-200/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(244,248,252,0.96))] p-6 shadow-[0_26px_55px_rgba(15,23,42,0.08)] xl:block xl:mt-0 2xl:p-7">
-          <div className="flex flex-col gap-6 2xl:flex-row 2xl:items-start 2xl:justify-between 2xl:gap-8">
+          <Card className="mt-0 hidden border-slate-200/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(244,248,252,0.96))] p-6 shadow-[0_26px_55px_rgba(15,23,42,0.08)] xl:block xl:mt-0">
+          <div className="flex items-start justify-between gap-6">
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-brand-700">Agenda de trabalho</p>
-              <div className="mt-3 flex flex-col gap-2 2xl:flex-row 2xl:items-end 2xl:gap-4">
-                <p className="text-[2.4rem] font-bold tracking-[-0.06em] text-ink 2xl:text-[2.8rem]">{heroDateLabel}</p>
-                <p className="text-sm text-slate-500 2xl:pb-2">{desktopPeriodLabel}</p>
-              </div>
+              <p className="mt-2 text-[2rem] font-bold tracking-[-0.055em] text-ink">{heroDateLabel}</p>
             </div>
 
-            <div className="flex flex-wrap items-center justify-start gap-3 2xl:justify-end">
+            <div className="flex flex-wrap items-center justify-end gap-3">
               <button
                 className={`rounded-full px-4 py-2.5 text-sm font-semibold transition ${
                   isToday ? "bg-brand-50 text-brand-700" : "bg-white text-slate-500 shadow-sm"
@@ -318,7 +288,7 @@ export function AgendaPage() {
               <ArrowButton direction="left" onClick={() => navigateDate("prev")} />
               <ArrowButton direction="right" onClick={() => navigateDate("next")} />
               <button
-                className="inline-flex h-12 min-w-[220px] items-center justify-center rounded-[18px] bg-brand-500 px-6 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(29,140,248,0.22)] transition hover:bg-brand-600 2xl:ml-2 2xl:min-w-0"
+                className="inline-flex h-12 min-w-[190px] items-center justify-center rounded-[18px] bg-brand-500 px-5 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(29,140,248,0.22)] transition hover:bg-brand-600"
                 onClick={() => navigate("/agenda/novo", { state: { selectedDate } })}
                 type="button"
               >
@@ -327,7 +297,7 @@ export function AgendaPage() {
             </div>
           </div>
 
-          <div className="mt-6 grid gap-4 xl:grid-cols-1 2xl:grid-cols-[minmax(0,340px)_240px_1fr] 2xl:items-center">
+          <div className="mt-5 grid items-center gap-4 xl:grid-cols-[minmax(230px,0.95fr)_220px_minmax(480px,1.8fr)]">
             <div className="relative">
               <select
                 className="app-select h-14 appearance-none bg-white pr-10 text-sm"
@@ -363,7 +333,7 @@ export function AgendaPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-4 2xl:grid-cols-4">
+            <div className="grid grid-cols-4 gap-3">
               {headerStats.map((item) => (
                 <div
                   className="min-w-0 rounded-[20px] border border-slate-200/80 bg-white/90 px-4 py-4 text-left shadow-[0_12px_24px_rgba(15,23,42,0.05)]"

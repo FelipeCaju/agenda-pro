@@ -63,6 +63,11 @@ export function RecurrencePage() {
   return (
     <section className="space-y-4 pb-24">
       <MobilePageHeader
+        action={
+          <Button className="hidden xl:inline-flex" onClick={() => navigate("/recorrencia/nova")} type="button">
+            Nova recorrencia
+          </Button>
+        }
         subtitle="Recorrencias e cobrancas mensais"
         title="Recorrencia"
       />

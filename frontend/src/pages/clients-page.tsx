@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { MobilePageHeader } from "@/components/layout/mobile-page-header";
 import { ClientList } from "@/components/clients/client-list";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { FloatingActionButton } from "@/components/ui/floating-action-button";
 import { SearchIcon } from "@/components/ui/icons";
 import { useClientsQuery } from "@/hooks/use-clients-query";
@@ -25,11 +26,18 @@ export function ClientsPage() {
         <div className="flex items-center gap-3 text-slate-400">
           <SearchIcon className="h-5 w-5" />
           <input
-            className="w-full border-0 bg-transparent p-0 text-base text-ink outline-none placeholder:text-slate-400"
+            className="min-w-0 flex-1 border-0 bg-transparent p-0 text-base text-ink outline-none placeholder:text-slate-400"
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Buscar clientes..."
             value={search}
           />
+          <Button
+            className="hidden shrink-0 xl:inline-flex"
+            onClick={() => navigate("/clientes/novo")}
+            type="button"
+          >
+            Novo cliente
+          </Button>
         </div>
       </Card>
 

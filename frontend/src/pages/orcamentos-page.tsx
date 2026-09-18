@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { MobilePageHeader } from "@/components/layout/mobile-page-header";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { FloatingActionButton } from "@/components/ui/floating-action-button";
 import { useOrcamentosQuery } from "@/hooks/use-orcamentos-query";
 import { formatDateBr } from "@/utils/date";
@@ -24,7 +25,15 @@ export function OrcamentosPage() {
 
   return (
     <section className="space-y-4 pb-24">
-      <MobilePageHeader subtitle="Propostas e conversoes" title="Orcamentos" />
+      <MobilePageHeader
+        action={
+          <Button className="hidden xl:inline-flex" onClick={() => navigate("/orcamentos/novo")} type="button">
+            Novo orcamento
+          </Button>
+        }
+        subtitle="Propostas e conversoes"
+        title="Orcamentos"
+      />
 
       {isLoading ? (
         <Card>

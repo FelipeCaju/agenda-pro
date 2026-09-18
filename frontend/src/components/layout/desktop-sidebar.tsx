@@ -127,7 +127,7 @@ function SidebarIcon({ icon }: { icon: (typeof links)[number]["icon"] }) {
 
 export function DesktopSidebar() {
   const { signOut, user } = useAuth();
-  const { organization, role } = useOrganization();
+  const { organization } = useOrganization();
   const { data: currentOrganization } = useOrganizationQuery();
   const { data: payments = [] } = useOrganizationPaymentsQuery();
   const { data: settings } = useSettingsQuery();
@@ -151,7 +151,7 @@ export function DesktopSidebar() {
             {organization?.nomeEmpresa ?? "Configuracao inicial em andamento"}
           </p>
           <p className="mt-1 truncate text-sm text-slate-600">
-            {user?.nome ?? "Usuario"} - {role ?? "sem perfil"}
+            {user?.nome ?? "Usuario"}
           </p>
         </div>
 
