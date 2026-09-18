@@ -213,6 +213,14 @@ export async function sendWhatsappMessage({ organizationId, phone, message }) {
   };
 }
 
+function identifyBusinessMessage(message, settings) {
+  const businessName = settings.nome_negocio?.trim() || "sua empresa";
+  const introduction = `Bom dia, aqui e da ${businessName}.`;
+  const normalizedMessage = message.trim();
+
+  return normalizedMessage.startsWith(introduction) ? normalizedMessage : `${introduction}\n\n${normalizedMessage}`;
+}
+
 export async function sendPlatformWhatsappMessage({ phone, message }) {
   const providerConfig = getPlatformProviderConfig();
   const normalizedPhone = normalizePhone(phone);
@@ -232,7 +240,7 @@ export async function sendPlatformWhatsappMessage({ phone, message }) {
   const providerResponse = await sendViaZApi({
     providerConfig,
     phone: normalizedPhone,
-    message: message.trim(),
+    message: identifyBusinessMessage(message, settings),
   });
 
   return {

@@ -4,9 +4,9 @@ import {
 } from "../lib/data.js";
 
 const DEFAULT_WHATSAPP_REMINDER_TEMPLATE =
-  "Oie {{cliente_nome}}! \u{1F44B}\n\nAqui e a equipe da {{nome_organizacao}}.\n\nPassando para te lembrar do seu horario de {{servico_nome}}.\n\n\u{1F4C5} Data: {{data}}\n\u23F0 Horario: {{horario}}\n\nEstamos te aguardando por aqui. \u{1F49A}\n\nConfirmar agendamento?\nResponda com Sim ou Nao.";
+  "Bom dia, aqui e da {{nome_organizacao}}.\n\nOie {{cliente_nome}}! \u{1F44B}\n\nPassando para te lembrar do seu horario de {{servico_nome}}.\n\n\u{1F4C5} Data: {{data}}\n\u23F0 Horario: {{horario}}\n\nEstamos te aguardando por aqui. \u{1F49A}\n\nConfirmar agendamento?\nResponda com Sim ou Nao.";
 const DEFAULT_RECURRING_WHATSAPP_TEMPLATE =
-  "Oie {NOME_CLIENTE}!\n\nAqui e a equipe da {EMPRESA_NOME}.\n\nPassando para te lembrar da sua cobranca de {NOME_SERVICO}.\n\nValor: R$ {VALOR}\nVencimento: {DATA_VENCIMENTO}\nChave Pix: {CHAVE_PIX}\n\nSe o pagamento ja foi realizado, pode desconsiderar esta mensagem.\nObrigada!";
+  "Bom dia, aqui e da {EMPRESA_NOME}.\n\nOie {NOME_CLIENTE}!\n\nPassando para te lembrar da sua cobranca de {NOME_SERVICO}.\n\nValor: R$ {VALOR}\nVencimento: {DATA_VENCIMENTO}\nChave Pix: {CHAVE_PIX}\n\nSe o pagamento ja foi realizado, pode desconsiderar esta mensagem.\nObrigada!";
 const WHATSAPP_CONFIRMATION_PROMPT = "Confirmar agendamento?\nResponda com Sim ou Nao.";
 const LEGACY_WHATSAPP_CONFIRMATION_PROMPT = "Responda com 1 para confirmar ou 2 para cancelar.";
 

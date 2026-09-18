@@ -12,7 +12,7 @@ import { isWhatsappDeliveryAvailable, sendWhatsappMessage } from "./whatsapp.ser
 
 const VALID_REPLY_STATUS = ["pendente", "confirmado", "cancelado", "sem_resposta"];
 const DEFAULT_WHATSAPP_REMINDER_TEMPLATE =
-  "Oie {{cliente_nome}}! \u{1F44B}\n\nAqui e a equipe da {{nome_organizacao}}.\n\nPassando para te lembrar do seu horario de {{servico_nome}}.\n\n\u{1F4C5} Data: {{data}}\n\u23F0 Horario: {{horario}}\n\nEstamos te aguardando por aqui. \u{1F49A}\n\nConfirmar agendamento?\nResponda com Sim ou Nao.";
+  "Bom dia, aqui e da {{nome_organizacao}}.\n\nOie {{cliente_nome}}! \u{1F44B}\n\nPassando para te lembrar do seu horario de {{servico_nome}}.\n\n\u{1F4C5} Data: {{data}}\n\u23F0 Horario: {{horario}}\n\nEstamos te aguardando por aqui. \u{1F49A}\n\nConfirmar agendamento?\nResponda com Sim ou Nao.";
 const WHATSAPP_CONFIRMATION_PROMPT = "Confirmar agendamento?\nResponda com Sim ou Nao.";
 const LEGACY_WHATSAPP_CONFIRMATION_PROMPT = "Responda com 1 para confirmar ou 2 para cancelar.";
 

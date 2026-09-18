@@ -10,7 +10,7 @@ import {
 import { isWhatsappDeliveryAvailable, sendWhatsappMessage } from "./whatsapp.service.js";
 
 const DEFAULT_RECURRING_WHATSAPP_TEMPLATE =
-  "Oie {NOME_CLIENTE}!\n\nAqui e a equipe da {EMPRESA_NOME}.\n\nPassando para te lembrar da sua cobranca de {NOME_SERVICO}.\n\nValor: R$ {VALOR}\nVencimento: {DATA_VENCIMENTO}\nChave Pix: {CHAVE_PIX}\n\nSe o pagamento ja foi realizado, pode desconsiderar esta mensagem.\nObrigada!";
+  "Bom dia, aqui e da {EMPRESA_NOME}.\n\nOie {NOME_CLIENTE}!\n\nPassando para te lembrar da sua cobranca de {NOME_SERVICO}.\n\nValor: R$ {VALOR}\nVencimento: {DATA_VENCIMENTO}\nChave Pix: {CHAVE_PIX}\n\nSe o pagamento ja foi realizado, pode desconsiderar esta mensagem.\nObrigada!";
 const DEFAULT_RECURRING_TIMEZONE = "America/Sao_Paulo";
 
 function buildError(message, statusCode) {
