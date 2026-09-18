@@ -139,7 +139,7 @@ export function DesktopSidebar() {
   );
 
   return (
-    <aside className="hidden xl:sticky xl:top-0 xl:flex xl:h-screen xl:border-r xl:border-[#c9d9ea] xl:bg-[#dce8f5]">
+    <aside className="hidden xl:fixed xl:inset-y-0 xl:left-0 xl:z-20 xl:flex xl:h-screen xl:w-[272px] xl:border-r xl:border-[#c9d9ea] xl:bg-[#dce8f5]">
       <div className="flex min-h-0 w-full flex-col px-5 py-6">
         <div className="flex items-center gap-2">
           <AppBrandIcon className="h-9 w-9 shrink-0 rounded-2xl p-0" />
