@@ -139,23 +139,23 @@ export function DesktopSidebar() {
   );
 
   return (
-    <aside className="hidden xl:sticky xl:top-0 xl:flex xl:h-screen xl:py-3">
-      <div className="flex min-h-0 w-full flex-col rounded-[28px] border border-slate-200 bg-white p-3 shadow-soft">
-        <div className="flex items-center gap-2 px-2 py-1">
+    <aside className="hidden xl:sticky xl:top-0 xl:flex xl:h-screen xl:border-r xl:border-[#c9d9ea] xl:bg-[#dce8f5]">
+      <div className="flex min-h-0 w-full flex-col px-5 py-6">
+        <div className="flex items-center gap-2">
           <AppBrandIcon className="h-9 w-9 shrink-0 rounded-2xl p-0" />
-          <p className="text-[11px] uppercase tracking-[0.32em] text-brand-700">AgendaPro</p>
+          <p className="text-[11px] uppercase tracking-[0.32em] text-brand-800">AgendaPro</p>
         </div>
 
-        <div className="mt-3 rounded-[22px] bg-slate-50/90 px-4 py-3">
+        <div className="mt-6 border-y border-[#c4d5e7] py-4">
           <p className="truncate text-base font-semibold text-ink">
             {organization?.nomeEmpresa ?? "Configuracao inicial em andamento"}
           </p>
-          <p className="mt-1 truncate text-sm text-slate-500">
+          <p className="mt-1 truncate text-sm text-slate-600">
             {user?.nome ?? "Usuario"} - {role ?? "sem perfil"}
           </p>
         </div>
 
-        <nav className="mt-3 min-h-0 flex-1 overflow-y-auto">
+        <nav className="mt-5 min-h-0 flex-1 overflow-y-auto">
           <div className="space-y-1">
           {visibleLinks.map((link) => (
             <NavLink
@@ -163,8 +163,8 @@ export function DesktopSidebar() {
               to={link.to}
               className={({ isActive }) =>
                 cn(
-                  "relative flex items-center gap-2.5 rounded-[18px] px-3 py-2.5 text-[13px] font-semibold text-slate-500 transition",
-                  isActive && "bg-brand-50 text-brand-700 shadow-soft",
+                  "relative flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] font-semibold text-slate-600 transition hover:bg-white/45 hover:text-brand-800",
+                  isActive && "bg-white/75 text-brand-800 shadow-[0_6px_18px_rgba(37,99,235,0.08)]",
                 )
               }
             >
@@ -178,11 +178,11 @@ export function DesktopSidebar() {
           </div>
         </nav>
 
-        <div className="mt-3 border-t border-slate-100 pt-3">
+        <div className="mt-4 border-t border-[#c4d5e7] pt-4">
           <Button className="w-full bg-night text-white hover:bg-ink" onClick={() => void signOut()}>
             Sair
           </Button>
-          <p className="mt-3 text-center text-[10px] leading-4 text-slate-400" aria-label={SYSTEM_VERSION_LABEL}>
+          <p className="mt-3 text-center text-[10px] leading-4 text-slate-500" aria-label={SYSTEM_VERSION_LABEL}>
             {SYSTEM_VERSION_LABEL}
           </p>
         </div>
