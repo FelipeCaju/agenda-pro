@@ -140,7 +140,16 @@ router.post("/auth/logout", signOut);
 router.delete("/auth/account", deleteCurrentAccount);
 router.post("/whatsapp/webhook", receiveWhatsappWebhookController);
 router.post("/webhooks/asaas", receiveAsaasWebhookController);
-router.get("/tenants", listTenants);
+router.get("/tenants", async (request, response) => {
+  try {
+    await getRequestPlatformAdminContext(request);
+    await listTenants(request, response);
+  } catch (error) {
+    response.status(error.statusCode ?? 403).json({
+      message: error.message ?? "Acesso de Super Admin obrigatorio.",
+    });
+  }
+});
 router.get("/dashboard/summary", getDashboardSummaryController);
 router.get("/billing/overview", getBillingOverviewController);
 router.post("/billing/checkout/start", startBillingCheckoutController);

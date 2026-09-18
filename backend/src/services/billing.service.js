@@ -42,6 +42,7 @@ import {
   updateWebhookEventLog,
   upsertOrganizationAccessLock,
 } from "../repositories/billing.repository.js";
+import { timingSafeEqual } from "node:crypto";
 
 const BILLING_SYNC_TTL_MS = 90_000;
 const recentBillingSyncBySubscription = new Map();
@@ -1138,8 +1139,13 @@ export async function reactivateBillingSubscription({ organizationId }) {
 
 function validateAsaasWebhookToken(receivedToken) {
   const expectedToken = getAsaasWebhookToken();
+  const receivedBuffer = Buffer.from(String(receivedToken ?? ""));
+  const expectedBuffer = Buffer.from(expectedToken);
 
-  if (!receivedToken || receivedToken !== expectedToken) {
+  if (
+    receivedBuffer.length !== expectedBuffer.length ||
+    !timingSafeEqual(receivedBuffer, expectedBuffer)
+  ) {
     const error = new Error("Webhook nao autorizado.");
     error.statusCode = 401;
     throw error;
@@ -1392,7 +1398,8 @@ export async function processAsaasWebhook({ rawBody, headers, payload }) {
     organization_id: organizationId,
     subscription_id: subscription?.id ?? null,
     billing_transaction_id: currentTransaction?.id ?? null,
-    webhook_token_received: receivedToken,
+    // O token autentica a entrega, mas nao deve ficar armazenado no banco.
+    webhook_token_received: null,
     signature_valid: true,
     payload_text: rawBody || JSON.stringify(payload ?? {}),
     processed: false,
