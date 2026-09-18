@@ -14,7 +14,7 @@ import {
 import { useSettingsMutations } from "@/hooks/use-settings-mutations";
 import { useSettingsQuery } from "@/hooks/use-settings-query";
 import { isValidCep, lookupCep, normalizeCep } from "@/services/cepService";
-import { getBillingAlert, getBillingPaymentAccessFromOrganization } from "@/utils/billing";
+import { getBillingPaymentAccessFromOrganization } from "@/utils/billing";
 import { formatDateBR, formatMonthYearBR } from "@/utils/date";
 import { buildNavigationState } from "@/utils/navigation";
 
@@ -197,7 +197,6 @@ export function SettingsPage({ section }: SettingsPageProps) {
   const isInitialLoading = isLoading && !organization && !settings;
   const companyErrorMessage = companyValidationError ?? updateOrganizationError?.message ?? null;
   const appErrorMessage = appValidationError ?? updateSettingsError?.message ?? null;
-  const billingAlert = useMemo(() => getBillingAlert(organization, payments), [organization, payments]);
   const latestPayment = payments[0] ?? null;
   const paymentAccess = useMemo(
     () => getBillingPaymentAccessFromOrganization(organization, latestPayment),
@@ -387,19 +386,6 @@ export function SettingsPage({ section }: SettingsPageProps) {
   return (
     <section className="space-y-4">
       <MobilePageHeader
-        action={
-          <Button
-            className="relative min-h-8 rounded-xl px-3 py-2 text-xs md:min-h-[46px] md:rounded-[18px] md:px-4 md:py-3 md:text-sm"
-            onClick={() => navigate("/gestao")}
-            type="button"
-            variant="secondary"
-          >
-            {billingAlert.hasAlert ? (
-              <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-white" />
-            ) : null}
-            Gestao
-          </Button>
-        }
         subtitle={isCompanyPage ? "Cadastro e dados para cobranca" : "Agenda, notificacoes e conta"}
         title={isCompanyPage ? "Dados da empresa" : "Configuracoes"}
       />
@@ -716,15 +702,6 @@ export function SettingsPage({ section }: SettingsPageProps) {
             <p className="text-sm text-amber-700">
               Quando o gateway confirmar o pagamento, a assinatura e liberada automaticamente.
             </p>
-            {organization.pixKey ? (
-              <Button
-                disabled={!paymentAccess.canOpen}
-                onClick={() => navigate("/pagamento", { state: buildNavigationState(location.pathname) })}
-                type="button"
-              >
-                Abrir pagamentos
-              </Button>
-            ) : null}
           </div>
         ) : null}
 
