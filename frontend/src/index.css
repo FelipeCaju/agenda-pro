@@ -21,13 +21,13 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background: #edf2fa;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 #root {
   min-height: 100vh;
   background: #edf2fa;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 * {
