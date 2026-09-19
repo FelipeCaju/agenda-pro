@@ -19,7 +19,7 @@ function sendError(response, error) {
 export async function startBillingCheckoutController(request, response) {
   try {
     const { organization } = await getRequestAuthContext(request);
-    const data = await startBillingCheckout({ organizationId: organization.id });
+    const data = await startBillingCheckout({ organizationId: organization.id, planCode: request.body?.planCode });
     response.json({ data, message: "Checkout de billing iniciado com sucesso." });
   } catch (error) {
     sendError(response, error);
@@ -32,6 +32,7 @@ export async function startHostedCardCheckoutController(request, response) {
     const data = await startHostedCardCheckout({
       organizationId: organization.id,
       frontendOrigin: request.headers.origin ?? request.headers.referer ?? "",
+      planCode: request.body?.planCode,
     });
     response.json({ data, message: "Checkout hospedado com cartao criado com sucesso." });
   } catch (error) {

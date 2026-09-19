@@ -8,10 +8,14 @@ export type AdminOrganizationListItem = {
   monthlyAmount: number;
   subscriptionStatus: "active" | "overdue" | "blocked" | "trial" | "canceled";
   subscriptionPlan: string;
+  billingPlanName: string | null;
+  billingCycle: "monthly" | "annual" | null;
+  billingAmountCents: number | null;
   dueDate: string | null;
   trialEnd: string | null;
   isBlocked: boolean;
   latestPaymentStatus: string | null;
+  billingPaymentMethod: string | null;
   latestReferenceMonth: string | null;
   activeUsers: number;
 };
@@ -49,11 +53,16 @@ export type AdminOrganizationDetails = {
     monthlyAmount: number;
     subscriptionStatus: "active" | "overdue" | "blocked" | "trial" | "canceled";
     subscriptionPlan: string;
+    billingPlanName: string | null;
+    billingCycle: "monthly" | "annual" | null;
+    billingAmountCents: number | null;
     dueDate: string | null;
     trialEnd: string | null;
     isBlocked: boolean;
     blockReason: string | null;
     canAccess: boolean;
+    latestPaymentStatus: string | null;
+    billingPaymentMethod: string | null;
   };
   settings: {
     nomeNegocio: string;
@@ -114,10 +123,14 @@ function mapOrganization(model: any): AdminOrganizationListItem {
     monthlyAmount: Number(model.monthly_amount ?? 0),
     subscriptionStatus: model.subscription_status,
     subscriptionPlan: model.subscription_plan,
+    billingPlanName: model.billing_plan_name ?? null,
+    billingCycle: model.billing_cycle === "annual" ? "annual" : model.billing_cycle === "monthly" ? "monthly" : null,
+    billingAmountCents: model.billing_amount_cents === null || model.billing_amount_cents === undefined ? null : Number(model.billing_amount_cents),
     dueDate: model.due_date,
     trialEnd: model.trial_end,
     isBlocked: Boolean(model.is_blocked),
     latestPaymentStatus: model.latest_payment_status ?? null,
+    billingPaymentMethod: model.billing_payment_method ?? null,
     latestReferenceMonth: model.latest_reference_month ?? null,
     activeUsers: Number(model.active_users ?? 0),
   };
@@ -132,11 +145,16 @@ function mapOrganizationDetails(model: any): AdminOrganizationDetails["organizat
     monthlyAmount: Number(model.monthly_amount ?? 0),
     subscriptionStatus: model.subscription_status,
     subscriptionPlan: model.subscription_plan,
+    billingPlanName: model.billing_plan_name ?? null,
+    billingCycle: model.billing_cycle === "annual" ? "annual" : model.billing_cycle === "monthly" ? "monthly" : null,
+    billingAmountCents: model.billing_amount_cents === null || model.billing_amount_cents === undefined ? null : Number(model.billing_amount_cents),
     dueDate: model.due_date,
     trialEnd: model.trial_end,
     isBlocked: Boolean(model.is_blocked),
     blockReason: model.block_reason ?? null,
     canAccess: Boolean(model.can_access),
+    latestPaymentStatus: model.latest_payment_status ?? null,
+    billingPaymentMethod: model.billing_payment_method ?? null,
   };
 }
 

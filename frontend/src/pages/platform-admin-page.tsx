@@ -25,7 +25,14 @@ function getStatusAssinaturaLabel(status: string) {
 }
 
 function getPlanoLabel(plan: string) {
-  return plan === "trial" ? "Trial" : "Pro";
+  if (plan === "trial") return "Trial";
+  if (plan === "agenda_pro_anual") return "AgendaPro Anual";
+  if (plan === "agenda_pro_mensal") return "AgendaPro Mensal";
+  return plan || "Aguardando escolha";
+}
+
+function getCycleLabel(cycle: string | null) {
+  return cycle === "annual" ? "Anual" : cycle === "monthly" ? "Mensal" : "Aguardando escolha";
 }
 
 function formatCurrency(value: number) {
@@ -227,14 +234,17 @@ export function PlatformAdminPage() {
                     </div>
                     <div className="rounded-2xl bg-slate-50 px-3 py-3">
                       <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Plano</p>
-                      <p className="mt-2 text-sm font-semibold text-ink">
-                        {getPlanoLabel(organization.subscriptionPlan)}
-                      </p>
+                      <p className="mt-2 text-sm font-semibold text-ink">{organization.billingPlanName ?? getPlanoLabel(organization.subscriptionPlan)}</p>
+                      <p className="mt-1 text-xs text-slate-500">{getCycleLabel(organization.billingCycle)}</p>
                     </div>
                     <div className="rounded-2xl bg-slate-50 px-3 py-3">
-                      <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Mensalidade</p>
+                      <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Valor contratado</p>
                       <p className="mt-2 text-sm font-semibold text-ink">
-                        {formatCurrency(organization.monthlyAmount)}
+                        {organization.billingAmountCents !== null
+                          ? formatCurrency(organization.billingAmountCents / 100)
+                          : organization.subscriptionPlan === "trial"
+                            ? "Sem cobranca no trial"
+                            : formatCurrency(organization.monthlyAmount)}
                       </p>
                     </div>
                   </div>

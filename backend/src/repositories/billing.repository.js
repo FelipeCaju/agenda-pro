@@ -8,6 +8,9 @@ import {
   DEFAULT_PLAN_CODE,
   DEFAULT_PLAN_NAME,
   DEFAULT_PLAN_PRICE_CENTS,
+  ANNUAL_PLAN_CODE,
+  ANNUAL_PLAN_NAME,
+  ANNUAL_PLAN_PRICE_CENTS,
   formatDateForDatabase,
   formatDateTimeForDatabase,
   mapLegacySubscriptionStatus,
@@ -510,26 +513,24 @@ async function ensureBillingTriggers() {
   }
 }
 
-async function ensureDefaultPlan() {
-  const rows = await query("SELECT id FROM subscription_plans WHERE code = ? LIMIT 1", [DEFAULT_PLAN_CODE]);
-
-  if (rows.length) {
-    return;
-  }
-
+async function ensureAgendaProPlan({ id, name, code, description, priceCents, billingCycle }) {
   await execute(
     `INSERT INTO subscription_plans (
       id, name, code, description, price_cents, currency, billing_cycle,
       trial_days, grace_days, is_active, gateway, gateway_plan_id, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    ON DUPLICATE KEY UPDATE
+      name = VALUES(name), description = VALUES(description), price_cents = VALUES(price_cents),
+      currency = VALUES(currency), billing_cycle = VALUES(billing_cycle), trial_days = VALUES(trial_days),
+      grace_days = VALUES(grace_days), is_active = VALUES(is_active), gateway = VALUES(gateway)`,
     [
-      "plan-agendapro-mensal",
-      DEFAULT_PLAN_NAME,
-      DEFAULT_PLAN_CODE,
-      "Plano mensal padrao do AgendaPro",
-      DEFAULT_PLAN_PRICE_CENTS,
+      id,
+      name,
+      code,
+      description,
+      priceCents,
       DEFAULT_CURRENCY,
-      DEFAULT_BILLING_CYCLE,
+      billingCycle,
       0,
       BILLING_GRACE_DAYS,
       1,
@@ -537,6 +538,25 @@ async function ensureDefaultPlan() {
       null,
     ],
   );
+}
+
+async function ensureDefaultPlan() {
+  await ensureAgendaProPlan({
+    id: "plan-agendapro-mensal",
+    name: DEFAULT_PLAN_NAME,
+    code: DEFAULT_PLAN_CODE,
+    description: "Assinatura mensal do AgendaPro.",
+    priceCents: DEFAULT_PLAN_PRICE_CENTS,
+    billingCycle: DEFAULT_BILLING_CYCLE,
+  });
+  await ensureAgendaProPlan({
+    id: "plan-agendapro-anual",
+    name: ANNUAL_PLAN_NAME,
+    code: ANNUAL_PLAN_CODE,
+    description: "Assinatura anual do AgendaPro com economia sobre o plano mensal.",
+    priceCents: ANNUAL_PLAN_PRICE_CENTS,
+    billingCycle: "annual",
+  });
 }
 
 let billingInfrastructurePromise = null;
@@ -597,6 +617,14 @@ export async function getSubscriptionPlanByCode(code = DEFAULT_PLAN_CODE) {
   );
 
   return mapPlan(rows[0]);
+}
+
+export async function listActiveSubscriptionPlans() {
+  const rows = await query(
+    "SELECT * FROM subscription_plans WHERE is_active = 1 AND code IN (?, ?) ORDER BY billing_cycle = 'monthly' DESC",
+    [DEFAULT_PLAN_CODE, ANNUAL_PLAN_CODE],
+  );
+  return rows.map(mapPlan).filter(Boolean);
 }
 
 export async function getSubscriptionPlanById(planId) {

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { MobilePageHeader } from "@/components/layout/mobile-page-header";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,18 @@ function formatCurrencyFromCents(value: number) {
     currency: "BRL",
   }).format(Number(value ?? 0) / 100);
 }
+
+const PLANS: Array<{
+  code: string;
+  name: string;
+  priceCents: number;
+  cycleLabel: string;
+  savingsPercent?: number;
+  savingsCents?: number;
+}> = [
+  { code: "agenda_pro_mensal", name: "Mensal", priceCents: 2990, cycleLabel: "por mes" },
+  { code: "agenda_pro_anual", name: "Anual", priceCents: 31000, cycleLabel: "por ano", savingsPercent: 13.6, savingsCents: 4880 },
+];
 
 function normalizePixImageSrc(value: string | null | undefined) {
   const normalized = String(value ?? "").trim();
@@ -47,7 +59,7 @@ export function PaymentPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const [selectedMethod, setSelectedMethod] = useState<"credit_card" | "pix">("credit_card");
-  const hasPreparedPixChargeRef = useRef(false);
+  const [selectedPlanCode, setSelectedPlanCode] = useState<string>("agenda_pro_mensal");
   const { data: overview, error, isError, isLoading } = useBillingOverviewQuery();
   const {
     startCheckout,
@@ -60,12 +72,13 @@ export function PaymentPage() {
   const [copyMessage, setCopyMessage] = useState("");
   const checkoutState = new URLSearchParams(location.search).get("checkout");
   const currentCharge = overview?.currentCharge ?? null;
-  const paymentAccess = getBillingPaymentAccessFromOverview(overview?.access, currentCharge);
-  const backPath = resolveBackPath(location, "/meu-plano");
   const needsPixPreparation =
     !currentCharge ||
     currentCharge.paymentMethod !== "pix" ||
     (!currentCharge.pixQrCodeText && !currentCharge.pixQrCodeImageUrl);
+  const paymentAccess = getBillingPaymentAccessFromOverview(overview?.access, currentCharge);
+  const backPath = resolveBackPath(location, "/meu-plano");
+  const selectedPlan = PLANS.find((plan) => plan.code === selectedPlanCode) ?? PLANS[0];
 
   useEffect(() => {
     if (currentCharge?.paymentMethod === "pix" && currentCharge?.pixQrCodeText) {
@@ -77,36 +90,9 @@ export function PaymentPage() {
   }, [currentCharge?.paymentMethod, currentCharge?.pixQrCodeText]);
 
   useEffect(() => {
-    if (
-      isLoading ||
-      isStartingCheckout ||
-      hasPreparedPixChargeRef.current ||
-      !overview ||
-      isError ||
-      !paymentAccess.canOpen
-    ) {
-      return;
-    }
-
-    if (!needsPixPreparation) {
-      hasPreparedPixChargeRef.current = true;
-      return;
-    }
-
-    hasPreparedPixChargeRef.current = true;
-    void startCheckout().catch(() => {
-      hasPreparedPixChargeRef.current = false;
-    });
-  }, [
-    currentCharge,
-    isError,
-    isLoading,
-    isStartingCheckout,
-    needsPixPreparation,
-    overview,
-    paymentAccess.canOpen,
-    startCheckout,
-  ]);
+    if (overview?.subscription?.billingCycle === "annual") setSelectedPlanCode("agenda_pro_anual");
+    if (overview?.subscription?.billingCycle === "monthly") setSelectedPlanCode("agenda_pro_mensal");
+  }, [overview?.subscription?.billingCycle]);
 
   async function handleCopyPix() {
     setCopyMessage("");
@@ -122,13 +108,23 @@ export function PaymentPage() {
   async function handleStartCardCheckout() {
     setCopyMessage("");
     try {
-      const session = await startCardCheckout();
+      const session = await startCardCheckout(selectedPlanCode);
 
       if (!session.checkoutUrl) {
         return;
       }
 
       window.location.assign(session.checkoutUrl);
+    } catch {
+      return;
+    }
+  }
+
+  async function handleGeneratePix() {
+    setCopyMessage("");
+    try {
+      await startCheckout(selectedPlanCode);
+      setSelectedMethod("pix");
     } catch {
       return;
     }
@@ -174,10 +170,10 @@ export function PaymentPage() {
     );
   }
 
-  const planName = overview?.plan?.name ?? "AgendaPro Mensal";
-  const planPriceCents = currentCharge?.amountCents ?? overview?.plan?.priceCents ?? 2990;
+  const planName = currentCharge ? overview?.plan?.name ?? selectedPlan.name : `AgendaPro ${selectedPlan.name}`;
+  const planPriceCents = currentCharge?.amountCents ?? selectedPlan.priceCents;
   const planDescription =
-    overview?.plan?.description ?? "Assinatura mensal para manter sua empresa ativa no AgendaPro.";
+    overview?.plan?.description ?? "Assinatura para manter sua empresa ativa no AgendaPro.";
   const dueDateLabel = overview?.access.dueDate ? formatDateBR(overview.access.dueDate) : "Assim que a cobranca for gerada";
   const graceUntilLabel = overview?.access.graceUntil ? formatDateBR(overview.access.graceUntil) : null;
   const statusLabel = getSubscriptionStatusLabel(overview?.access.subscriptionStatus ?? null);
@@ -194,7 +190,7 @@ export function PaymentPage() {
             Voltar
           </Button>
         }
-        subtitle="Plano mensal e regularizacao segura via Asaas"
+        subtitle="Escolha seu plano e regularize com seguranca via Asaas"
         title="Pagamento"
       />
 
@@ -219,7 +215,9 @@ export function PaymentPage() {
                 <p className="mt-2 text-4xl font-semibold tracking-[-0.05em] text-white sm:text-5xl">
                   {formatCurrencyFromCents(planPriceCents)}
                 </p>
-                <p className="mt-2 text-sm text-emerald-100/90">Cobranca mensal recorrente</p>
+                <p className="mt-2 text-sm text-emerald-100/90">
+                  {selectedPlanCode === "agenda_pro_anual" ? "Cobranca anual recorrente" : "Cobranca mensal recorrente"}
+                </p>
               </div>
               <div className="rounded-[22px] bg-white/95 px-4 py-3 text-slate-900 shadow-soft">
                 <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Status atual</p>
@@ -284,7 +282,7 @@ export function PaymentPage() {
 
           <div className="space-y-3">
             {[
-              "1. Gere ou reaproveite a cobranca ativa do plano mensal.",
+              "1. Escolha o plano e gere a cobranca pelo valor exibido.",
               "2. Escolha entre Pix imediato ou checkout hospedado com cartao.",
               "3. O Asaas confirma pelo webhook e o acesso volta automaticamente.",
             ].map((item) => (
@@ -299,20 +297,19 @@ export function PaymentPage() {
 
           {!currentCharge ? (
             <div className="rounded-[24px] border border-emerald-100 bg-emerald-50/80 p-4">
-              <p className="text-sm font-semibold text-emerald-900">Estamos preparando sua cobranca</p>
+              <p className="text-sm font-semibold text-emerald-900">Escolha um plano para gerar a cobranca</p>
               <p className="mt-2 text-sm text-emerald-800">
-                Assim que a tela abre, o sistema prepara automaticamente o Pix do plano mensal de{" "}
-                {formatCurrencyFromCents(planPriceCents)} para deixar o pagamento pronto.
+                Escolha mensal ou anual. O Pix sera gerado somente apos sua confirmacao, com o valor exibido.
               </p>
               <Button className="mt-4 w-full sm:w-auto" disabled type="button">
-                {isStartingCheckout ? "Preparando pagamento..." : "Preparando automaticamente..."}
+                {isStartingCheckout ? "Gerando pagamento..." : "Aguardando sua escolha"}
               </Button>
             </div>
           ) : (
             <div className="rounded-[24px] border border-slate-200 bg-slate-50/85 p-4">
                   <p className="text-sm font-semibold text-ink">Cobranca pronta para pagamento</p>
               <p className="mt-2 text-sm text-slate-600">
-                O plano mensal ja esta configurado com o valor de {formatCurrencyFromCents(planPriceCents)}.
+                O plano selecionado esta configurado com o valor de {formatCurrencyFromCents(planPriceCents)}.
               </p>
               {needsPixPreparation ? (
                 <p className="mt-2 text-sm text-slate-600">
@@ -331,6 +328,32 @@ export function PaymentPage() {
         </Card>
 
         <Card className="space-y-4 border-slate-200 bg-white">
+          {!currentCharge ? (
+            <div className="space-y-3 rounded-[24px] border border-slate-200 bg-slate-50/80 p-4">
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Escolha o plano</p>
+                <h3 className="mt-1 text-xl font-semibold text-ink">Um valor claro, sem surpresa</h3>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {PLANS.map((plan) => (
+                  <button
+                    className={`rounded-[20px] border p-4 text-left transition ${selectedPlanCode === plan.code ? "border-emerald-500 bg-emerald-50" : "border-slate-200 bg-white"}`}
+                    key={plan.code}
+                    onClick={() => setSelectedPlanCode(plan.code)}
+                    type="button"
+                  >
+                    <p className="font-semibold text-ink">{plan.name}</p>
+                    <p className="mt-1 text-lg font-semibold text-ink">{formatCurrencyFromCents(plan.priceCents)}</p>
+                    <p className="text-sm text-slate-500">{plan.cycleLabel}</p>
+                    {plan.savingsPercent ? <p className="mt-2 text-sm font-semibold text-emerald-700">Economize {plan.savingsPercent.toLocaleString("pt-BR")}% (R$ 48,80)</p> : null}
+                  </button>
+                ))}
+              </div>
+              <Button disabled={isStartingCheckout} onClick={() => void handleGeneratePix()} type="button">
+                {isStartingCheckout ? "Gerando Pix..." : `Gerar Pix de ${formatCurrencyFromCents(selectedPlan.priceCents)}`}
+              </Button>
+            </div>
+          ) : null}
           <div className="rounded-[22px] border border-slate-200 bg-slate-50/80 p-2">
             <div className="grid grid-cols-2 gap-2">
               <button

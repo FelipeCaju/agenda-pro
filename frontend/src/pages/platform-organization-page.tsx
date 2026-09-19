@@ -27,7 +27,14 @@ function getStatusPagamentoLabel(status: "pending" | "paid" | "overdue" | "cance
 }
 
 function getPlanoLabel(plan: string) {
-  return plan === "trial" ? "Trial" : "Pro";
+  if (plan === "trial") return "Trial";
+  if (plan === "agenda_pro_anual") return "AgendaPro Anual";
+  if (plan === "agenda_pro_mensal") return "AgendaPro Mensal";
+  return plan || "Aguardando escolha";
+}
+
+function getCycleLabel(cycle: string | null) {
+  return cycle === "annual" ? "Anual" : cycle === "monthly" ? "Mensal" : "Aguardando escolha";
 }
 
 export function PlatformOrganizationPage() {
@@ -144,8 +151,15 @@ export function PlatformOrganizationPage() {
             <div className="mt-3 space-y-2 text-sm text-slate-600">
               <p>{organization.emailResponsavel}</p>
               <p>{organization.telefone || "Telefone nao informado"}</p>
-              <p>Mensalidade: R$ {organization.monthlyAmount.toFixed(2)}</p>
-              <p>Plano: {getPlanoLabel(organization.subscriptionPlan)}</p>
+              <p>Plano: {organization.billingPlanName ?? getPlanoLabel(organization.subscriptionPlan)}</p>
+              <p>Ciclo: {getCycleLabel(organization.billingCycle)}</p>
+              <p>
+                Valor contratado: {organization.billingAmountCents !== null
+                  ? `R$ ${(organization.billingAmountCents / 100).toFixed(2)}`
+                  : organization.subscriptionPlan === "trial"
+                    ? "Sem cobranca durante o trial"
+                    : `R$ ${organization.monthlyAmount.toFixed(2)}`}
+              </p>
               <p>Status atual: {getStatusAssinaturaLabel(organization.subscriptionStatus)}</p>
             </div>
           </Card>

@@ -317,10 +317,10 @@ export const billingService = {
       },
     );
   },
-  async startCheckout() {
+  async startCheckout(planCode: string) {
     return executeServiceCall(
       async () => {
-        const response = await apiClient.post<BillingOverviewApiModel>("/billing/checkout/start");
+        const response = await apiClient.post<BillingOverviewApiModel>("/billing/checkout/start", { planCode });
         return mapOverview(response.data);
       },
       {
@@ -328,10 +328,10 @@ export const billingService = {
       },
     );
   },
-  async startCardCheckout() {
+  async startCardCheckout(planCode: string) {
     return executeServiceCall(
       async () => {
-        const response = await apiClient.post<HostedCardCheckoutApiModel>("/billing/checkout/card");
+        const response = await apiClient.post<HostedCardCheckoutApiModel>("/billing/checkout/card", { planCode });
         return {
           checkoutId: response.data.checkout_id,
           checkoutUrl: response.data.checkout_url,

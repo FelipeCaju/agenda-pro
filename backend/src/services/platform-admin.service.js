@@ -9,9 +9,11 @@ import {
   updatePlatformSettings,
   updateOrganizationById,
 } from "../lib/data.js";
+import { resolveOrganizationBillingAccess } from "./billing.service.js";
 import { hashPassword, isValidPassword } from "../lib/password.js";
-import { evaluateSubscriptionAccess, isValidSubscriptionStatus } from "../lib/subscription.js";
+import { isValidSubscriptionStatus } from "../lib/subscription.js";
 import {
+  getOrganizationBillingAggregate,
   getOrganizationSubscriptionByOrganizationId,
   runBillingTransaction,
   updateOrganizationSubscription,
@@ -65,21 +67,35 @@ function isValidSubscriptionPlan(value) {
   return ["trial", "pro"].includes(value);
 }
 
-function buildOrganizationAdminItem(row) {
-  const access = evaluateSubscriptionAccess(row);
+async function buildOrganizationAdminItem(row) {
+  const billingAccess = await resolveOrganizationBillingAccess(row.id);
+  const aggregate = await getOrganizationBillingAggregate(row.id);
+  const hasBillingSubscription = Boolean(aggregate.subscription);
+  const plan = hasBillingSubscription ? aggregate.plan : null;
+  const transaction = aggregate.currentTransaction;
 
   return {
     id: row.id,
     nome_empresa: row.nome_empresa,
     email_responsavel: row.email_responsavel,
     telefone: row.telefone,
-    monthly_amount: Number(row.monthly_amount ?? 0),
-    subscription_status: access.subscriptionStatus,
-    subscription_plan: row.subscription_plan,
-    due_date: row.due_date,
+    monthly_amount: hasBillingSubscription
+      ? Number(aggregate.subscription.amount_cents ?? plan?.price_cents ?? 0) / 100
+      : Number(row.monthly_amount ?? 0),
+    subscription_status: billingAccess.subscriptionStatus,
+    subscription_plan: hasBillingSubscription ? plan?.code ?? row.subscription_plan : row.subscription_plan,
+    billing_plan_name: plan?.name ?? null,
+    billing_cycle: hasBillingSubscription ? aggregate.subscription.billing_cycle : null,
+    billing_amount_cents: hasBillingSubscription
+      ? Number(aggregate.subscription.amount_cents ?? plan?.price_cents ?? 0)
+      : null,
+    due_date: billingAccess.dueDate ?? row.due_date,
     trial_end: row.trial_end,
-    is_blocked: access.isBlocked,
-    latest_payment_status: row.latest_payment_status,
+    is_blocked: billingAccess.isBlocked,
+    block_reason: billingAccess.blockReason,
+    can_access: billingAccess.canAccess,
+    latest_payment_status: transaction?.status ?? row.latest_payment_status,
+    billing_payment_method: transaction?.payment_method ?? null,
     latest_reference_month: row.latest_reference_month,
     active_users: row.active_users,
   };
@@ -176,7 +192,7 @@ async function syncSubscriptionAfterPayment(organizationId, paymentInput) {
 
 export async function listOrganizationsForPlatformAdmin() {
   const organizations = await listAdminOrganizations();
-  return organizations.map(buildOrganizationAdminItem);
+  return Promise.all(organizations.map(buildOrganizationAdminItem));
 }
 
 export async function createOrganizationForPlatformAdmin(input) {
@@ -282,14 +298,23 @@ export async function getOrganizationForPlatformAdmin(organizationId) {
     throw error;
   }
 
-  const access = evaluateSubscriptionAccess(details.organization);
+  const billing = await buildOrganizationAdminItem(details.organization);
 
   return {
     organization: {
       ...details.organization,
-      is_blocked: access.isBlocked,
-      block_reason: access.blockReason,
-      can_access: access.canAccess,
+      monthly_amount: billing.monthly_amount,
+      subscription_status: billing.subscription_status,
+      subscription_plan: billing.subscription_plan,
+      billing_plan_name: billing.billing_plan_name,
+      billing_cycle: billing.billing_cycle,
+      billing_amount_cents: billing.billing_amount_cents,
+      due_date: billing.due_date,
+      is_blocked: billing.is_blocked,
+      block_reason: billing.block_reason,
+      can_access: billing.can_access,
+      latest_payment_status: billing.latest_payment_status,
+      billing_payment_method: billing.billing_payment_method,
     },
     settings: details.settings,
     members: details.members.map((member) => ({
@@ -423,6 +448,7 @@ export async function createPaymentForPlatformAdmin(organizationId, input) {
 
   return payment;
 }
+
 
 export async function getPlatformSettingsForAdmin() {
   return getPlatformSettings();

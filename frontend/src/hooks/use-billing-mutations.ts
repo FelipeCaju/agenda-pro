@@ -13,12 +13,12 @@ export function useBillingMutations() {
   }
 
   const startCheckoutMutation = useMutation({
-    mutationFn: () => billingService.startCheckout(),
+    mutationFn: (planCode: string) => billingService.startCheckout(planCode),
     onSuccess: refreshBillingQueries,
   });
 
   const startCardCheckoutMutation = useMutation({
-    mutationFn: () => billingService.startCardCheckout(),
+    mutationFn: (planCode: string) => billingService.startCardCheckout(planCode),
     onSuccess: refreshBillingQueries,
   });
 

@@ -1,5 +1,7 @@
 import {
   BILLING_GRACE_DAYS,
+  ANNUAL_PLAN_CODE,
+  DEFAULT_PLAN_CODE,
   DEFAULT_GATEWAY,
   buildBillingAccessSnapshot,
   computeGraceUntil,
@@ -90,7 +92,10 @@ function differenceFromTodayInDays(value) {
   return Math.round((target.getTime() - today.getTime()) / 86_400_000);
 }
 
-function resolveChargeAmountCents({ organization = null, subscription = null, plan = null }) {
+function resolveChargeAmountCents({ organization = null, subscription = null, plan = null, usePlanPrice = false }) {
+  if (usePlanPrice) {
+    return Math.round(Number(plan?.price_cents ?? 0));
+  }
   const organizationAmount = Number(organization?.monthly_amount ?? 0);
 
   if (Number.isFinite(organizationAmount) && organizationAmount > 0) {
@@ -104,6 +109,27 @@ function resolveChargeAmountCents({ organization = null, subscription = null, pl
   }
 
   return Math.round(Number(plan?.price_cents ?? 0));
+}
+
+function normalizeCheckoutPlanCode(value) {
+  const code = String(value ?? DEFAULT_PLAN_CODE).trim();
+  return [DEFAULT_PLAN_CODE, ANNUAL_PLAN_CODE].includes(code) ? code : null;
+}
+
+async function getCheckoutPlan(planCode) {
+  const normalizedCode = normalizeCheckoutPlanCode(planCode);
+  if (!normalizedCode) {
+    const error = new Error("Plano de assinatura invalido.");
+    error.statusCode = 400;
+    throw error;
+  }
+  const plan = await getSubscriptionPlanByCode(normalizedCode);
+  if (!plan) {
+    const error = new Error("Plano de assinatura indisponivel.");
+    error.statusCode = 409;
+    throw error;
+  }
+  return plan;
 }
 
 function finalizeBillingAccess({ access, currentTransaction = null, platformSettings = null }) {
@@ -853,10 +879,10 @@ export async function getCurrentCharge({ organizationId }) {
   return enrichTransactionWithPix(latestCurrentTransaction);
 }
 
-export async function startBillingCheckout({ organizationId }) {
+export async function startBillingCheckout({ organizationId, planCode }) {
   await ensureBillingInfrastructure();
   const organization = await getBillingOrganizationSummary(organizationId);
-  const plan = await getSubscriptionPlanByCode();
+  const plan = await getCheckoutPlan(planCode);
 
   if (!organization) {
     const error = new Error("Organizacao nao encontrada.");
@@ -890,9 +916,14 @@ export async function startBillingCheckout({ organizationId }) {
   }
 
   const existingSubscription = await getOrganizationSubscriptionByOrganizationId(organizationId);
-  const chargeAmountCents = resolveChargeAmountCents({ organization, subscription: existingSubscription, plan });
+  const chargeAmountCents = resolveChargeAmountCents({ organization, subscription: existingSubscription, plan, usePlanPrice: true });
 
   if (existingSubscription?.gateway_subscription_id) {
+    if (existingSubscription.status !== "cancelled" && existingSubscription.plan_id !== plan.id) {
+      const error = new Error("Cancele a assinatura pendente antes de escolher outro plano. Isso evita cobrancas duplicadas.");
+      error.statusCode = 409;
+      throw error;
+    }
     const currentCharge = await getCurrentCharge({ organizationId });
     return {
       ...buildOverviewPayload({
@@ -996,10 +1027,10 @@ export async function startBillingCheckout({ organizationId }) {
   };
 }
 
-export async function startHostedCardCheckout({ organizationId, frontendOrigin = "" }) {
+export async function startHostedCardCheckout({ organizationId, frontendOrigin = "", planCode }) {
   await ensureBillingInfrastructure();
   const organization = await getBillingOrganizationSummary(organizationId);
-  const plan = await getSubscriptionPlanByCode();
+  const plan = await getCheckoutPlan(planCode);
 
   if (!organization) {
     const error = new Error("Organizacao nao encontrada.");
@@ -1035,7 +1066,17 @@ export async function startHostedCardCheckout({ organizationId, frontendOrigin =
   validateHostedCheckoutProfile(organization);
 
   const existingSubscription = await getOrganizationSubscriptionByOrganizationId(organizationId);
-  const chargeAmountCents = resolveChargeAmountCents({ organization, subscription: existingSubscription, plan });
+  const chargeAmountCents = resolveChargeAmountCents({ organization, subscription: existingSubscription, plan, usePlanPrice: true });
+
+  if (
+    existingSubscription?.gateway_subscription_id &&
+    existingSubscription.status !== "cancelled" &&
+    existingSubscription.plan_id !== plan.id
+  ) {
+    const error = new Error("Cancele a assinatura pendente antes de escolher outro plano. Isso evita cobrancas duplicadas.");
+    error.statusCode = 409;
+    throw error;
+  }
   const customer = await ensureAsaasCustomer({ organization, existingSubscription });
   await syncAsaasCustomerProfile({ organization, customerId: customer.id });
 
