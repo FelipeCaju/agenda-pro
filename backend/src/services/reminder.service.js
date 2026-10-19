@@ -36,8 +36,29 @@ function normalizePhone(phone) {
   return digits.startsWith("55") ? digits : `55${digits}`;
 }
 
-function toDateTime(date, time) {
-  return new Date(`${date}T${time}:00`);
+function toDateTime(date, time, timezone) {
+  const [year, month, day] = date.split("-").map(Number);
+  const [hour, minute] = time.split(":").map(Number);
+  const desired = Date.UTC(year, month - 1, day, hour, minute);
+  const options = {
+    year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit",
+    hourCycle: "h23",
+  };
+  let formatter;
+  try {
+    formatter = new Intl.DateTimeFormat("en-CA", { ...options, timeZone: timezone || "America/Sao_Paulo" });
+  } catch {
+    formatter = new Intl.DateTimeFormat("en-CA", { ...options, timeZone: "America/Sao_Paulo" });
+  }
+  let timestamp = desired;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const parts = Object.fromEntries(formatter.formatToParts(new Date(timestamp)).map(({ type, value }) => [type, value]));
+    const represented = Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day), Number(parts.hour), Number(parts.minute));
+    const adjustment = desired - represented;
+    timestamp += adjustment;
+    if (!adjustment) break;
+  }
+  return new Date(timestamp);
 }
 
 function buildScheduledAt(appointment) {
@@ -162,7 +183,7 @@ function buildReminderMessage({ appointment, settings }) {
     .replaceAll("{{data}}", formatDateBR(appointment.data));
 }
 
-function isReminderDue({ appointment, settings, now }) {
+export function isReminderDue({ appointment, settings, now }) {
   if (!settings.lembretes_ativos || !settings.whatsapp_ativo) {
     return false;
   }
@@ -171,7 +192,7 @@ function isReminderDue({ appointment, settings, now }) {
     return false;
   }
 
-  const appointmentAt = toDateTime(appointment.data, appointment.horario_inicial);
+  const appointmentAt = toDateTime(appointment.data, appointment.horario_inicial, settings.timezone);
   const reminderAt = new Date(
     appointmentAt.getTime() - Number(settings.whatsapp_tempo_lembrete_minutos ?? 0) * 60 * 1000,
   );

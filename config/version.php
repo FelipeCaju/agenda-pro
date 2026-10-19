@@ -12,10 +12,10 @@ declare(strict_types=1);
  * - build: AAAAMMDD.N, aumentando N a cada publicação do mesmo dia.
  */
 const APP_VERSION_MAJOR = 1;
-const APP_VERSION_MINOR = 3;
-const APP_VERSION_PATCH = 6;
+const APP_VERSION_MINOR = 4;
+const APP_VERSION_PATCH = 0;
 const APP_BUILD_DATE = '20261019';
-const APP_BUILD_NUMBER = 5;
+const APP_BUILD_NUMBER = 6;
 
 function app_version(): string
 {

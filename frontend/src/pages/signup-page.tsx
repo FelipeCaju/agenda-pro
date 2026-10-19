@@ -101,17 +101,12 @@ export function SignupPage() {
       return;
     }
 
-    if (!billingAddress.trim() || !billingAddressNumber.trim() || !billingProvince.trim()) {
-      setLocalError("Preencha endereco, numero e bairro para billing.");
-      return;
-    }
-
-    if (!isValidCep(billingPostalCode)) {
+    if (billingPostalCode.trim() && !isValidCep(billingPostalCode)) {
       setLocalError("Informe um CEP valido com 8 digitos.");
       return;
     }
 
-    if (!isValidCityIbge(billingCityIbge)) {
+    if (billingCityIbge.trim() && !isValidCityIbge(billingCityIbge)) {
       setLocalError("Informe o codigo IBGE da cidade com 7 digitos.");
       return;
     }
@@ -210,10 +205,11 @@ export function SignupPage() {
             placeholder="CPF ou CNPJ do assinante"
             value={cpfCnpj}
           />
+          <p className="text-xs text-slate-500">Obrigatorios: email, nome, empresa, telefone, CPF ou CNPJ e senha.</p>
           <input
             className="app-input"
             onChange={(event) => setBillingAddress(event.target.value)}
-            placeholder="Endereco de billing"
+            placeholder="Endereco (opcional)"
             value={billingAddress}
           />
           <div className="grid gap-4 sm:grid-cols-2">
@@ -233,7 +229,11 @@ export function SignupPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <input
               className="app-input"
-              onChange={(event) => setBillingPostalCode(event.target.value)}
+              onChange={(event) => {
+                setBillingPostalCode(event.target.value);
+                setBillingCityIbge("");
+                setBillingCityLabel("");
+              }}
               onBlur={() => void handleBillingCepBlur()}
               placeholder="CEP"
               value={billingPostalCode}
@@ -250,7 +250,7 @@ export function SignupPage() {
               ? "Buscando endereco pelo CEP..."
               : billingCityLabel
                 ? `Cidade identificada automaticamente: ${billingCityLabel}`
-                : "A cidade e o codigo IBGE serao preenchidos automaticamente pelo CEP."}
+                : "Endereco opcional no cadastro. O CEP, se informado, ajuda a preencher a cidade; esses dados podem ser exigidos para pagamento por cartao."}
           </div>
           <PasswordField
             inputClassName="app-input pr-14"

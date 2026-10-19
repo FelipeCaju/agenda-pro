@@ -121,6 +121,7 @@ export async function updateSettings({ organizationId, input }) {
   const moeda = input.moeda;
   const timezone = input.timezone;
   const lembreteHorasAntes = input.lembrete_horas_antes ?? input.lembreteHorasAntes;
+  const whatsappMinutes = input.whatsapp_tempo_lembrete_minutos ?? input.whatsappTempoLembreteMinutos;
 
   if (nomeNegocio !== undefined && !normalizeString(nomeNegocio)) {
     const error = new Error("Nome do negocio e obrigatorio.");
@@ -180,6 +181,12 @@ export async function updateSettings({ organizationId, input }) {
       error.statusCode = 400;
       throw error;
     }
+  }
+
+  if (whatsappMinutes !== undefined && (String(whatsappMinutes).trim() === "" || !Number.isInteger(Number(whatsappMinutes)) || Number(whatsappMinutes) < 0 || Number(whatsappMinutes) > 10080)) {
+    const error = new Error("Antecedencia do WhatsApp deve ser entre 0 e 10080 minutos.");
+    error.statusCode = 400;
+    throw error;
   }
 
   const updated = await updateAppSettingsByOrganization(organizationId, {

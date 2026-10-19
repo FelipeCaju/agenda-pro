@@ -105,6 +105,7 @@ export function WhatsappSettingsPage() {
   const [lembretesAtivos, setLembretesAtivos] = useState(true);
   const [whatsappAtivo, setWhatsappAtivo] = useState(false);
   const [whatsappTempoLembreteMinutos, setWhatsappTempoLembreteMinutos] = useState("60");
+  const [reminderUnit, setReminderUnit] = useState<"minutes" | "days">("minutes");
   const [nomeNegocio, setNomeNegocio] = useState("AgendaPro");
   const [validationError, setValidationError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState("");
@@ -116,7 +117,10 @@ export function WhatsappSettingsPage() {
 
     setLembretesAtivos(Boolean(settings.lembretesAtivos));
     setWhatsappAtivo(Boolean(settings.whatsappAtivo));
-    setWhatsappTempoLembreteMinutos(String(settings.whatsappTempoLembreteMinutos ?? 60));
+    const minutes = settings.whatsappTempoLembreteMinutos ?? 60;
+    const useDays = minutes > 0 && minutes % 1440 === 0;
+    setReminderUnit(useDays ? "days" : "minutes");
+    setWhatsappTempoLembreteMinutos(String(useDays ? minutes / 1440 : minutes));
     setNomeNegocio(settings.nomeNegocio ?? "AgendaPro");
   }, [settings]);
 
@@ -140,10 +144,11 @@ export function WhatsappSettingsPage() {
     event.preventDefault();
     setValidationError(null);
 
-    const normalizedWhatsappMinutes = Number(whatsappTempoLembreteMinutos);
+    const amount = Number(whatsappTempoLembreteMinutos);
+    const normalizedWhatsappMinutes = amount * (reminderUnit === "days" ? 1440 : 1);
 
-    if (!Number.isFinite(normalizedWhatsappMinutes) || normalizedWhatsappMinutes < 0) {
-      setValidationError("Tempo do lembrete no WhatsApp invalido.");
+    if (!whatsappTempoLembreteMinutos.trim() || !Number.isInteger(amount) || amount < 0 || normalizedWhatsappMinutes > 10080) {
+      setValidationError("Informe um numero inteiro entre 0 e 10080 minutos ou 0 e 7 dias.");
       return;
     }
 
@@ -262,16 +267,32 @@ export function WhatsappSettingsPage() {
 
               <div className="space-y-2 rounded-[22px] bg-slate-50 px-4 py-4">
                 <label className="text-sm font-medium text-ink" htmlFor="whatsapp-delay">
-                  Antecedencia do lembrete
+                  Antecedencia do lembrete ({reminderUnit === "minutes" ? "minutos" : "dias"})
                 </label>
+                <select
+                  aria-label="Unidade da antecedencia do lembrete"
+                  className="app-select"
+                  onChange={(event) => {
+                    const unit = event.target.value as "minutes" | "days";
+                    setReminderUnit(unit);
+                    setWhatsappTempoLembreteMinutos(unit === "days" ? "1" : "60");
+                  }}
+                  value={reminderUnit}
+                >
+                  <option value="minutes">Minutos</option>
+                  <option value="days">Dias</option>
+                </select>
                 <input
                   className="app-input"
                   id="whatsapp-delay"
                   min="0"
+                  max={reminderUnit === "days" ? 7 : 10080}
+                  step="1"
                   onChange={(event) => setWhatsappTempoLembreteMinutos(event.target.value)}
                   type="number"
                   value={whatsappTempoLembreteMinutos}
                 />
+                <p className="text-xs text-slate-500">{reminderUnit === "days" ? "Enviado no mesmo horario do atendimento, nos dias anteriores escolhidos." : "Enviado pela quantidade de minutos escolhida antes do atendimento."}</p>
               </div>
             </div>
 

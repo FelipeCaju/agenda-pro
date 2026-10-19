@@ -49,6 +49,20 @@ function isValidCityIbge(value) {
   return normalizeDocument(value).length === 7;
 }
 
+export function validateOptionalBillingAddress({ billingPostalCode, billingCityIbge }) {
+  if (String(billingPostalCode ?? "").trim() && !isValidPostalCode(billingPostalCode)) {
+    const error = new Error("CEP invalido.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (String(billingCityIbge ?? "").trim() && !isValidCityIbge(billingCityIbge)) {
+    const error = new Error("Codigo IBGE da cidade invalido.");
+    error.statusCode = 400;
+    throw error;
+  }
+}
+
 function buildKnownToken(email) {
   return createSessionToken({
     type: "known",
@@ -591,23 +605,7 @@ export async function completeOnboarding({
     throw error;
   }
 
-  if (!billingAddress?.trim() || !billingAddressNumber?.trim() || !billingProvince?.trim()) {
-    const error = new Error("Endereco de billing incompleto.");
-    error.statusCode = 400;
-    throw error;
-  }
-
-  if (!isValidPostalCode(billingPostalCode)) {
-    const error = new Error("CEP obrigatorio e invalido.");
-    error.statusCode = 400;
-    throw error;
-  }
-
-  if (!isValidCityIbge(billingCityIbge)) {
-    const error = new Error("Codigo IBGE da cidade obrigatorio e invalido.");
-    error.statusCode = 400;
-    throw error;
-  }
+  validateOptionalBillingAddress({ billingPostalCode, billingCityIbge });
 
   if (provider === "email" && !isValidPassword(senha)) {
     const error = new Error("A senha precisa ter pelo menos 8 caracteres.");
@@ -634,12 +632,12 @@ export async function completeOnboarding({
     nomeEmpresa: nomeEmpresa.trim(),
     telefone: telefone.trim(),
     cpfCnpj: normalizeDocument(cpfCnpj),
-    billingAddress: billingAddress.trim(),
-    billingAddressNumber: billingAddressNumber.trim(),
+    billingAddress: billingAddress?.trim() || null,
+    billingAddressNumber: billingAddressNumber?.trim() || null,
     billingAddressComplement: billingAddressComplement?.trim() || null,
-    billingPostalCode: normalizeDocument(billingPostalCode),
-    billingProvince: billingProvince.trim(),
-    billingCityIbge: normalizeDocument(billingCityIbge),
+    billingPostalCode: normalizeDocument(billingPostalCode) || null,
+    billingProvince: billingProvince?.trim() || null,
+    billingCityIbge: normalizeDocument(billingCityIbge) || null,
     subscriptionPlan: "trial",
     subscriptionStatus: "trial",
     trialEnd: trialEnd.toISOString().slice(0, 10),
