@@ -1,6 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { NewAppointment } from "@/components/agenda/new-appointment";
 import { MobilePageHeader } from "@/components/layout/mobile-page-header";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FloatingActionButton } from "@/components/ui/floating-action-button";
 import { ChevronLeftIcon } from "@/components/ui/icons";
@@ -147,6 +148,10 @@ export function NewAppointmentPage() {
         submitLabel="Salvar agendamento"
         title=""
       />
+
+      <Button className="hidden xl:inline-flex" disabled={isCreating} form={FORM_ID} type="submit">
+        {isCreating ? "Salvando..." : "Salvar agendamento"}
+      </Button>
 
       <FloatingActionButton
         disabled={isCreating}

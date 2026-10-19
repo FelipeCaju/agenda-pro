@@ -110,6 +110,10 @@ export function ServiceFormPage() {
         title={isEditing ? "Editar servico" : "Novo servico"}
       />
 
+      <Button className="hidden xl:inline-flex" disabled={isCreating || isUpdating} form={FORM_ID} type="submit">
+        {isCreating || isUpdating ? "Salvando..." : isEditing ? "Salvar alteracoes" : "Cadastrar servico"}
+      </Button>
+
       <FloatingActionButton
         disabled={isCreating || isUpdating}
         form={FORM_ID}

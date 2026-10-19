@@ -107,6 +107,10 @@ export function ClientFormPage() {
         title={isEditing ? "Editar cliente" : "Novo cliente"}
       />
 
+      <Button className="hidden xl:inline-flex" disabled={isCreating || isUpdating} form={FORM_ID} type="submit">
+        {isCreating || isUpdating ? "Salvando..." : isEditing ? "Salvar alteracoes" : "Cadastrar cliente"}
+      </Button>
+
       <FloatingActionButton
         disabled={isCreating || isUpdating}
         form={FORM_ID}
