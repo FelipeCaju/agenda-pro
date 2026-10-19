@@ -1,5 +1,6 @@
 import { Router } from "express";
 import {
+  changeCurrentPassword,
   deleteCurrentAccount,
   finishOnboarding,
   getSession,
@@ -137,6 +138,7 @@ router.post("/auth/login", login);
 router.get("/auth/session", getSession);
 router.post("/auth/onboarding", finishOnboarding);
 router.post("/auth/logout", signOut);
+router.post("/auth/password", changeCurrentPassword);
 router.delete("/auth/account", deleteCurrentAccount);
 router.post("/whatsapp/webhook", receiveWhatsappWebhookController);
 router.post("/webhooks/asaas", receiveAsaasWebhookController);

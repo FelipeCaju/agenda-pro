@@ -41,3 +41,26 @@ export function verifyPassword(password, storedHash) {
 export function isValidPassword(password) {
   return typeof password === "string" && password.length > 0;
 }
+
+export function validatePasswordChange(currentPassword, newPassword, confirmPassword, storedHash) {
+  if (!storedHash) {
+    const error = new Error("Esta conta nao possui senha cadastrada. Use seu provedor de acesso.");
+    error.statusCode = 400;
+    throw error;
+  }
+  if (!isValidPassword(currentPassword) || !verifyPassword(currentPassword, storedHash)) {
+    const error = new Error("Senha atual incorreta.");
+    error.statusCode = 400;
+    throw error;
+  }
+  if (!isValidPassword(newPassword)) {
+    const error = new Error("Informe a nova senha.");
+    error.statusCode = 400;
+    throw error;
+  }
+  if (newPassword !== confirmPassword) {
+    const error = new Error("A confirmacao da nova senha nao confere.");
+    error.statusCode = 400;
+    throw error;
+  }
+}

@@ -1,4 +1,5 @@
 import {
+  changePassword,
   completeOnboarding,
   deleteAccount,
   getSessionByToken,
@@ -68,6 +69,14 @@ export async function finishOnboarding(request, response) {
 
 export function signOut(_request, response) {
   response.json(logout());
+}
+
+export async function changeCurrentPassword(request, response) {
+  try {
+    response.json(await changePassword(readToken(request), request.body ?? {}));
+  } catch (error) {
+    response.status(error.statusCode ?? 500).json({ message: error.message });
+  }
 }
 
 export async function deleteCurrentAccount(request, response) {

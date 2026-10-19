@@ -11,7 +11,7 @@ import {
   updateUserPasswordById,
 } from "../lib/data.js";
 import { createRemoteJWKSet, jwtVerify } from "jose";
-import { hashPassword, isValidPassword, verifyPassword } from "../lib/password.js";
+import { hashPassword, isValidPassword, validatePasswordChange, verifyPassword } from "../lib/password.js";
 import { createSessionToken, verifySessionToken } from "../lib/session-token.js";
 import { resolveOrganizationBillingAccess } from "./billing.service.js";
 
@@ -657,6 +657,13 @@ export async function completeOnboarding({
 }
 
 export function logout() {
+  return { success: true };
+}
+
+export async function changePassword(token, { currentPassword, newPassword, confirmPassword }) {
+  const { user } = await requireAuthenticatedContext(token);
+  validatePasswordChange(currentPassword, newPassword, confirmPassword, user.password_hash);
+  await updateUserPasswordById(user.id, hashPassword(newPassword));
   return { success: true };
 }
 

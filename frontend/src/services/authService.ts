@@ -83,6 +83,9 @@ async function fetchSession() {
 }
 
 export const authService = {
+  async changePassword(currentPassword: string, newPassword: string, confirmPassword: string) {
+    await apiClient.post("/auth/password", { currentPassword, newPassword, confirmPassword });
+  },
   async registerAccount(email: string, input: CompleteOnboardingInput): Promise<AuthSession> {
     try {
       const session = await this.signIn({ email, password: "__start_onboarding__", provider: "email" });

@@ -4,6 +4,7 @@ import { MobilePageHeader } from "@/components/layout/mobile-page-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FullscreenState } from "@/components/ui/fullscreen-state";
+import { PasswordField } from "@/components/ui/password-field";
 import { useAuth } from "@/hooks/use-auth";
 import { useNotificationPreferences } from "@/hooks/use-notification-preferences";
 import { useOrganizationMutations } from "@/hooks/use-organization-mutations";
@@ -14,6 +15,7 @@ import {
 import { useSettingsMutations } from "@/hooks/use-settings-mutations";
 import { useSettingsQuery } from "@/hooks/use-settings-query";
 import { isValidCep, lookupCep, normalizeCep } from "@/services/cepService";
+import { authService } from "@/services/authService";
 import { getBillingPaymentAccessFromOrganization } from "@/utils/billing";
 import { formatDateBR, formatMonthYearBR } from "@/utils/date";
 import { buildNavigationState } from "@/utils/navigation";
@@ -133,6 +135,12 @@ export function SettingsPage({ section }: SettingsPageProps) {
   );
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordSuccess, setPasswordSuccess] = useState("");
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [successMessage, setSuccessMessage] = useState(
     (location.state as SettingsLocationState | null)?.successMessage ?? "",
   );
@@ -313,6 +321,32 @@ export function SettingsPage({ section }: SettingsPageProps) {
       setSuccessMessage("Configuracoes principais atualizadas com sucesso.");
     } catch {
       return;
+    }
+  }
+
+  async function handlePasswordSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setPasswordError("");
+    setPasswordSuccess("");
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPasswordError("Preencha todos os campos de senha.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError("A confirmacao da nova senha nao confere.");
+      return;
+    }
+    setIsChangingPassword(true);
+    try {
+      await authService.changePassword(currentPassword, newPassword, confirmPassword);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setPasswordSuccess("Senha alterada com sucesso.");
+    } catch (error) {
+      setPasswordError(error instanceof Error ? error.message : "Nao foi possivel alterar a senha.");
+    } finally {
+      setIsChangingPassword(false);
     }
   }
 
@@ -806,6 +840,28 @@ export function SettingsPage({ section }: SettingsPageProps) {
         <h3 className="mt-1 text-lg font-semibold text-ink">Sessao e seguranca</h3>
 
         <div className="mt-4 space-y-4">
+          <form className="space-y-4 rounded-3xl border border-slate-200 bg-slate-50 p-4" onSubmit={handlePasswordSubmit}>
+            <p className="text-sm font-semibold text-ink">Alterar senha</p>
+            <div className="grid gap-4 md:grid-cols-3">
+              <label className="space-y-2 text-sm font-medium text-ink">
+                <span>Senha atual</span>
+                <PasswordField autoComplete="current-password" inputClassName="app-input pr-14" onChange={(event) => setCurrentPassword(event.target.value)} value={currentPassword} />
+              </label>
+              <label className="space-y-2 text-sm font-medium text-ink">
+                <span>Nova senha</span>
+                <PasswordField autoComplete="new-password" inputClassName="app-input pr-14" onChange={(event) => setNewPassword(event.target.value)} value={newPassword} />
+              </label>
+              <label className="space-y-2 text-sm font-medium text-ink">
+                <span>Confirmar nova senha</span>
+                <PasswordField autoComplete="new-password" inputClassName="app-input pr-14" onChange={(event) => setConfirmPassword(event.target.value)} value={confirmPassword} />
+              </label>
+            </div>
+            {passwordError ? <p className="text-sm text-rose-600" role="alert">{passwordError}</p> : null}
+            {passwordSuccess ? <p className="text-sm text-emerald-700" role="status">{passwordSuccess}</p> : null}
+            <Button className="w-full sm:w-auto" disabled={isChangingPassword} type="submit">
+              {isChangingPassword ? "Salvando..." : "Salvar nova senha"}
+            </Button>
+          </form>
           <div className="flex flex-col gap-3 sm:flex-row">
             <Button className="w-full sm:w-auto" onClick={() => void handleSignOut()} type="button">
               Sair da conta
