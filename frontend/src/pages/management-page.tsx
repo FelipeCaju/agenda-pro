@@ -22,7 +22,7 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
-export function ManagementPage() {
+export function ManagementPage({ embedded = false }: { embedded?: boolean }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { data: organization, error: organizationError, isLoading: isLoadingOrganization } =
@@ -44,7 +44,7 @@ export function ManagementPage() {
 
   return (
     <section className="space-y-4 xl:space-y-5">
-      <MobilePageHeader subtitle="Pagamento, equipe e operacao" title="Gestao" />
+      {!embedded ? <MobilePageHeader subtitle="Pagamento, equipe e operacao" title="Gestao" /> : null}
 
       {isInitialLoading ? (
         <Card>

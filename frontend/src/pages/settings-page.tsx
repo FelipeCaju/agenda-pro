@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { MobilePageHeader } from "@/components/layout/mobile-page-header";
+import { ManagementPage } from "@/pages/management-page";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FullscreenState } from "@/components/ui/fullscreen-state";
@@ -420,7 +421,7 @@ export function SettingsPage({ section }: SettingsPageProps) {
   return (
     <section className="space-y-4">
       <MobilePageHeader
-        subtitle={isCompanyPage ? "Cadastro e dados para cobranca" : "Agenda, notificacoes e conta"}
+        subtitle={isCompanyPage ? "Cadastro e dados para cobranca" : "Empresa, agenda, assinatura e conta"}
         title={isCompanyPage ? "Dados da empresa" : "Configuracoes"}
       />
 
@@ -600,6 +601,23 @@ export function SettingsPage({ section }: SettingsPageProps) {
       {!isCompanyPage ? (
       <>
       <Card>
+        <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Empresa</p>
+        <h3 className="mt-1 text-lg font-semibold text-ink">Dados da empresa</h3>
+        <p className="mt-2 text-sm text-slate-600">Cadastro, dados de cobranca, funcionarios e bloqueios.</p>
+        <Button className="mt-4 w-full sm:w-auto" onClick={() => navigate("/dados-da-empresa", { state: buildNavigationState(location.pathname) })} type="button">
+          Abrir dados da empresa
+        </Button>
+      </Card>
+
+      <details className="group rounded-3xl border border-slate-200 bg-white p-4 sm:p-5">
+        <summary className="cursor-pointer text-lg font-semibold text-ink">Assinatura, pagamentos e atalhos</summary>
+        <div className="mt-4"><ManagementPage embedded /></div>
+      </details>
+
+      <details className="group rounded-3xl border border-slate-200 bg-white p-4 sm:p-5" open>
+      <summary className="cursor-pointer text-lg font-semibold text-ink">Agenda e recursos</summary>
+      <div className="mt-4">
+      <Card>
         <p className="text-xs uppercase tracking-[0.2em] text-slate-500">App</p>
         <h3 className="mt-1 text-lg font-semibold text-ink">Agenda principal</h3>
         <form className="mt-4 space-y-4" onSubmit={handleSettingsSubmit}>
@@ -702,7 +720,12 @@ export function SettingsPage({ section }: SettingsPageProps) {
           </Button>
         </form>
       </Card>
+      </div>
+      </details>
 
+      <details className="group rounded-3xl border border-slate-200 bg-white p-4 sm:p-5">
+      <summary className="cursor-pointer text-lg font-semibold text-ink">Ultima cobranca</summary>
+      <div className="mt-4">
       <Card>
         <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Cobranca</p>
         <h3 className="mt-1 text-lg font-semibold text-ink">Ultima cobranca da organizacao</h3>
@@ -766,7 +789,12 @@ export function SettingsPage({ section }: SettingsPageProps) {
           )}
         </div>
       </Card>
+      </div>
+      </details>
 
+      <details className="group rounded-3xl border border-slate-200 bg-white p-4 sm:p-5">
+      <summary className="cursor-pointer text-lg font-semibold text-ink">Notificacoes do aplicativo</summary>
+      <div className="mt-4">
       <Card>
         <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Notificacoes</p>
         <h3 className="mt-1 text-lg font-semibold text-ink">Lembretes do app Android</h3>
@@ -834,7 +862,12 @@ export function SettingsPage({ section }: SettingsPageProps) {
           </Button>
         </form>
       </Card>
+      </div>
+      </details>
 
+      <details className="group rounded-3xl border border-slate-200 bg-white p-4 sm:p-5">
+      <summary className="cursor-pointer text-lg font-semibold text-ink">Conta e seguranca</summary>
+      <div className="mt-4">
       <Card>
         <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Conta</p>
         <h3 className="mt-1 text-lg font-semibold text-ink">Sessao e seguranca</h3>
@@ -897,6 +930,8 @@ export function SettingsPage({ section }: SettingsPageProps) {
           </div>
         </div>
       </Card>
+      </div>
+      </details>
       </>
       ) : null}
     </section>

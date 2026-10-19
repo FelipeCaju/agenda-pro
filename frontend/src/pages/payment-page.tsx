@@ -26,7 +26,7 @@ const PLANS: Array<{
   savingsCents?: number;
 }> = [
   { code: "agenda_pro_mensal", name: "Mensal", priceCents: 2990, cycleLabel: "por mes" },
-  { code: "agenda_pro_anual", name: "Anual", priceCents: 31000, cycleLabel: "por ano", savingsPercent: 13.6, savingsCents: 4880 },
+  { code: "agenda_pro_anual", name: "Anual", priceCents: 30000, cycleLabel: "por ano", savingsPercent: 16.4, savingsCents: 5880 },
 ];
 
 function normalizePixImageSrc(value: string | null | undefined) {
@@ -345,7 +345,7 @@ export function PaymentPage() {
                     <p className="font-semibold text-ink">{plan.name}</p>
                     <p className="mt-1 text-lg font-semibold text-ink">{formatCurrencyFromCents(plan.priceCents)}</p>
                     <p className="text-sm text-slate-500">{plan.cycleLabel}</p>
-                    {plan.savingsPercent ? <p className="mt-2 text-sm font-semibold text-emerald-700">Economize {plan.savingsPercent.toLocaleString("pt-BR")}% (R$ 48,80)</p> : null}
+                    {plan.savingsPercent && plan.savingsCents ? <p className="mt-2 text-sm font-semibold text-emerald-700">Economize {plan.savingsPercent.toLocaleString("pt-BR")}% ({formatCurrencyFromCents(plan.savingsCents)})</p> : null}
                   </button>
                 ))}
               </div>

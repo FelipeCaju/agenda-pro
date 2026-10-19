@@ -14,7 +14,6 @@ const links = [
   { to: "/clientes", label: "Clientes", icon: "users" },
   { to: "/servicos", label: "Servicos", icon: "scissors" },
   { to: "/", label: "Painel", icon: "grid" },
-  { to: "/gestao", label: "Gestao", icon: "settings" },
   { to: "/configuracoes", label: "Config.", icon: "settings" },
   { to: "/dados-da-empresa", label: "Empresa", icon: "building" },
 ];
@@ -148,7 +147,7 @@ export function MobileNav() {
               )
             }
           >
-            {link.to === "/gestao" && billingAlert.hasAlert ? (
+            {link.to === "/configuracoes" && billingAlert.hasAlert ? (
               <span className="absolute right-3 top-2 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-white" />
             ) : null}
             <NavIcon icon={link.icon} />

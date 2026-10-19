@@ -1,7 +1,7 @@
 import { Suspense, lazy } from "react";
 import { AdminShell } from "@/components/layout/admin-shell";
 import { FullscreenState } from "@/components/ui/fullscreen-state";
-import { Outlet, createBrowserRouter } from "react-router-dom";
+import { Navigate, Outlet, createBrowserRouter } from "react-router-dom";
 import { AppShell } from "@/components/layout/app-shell";
 import { AdminProtectedRoute } from "@/routes/admin-protected-route";
 import { ProtectedRoute } from "@/routes/protected-route";
@@ -30,9 +30,6 @@ const PlatformOrganizationPage = lazy(async () => ({
 }));
 const DashboardPage = lazy(async () => ({
   default: (await import("@/pages/dashboard-page")).DashboardPage,
-}));
-const ManagementPage = lazy(async () => ({
-  default: (await import("@/pages/management-page")).ManagementPage,
 }));
 const PaymentPage = lazy(async () => ({
   default: (await import("@/pages/payment-page")).PaymentPage,
@@ -188,7 +185,7 @@ export const router = createBrowserRouter([
             element: <AppShell />,
             children: [
               { path: "/", element: withRouteSuspense(<DashboardPage />) },
-              { path: "/gestao", element: withRouteSuspense(<ManagementPage />) },
+              { path: "/gestao", element: <Navigate to="/configuracoes" replace /> },
               { path: "/agenda", element: withRouteSuspense(<AgendaPage />) },
               { path: "/agenda/novo", element: withRouteSuspense(<NewAppointmentPage />) },
               {

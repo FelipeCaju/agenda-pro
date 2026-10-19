@@ -20,7 +20,6 @@ const links = [
   { to: "/clientes", label: "Clientes", icon: "users" },
   { to: "/servicos", label: "Servicos", icon: "scissors" },
   { to: "/", label: "Painel", icon: "grid" },
-  { to: "/gestao", label: "Gestao", icon: "settings" },
   { to: "/configuracoes", label: "Configuracoes", icon: "settings" },
   { to: "/dados-da-empresa", label: "Dados da empresa", icon: "building" },
 ] as const;
@@ -168,7 +167,7 @@ export function DesktopSidebar() {
                 )
               }
             >
-              {link.to === "/gestao" && billingAlert.hasAlert ? (
+              {link.to === "/configuracoes" && billingAlert.hasAlert ? (
                 <span className="absolute right-4 top-3 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-white" />
               ) : null}
               <SidebarIcon icon={link.icon} />
