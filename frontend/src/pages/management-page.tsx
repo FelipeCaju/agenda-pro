@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { MobilePageHeader } from "@/components/layout/mobile-page-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { useProfessionalsQuery } from "@/hooks/use-professionals-query";
 import {
   useOrganizationPaymentsQuery,
   useOrganizationQuery,
@@ -12,7 +11,6 @@ import {
   getBillingPaymentAccessFromOrganization,
   getBillingAlert,
   getPaymentStatusLabel,
-  getSubscriptionStatusLabel,
 } from "@/utils/billing";
 import { formatDateBR, formatMonthYearBR } from "@/utils/date";
 import { buildNavigationState } from "@/utils/navigation";
@@ -30,11 +28,6 @@ export function ManagementPage() {
   const { data: organization, error: organizationError, isLoading: isLoadingOrganization } =
     useOrganizationQuery();
   const {
-    data: professionals = [],
-    error: professionalsError,
-    isLoading: isLoadingProfessionals,
-  } = useProfessionalsQuery();
-  const {
     data: payments = [],
     error: paymentsError,
     isLoading: isLoadingPayments,
@@ -46,7 +39,7 @@ export function ManagementPage() {
     [latestPayment, organization],
   );
 
-  const isLoading = isLoadingOrganization || isLoadingProfessionals || isLoadingPayments;
+  const isLoading = isLoadingOrganization || isLoadingPayments;
   const isInitialLoading = isLoading && !organization;
 
   return (
@@ -62,11 +55,6 @@ export function ManagementPage() {
       {organizationError ? (
         <Card className="app-message-error">
           <p className="text-sm font-medium text-rose-700">{organizationError.message}</p>
-        </Card>
-      ) : null}
-      {professionalsError ? (
-        <Card className="app-message-error">
-          <p className="text-sm font-medium text-rose-700">{professionalsError.message}</p>
         </Card>
       ) : null}
       {paymentsError ? (
@@ -107,18 +95,7 @@ export function ManagementPage() {
       {organization ? (
         <>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 xl:gap-4">
-            <Card className="xl:min-h-[270px]">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Empresa</p>
-              <h3 className="mt-2 text-lg font-semibold text-ink">{organization.nomeEmpresa}</h3>
-              <div className="mt-4 space-y-2 text-sm text-slate-600">
-                <p>{organization.emailResponsavel}</p>
-                <p>{organization.telefone || "Telefone nao informado"}</p>
-                <p>Plano {organization.subscriptionPlan}</p>
-                <p>Status {getSubscriptionStatusLabel(organization.subscriptionStatus)}</p>
-              </div>
-            </Card>
-
-            <Card className="xl:min-h-[270px]">
+            <Card>
               <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Pagamento</p>
               <h3 className="mt-2 text-lg font-semibold text-ink">Situacao da assinatura</h3>
               <div className="mt-4 space-y-2 text-sm text-slate-600">
@@ -170,7 +147,7 @@ export function ManagementPage() {
               ) : null}
             </Card>
 
-            <Card className="xl:min-h-[270px]">
+            <Card>
               <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Acoes</p>
               <h3 className="mt-2 text-lg font-semibold text-ink">Atalhos uteis</h3>
               <div className="mt-4 flex flex-col gap-3">
@@ -200,10 +177,7 @@ export function ManagementPage() {
                 </Button>
               </div>
             </Card>
-          </div>
-
-          <div className="grid gap-4 xl:grid-cols-[1.12fr_0.88fr] xl:gap-5">
-            <Card className="xl:min-h-[100%]">
+            <Card>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Pagamentos</p>
@@ -248,40 +222,6 @@ export function ManagementPage() {
               </div>
             </Card>
 
-            <Card className="xl:min-h-[100%]">
-              <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Equipe</p>
-                <h3 className="mt-1 text-lg font-semibold text-ink">Funcionarios da empresa</h3>
-              </div>
-
-              <div className="mt-4 space-y-3">
-                {professionals.length ? (
-                  professionals.map((professional) => (
-                    <div
-                      className="flex items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-slate-50/80 px-3 py-3"
-                      key={professional.id}
-                    >
-                      <div>
-                        <p className="font-medium text-ink">{professional.nome}</p>
-                        <p className="text-sm text-slate-500">
-                          {professional.atividade || "Atividade nao informada"}
-                        </p>
-                      </div>
-                      <div className="text-right text-xs">
-                        <p className={professional.ativo ? "text-emerald-600" : "text-slate-400"}>
-                          {professional.ativo ? "Ativo" : "Inativo"}
-                        </p>
-                        <p className="mt-1 text-slate-400">
-                          {professional.serviceIds.length} servico(s)
-                        </p>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-slate-500">Nenhum funcionario cadastrado ainda.</p>
-                )}
-              </div>
-            </Card>
           </div>
 
         </>

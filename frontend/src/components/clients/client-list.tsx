@@ -183,18 +183,20 @@ export function ClientList({
     <div className="space-y-3">
       {items.map((client) => (
         <div className="block w-full text-left" key={client.id}>
-          <Card className="rounded-[20px] border border-slate-200/70 bg-white px-4 py-4 shadow-[0_4px_16px_rgba(15,23,36,0.06)]">
+          <Card className="rounded-[20px] border border-slate-200/70 bg-white px-4 py-3 shadow-[0_4px_16px_rgba(15,23,36,0.06)] xl:px-4 xl:py-3">
+            <div className="flex items-center gap-3">
             <button
-              className="flex w-full items-center gap-4 text-left"
+              className="flex min-w-0 flex-1 items-center gap-3 text-left"
               onClick={() => onSelect(client)}
               type="button"
+              aria-expanded={selectedClientId === client.id}
             >
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-50 text-base font-semibold text-brand-600">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-base font-semibold text-brand-600">
                 {getInitial(client.nome || "")}
               </span>
 
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
+              <div className="min-w-0 flex-1 sm:flex sm:flex-wrap sm:items-center sm:gap-x-5 sm:gap-y-1">
+                <div className="flex min-w-0 items-center gap-2">
                   <h3 className="truncate text-[1.08rem] font-semibold tracking-[-0.02em] text-ink">
                     {client.nome || "Sem nome"}
                   </h3>
@@ -205,22 +207,21 @@ export function ClientList({
                   ) : null}
                 </div>
 
-                <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-500">
+                <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-500 sm:mt-0">
                   <span className="inline-flex items-center gap-1.5">
-                    <PhoneIcon className="h-4 w-4" />
+                    <PhoneIcon className="h-4 w-4 shrink-0" />
                     {client.telefone || "Sem telefone"}
                   </span>
-                  <span className="inline-flex items-center gap-1.5">
-                    <MailIcon className="h-4 w-4" />
+                  <span className="inline-flex min-w-0 max-w-full items-center gap-1.5">
+                    <MailIcon className="h-4 w-4 shrink-0" />
                     <span className="truncate">{client.email || "Sem email"}</span>
                   </span>
                 </div>
               </div>
             </button>
 
-            <div className="mt-3 flex justify-end">
               <button
-                className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-200"
+                className="shrink-0 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-200"
                 onClick={() => onEdit(client)}
                 type="button"
               >
