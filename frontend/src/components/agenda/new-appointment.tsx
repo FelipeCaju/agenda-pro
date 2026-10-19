@@ -515,7 +515,8 @@ export function NewAppointment({
         </div>
       ) : null}
 
-      <label className="block space-y-2">
+      <div className="grid gap-3 xl:grid-cols-3">
+      <label className="block min-w-0 space-y-2">
         <span className="text-sm font-medium text-ink">Cliente</span>
         <div className="relative">
           <select
@@ -534,7 +535,7 @@ export function NewAppointment({
         </div>
       </label>
 
-      <div className="grid grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] gap-2 sm:gap-3">
+      <div className="grid grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] gap-2 sm:gap-3 xl:col-span-2 xl:grid-cols-2">
         <label className="block min-w-0 space-y-2">
           <span className="text-sm font-medium text-ink">Data</span>
           <div className="relative">
@@ -561,6 +562,7 @@ export function NewAppointment({
             <ClockIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 sm:right-4" />
           </div>
         </label>
+      </div>
       </div>
 
       {selectedServiceIds.length ? (
@@ -775,7 +777,7 @@ export function NewAppointment({
         </Card>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className={`grid gap-3 sm:grid-cols-2 ${allowRecurrence ? "xl:grid-cols-3" : ""}`}>
         <label className="block space-y-2">
           <span className="text-sm font-medium text-ink">Valor total da agenda</span>
           <input
@@ -803,10 +805,8 @@ export function NewAppointment({
             <ClockIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 sm:right-4" />
           </div>
         </label>
-      </div>
-
       {allowRecurrence ? (
-        <div className="space-y-2">
+        <div className="min-w-0 space-y-2 sm:col-span-2 xl:col-span-1">
           <div className="flex items-center gap-2 text-sm font-medium text-ink">
             <svg
               className="h-4 w-4 text-slate-400"
@@ -844,6 +844,7 @@ export function NewAppointment({
           </div>
         </div>
       ) : null}
+      </div>
 
       <label className="block space-y-2">
         <span className="text-sm font-medium text-ink">Observacoes</span>
