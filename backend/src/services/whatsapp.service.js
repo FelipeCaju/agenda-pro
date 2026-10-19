@@ -115,7 +115,9 @@ async function sendViaZApi({ providerConfig, phone, message }) {
     );
   }
 
-  const response = await fetch(buildZApiUrl(providerConfig), {
+  let response;
+  try {
+    response = await fetch(buildZApiUrl(providerConfig), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -125,9 +127,16 @@ async function sendViaZApi({ providerConfig, phone, message }) {
       phone,
       message,
     }),
-  });
+    signal: AbortSignal.timeout(30000),
+    });
+  } catch (error) {
+    error.deliveryUncertain = true;
+    throw error;
+  }
 
-  const text = await response.text();
+  let text;
+  try { text = await response.text(); }
+  catch (error) { error.deliveryUncertain = true; throw error; }
   let payload = null;
 
   if (text) {
@@ -145,7 +154,9 @@ async function sendViaZApi({ providerConfig, phone, message }) {
       payload?.raw ||
       `Falha ao enviar mensagem via Z-API (${response.status}).`;
 
-    throw buildError(String(providerMessage), response.status >= 400 && response.status < 500 ? 400 : 502);
+    const error = buildError(String(providerMessage), response.status >= 400 && response.status < 500 ? 400 : 502);
+    error.deliveryUncertain = response.status >= 500;
+    throw error;
   }
 
   return payload ?? { success: true };
@@ -213,14 +224,6 @@ export async function sendWhatsappMessage({ organizationId, phone, message }) {
   };
 }
 
-function identifyBusinessMessage(message, settings) {
-  const businessName = settings.nome_negocio?.trim() || "sua empresa";
-  const introduction = `Bom dia, aqui e da ${businessName}.`;
-  const normalizedMessage = message.trim();
-
-  return normalizedMessage.startsWith(introduction) ? normalizedMessage : `${introduction}\n\n${normalizedMessage}`;
-}
-
 export async function sendPlatformWhatsappMessage({ phone, message }) {
   const providerConfig = getPlatformProviderConfig();
   const normalizedPhone = normalizePhone(phone);
@@ -240,7 +243,7 @@ export async function sendPlatformWhatsappMessage({ phone, message }) {
   const providerResponse = await sendViaZApi({
     providerConfig,
     phone: normalizedPhone,
-    message: identifyBusinessMessage(message, settings),
+    message: message.trim(),
   });
 
   return {

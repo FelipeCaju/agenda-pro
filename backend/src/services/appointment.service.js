@@ -16,11 +16,21 @@ import {
   updateAppointmentForOrganization,
 } from "../lib/data.js";
 import { linkQuoteToAppointment } from "./quote.service.js";
+import { query } from "../lib/database.js";
 
 function buildError(message, statusCode) {
   const error = new Error(message);
   error.statusCode = statusCode;
   return error;
+}
+
+async function isPlanAppointment(organizationId, appointmentId) {
+  try {
+    return (await query("SELECT 1 FROM service_plan_appointments WHERE organization_id = ? AND appointment_id = ? LIMIT 1", [organizationId, appointmentId])).length > 0;
+  } catch (error) {
+    if (error.code === "ER_NO_SUCH_TABLE") return false;
+    throw error;
+  }
 }
 
 const VALID_STATUS = ["pendente", "confirmado", "concluido", "cancelado"];
@@ -588,6 +598,31 @@ export async function getAppointment({ organizationId, appointmentId }) {
   return appointment;
 }
 
+// Preflight de planos: nao grava nem solicita pagamento; usa a mesma validacao da agenda.
+export async function validatePlanAppointmentDates({ organizationId, input, dates, validate = validateAppointmentInput }) {
+  if (!Array.isArray(dates) || dates.length === 0) {
+    throw buildError("O plano nao possui datas de atendimento validas.", 400);
+  }
+
+  const occurrences = [];
+  const conflicts = [];
+  for (const date of dates) {
+    try {
+      const { payload } = await validate({ organizationId, input: { ...input, data: date } });
+      occurrences.push(payload);
+    } catch (error) {
+      if (error.statusCode !== 409) throw error;
+      conflicts.push({ date, message: error.message });
+    }
+  }
+  if (conflicts.length) {
+    const error = buildError("Existem horarios em conflito ou bloqueados para este plano.", 409);
+    error.conflicts = conflicts;
+    throw error;
+  }
+  return occurrences;
+}
+
 export async function createAppointment({ organizationId, input }) {
   const recurrence = normalizeRecurrence(input);
   const occurrenceDates = buildRecurrenceDates(input.data, recurrence);
@@ -672,6 +707,9 @@ export async function updateAppointment({ organizationId, appointmentId, input }
     input: mergedInput,
     appointmentId,
   });
+  if (await isPlanAppointment(organizationId, appointmentId) && (payload.valor !== 0 || payload.payment_status !== "pago" || payload.items.some((item) => Number(item.valor_total) !== 0 || Number(item.valor_unitario) !== 0))) {
+    throw buildError("O valor deste atendimento pertence ao plano. Registre o pagamento na renovacao do plano.", 400);
+  }
   const updated = await updateAppointmentForOrganization(organizationId, appointmentId, payload);
 
   if (payload.quote_id) {
@@ -710,6 +748,9 @@ export async function updateAppointmentPaymentStatus({
 }) {
   if (!VALID_PAYMENT_STATUS.includes(paymentStatus)) {
     throw buildError("Status de pagamento invalido.", 400);
+  }
+  if (paymentStatus !== "pago") {
+    if (await isPlanAppointment(organizationId, appointmentId)) throw buildError("O pagamento deste atendimento e controlado pelo plano.", 400);
   }
 
   const updated = await updateAppointmentForOrganization(organizationId, appointmentId, {

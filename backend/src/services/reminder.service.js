@@ -9,6 +9,8 @@ import {
   updateAppointmentForOrganization,
 } from "../lib/data.js";
 import { isWhatsappDeliveryAvailable, sendWhatsappMessage } from "./whatsapp.service.js";
+import { beginMessageDelivery, finishMessageDelivery, withMessageLock } from "./message-lock.service.js";
+import { query } from "../lib/database.js";
 
 const VALID_REPLY_STATUS = ["pendente", "confirmado", "cancelado", "sem_resposta"];
 const DEFAULT_WHATSAPP_REMINDER_TEMPLATE =
@@ -188,7 +190,7 @@ export function isReminderDue({ appointment, settings, now }) {
     return false;
   }
 
-  if (appointment.lembrete_enviado || appointment.status === "cancelado") {
+  if (appointment.lembrete_enviado || ["cancelado", "concluido"].includes(appointment.status)) {
     return false;
   }
 
@@ -201,23 +203,27 @@ export function isReminderDue({ appointment, settings, now }) {
 }
 
 export async function listOrganizationReminders({ organizationId }) {
-  const [settings, appointments, clients] = await Promise.all([
+  const [settings, appointments, clients, deliveries] = await Promise.all([
     getOrganizationSettings(organizationId),
     getAppointmentsForOrganization(organizationId),
     listClientsByOrganization(organizationId),
+    query("SELECT item_id, status, last_error FROM whatsapp_delivery_guards WHERE organization_id = ? AND kind = 'reminder'", [organizationId]),
   ]);
   const clientsById = new Map(clients.map((client) => [client.id, client]));
+  const deliveriesById = new Map(deliveries.map((delivery) => [delivery.item_id, delivery]));
 
-  return appointments.map((appointment) =>
-    buildReminder({
+  return appointments.map((appointment) => {
+    const delivery = deliveriesById.get(appointment.id);
+    return { ...buildReminder({
       appointment,
       client: clientsById.get(appointment.cliente_id) ?? null,
       settings,
-    }),
-  );
+    }), deliveryStatus: delivery?.status ?? null, deliveryError: delivery?.last_error ?? null };
+  });
 }
 
 export async function sendManualReminder({ organizationId, appointmentId }) {
+  return withMessageLock("reminder", organizationId, appointmentId, async () => {
   const settings = await getOrganizationSettings(organizationId);
 
   if (!settings.lembretes_ativos || !settings.whatsapp_ativo) {
@@ -225,17 +231,26 @@ export async function sendManualReminder({ organizationId, appointmentId }) {
   }
 
   const appointment = await getOrganizationAppointment(organizationId, appointmentId);
+  if (["cancelado", "concluido"].includes(appointment.status)) {
+    throw buildError("Nao e possivel enviar lembrete para atendimento cancelado ou concluido.", 400);
+  }
   const client = await getAppointmentClient(organizationId, appointment);
 
   if (!client.telefone?.trim()) {
     throw buildError("Cliente sem telefone para envio do lembrete.", 400);
   }
 
-  await sendWhatsappMessage({
+  await beginMessageDelivery(organizationId, "reminder", appointmentId, { allowResend: true });
+  try {
+    await sendWhatsappMessage({
     organizationId,
     phone: client.telefone,
     message: buildReminderMessage({ appointment, settings }),
-  });
+    });
+  } catch (error) {
+    await finishMessageDelivery(organizationId, "reminder", appointmentId, error.deliveryUncertain ? "incerto" : "falha", error.message);
+    throw error;
+  }
 
   const updated = await updateAppointmentForOrganization(organizationId, appointmentId, {
     lembrete_enviado: true,
@@ -244,11 +259,13 @@ export async function sendManualReminder({ organizationId, appointmentId }) {
     data_envio_lembrete: nowIso(),
     resposta_whatsapp: null,
   });
+  await finishMessageDelivery(organizationId, "reminder", appointmentId, "enviado");
 
   return buildReminder({
     appointment: updated,
     client,
     settings,
+  });
   });
 }
 
@@ -279,16 +296,25 @@ export async function processAutomaticReminders() {
 
       const client = clientsById.get(appointment.cliente_id);
 
-      if (!client.telefone?.trim()) {
+      if (!client?.telefone?.trim()) {
         continue;
       }
 
       try {
+        await withMessageLock("reminder", organization.id, appointment.id, async () => {
+        const current = await getOrganizationAppointment(organization.id, appointment.id);
+        if (!isReminderDue({ appointment: current, settings, now: new Date() })) return;
+        if (!(await beginMessageDelivery(organization.id, "reminder", appointment.id))) return;
+        try {
         await sendWhatsappMessage({
           organizationId: organization.id,
           phone: client.telefone,
-          message: buildReminderMessage({ appointment, settings }),
+          message: buildReminderMessage({ appointment: current, settings }),
         });
+        } catch (error) {
+          await finishMessageDelivery(organization.id, "reminder", appointment.id, error.deliveryUncertain ? "incerto" : "falha", error.message);
+          throw error;
+        }
 
         await updateAppointmentForOrganization(organization.id, appointment.id, {
           lembrete_enviado: true,
@@ -296,6 +322,8 @@ export async function processAutomaticReminders() {
           lembrete_cancelado: false,
           data_envio_lembrete: nowIso(),
           resposta_whatsapp: null,
+        });
+        await finishMessageDelivery(organization.id, "reminder", appointment.id, "enviado");
         });
       } catch (error) {
         console.error(
@@ -367,7 +395,7 @@ async function findAppointmentByIncomingReply({ phone }) {
   const normalizedPhone = normalizePhone(phone);
 
   if (!normalizedPhone) {
-    return null;
+    return { match: null, ambiguous: false };
   }
 
   const organizations = await listOrganizations();
@@ -385,7 +413,7 @@ async function findAppointmentByIncomingReply({ phone }) {
     for (const appointment of appointments) {
       if (
         !appointment.lembrete_enviado ||
-        appointment.status === "cancelado" ||
+        ["cancelado", "concluido"].includes(appointment.status) ||
         appointment.confirmacao_cliente !== "pendente" ||
         new Date(buildScheduledAt(appointment)) < earliestAllowed
       ) {
@@ -426,7 +454,7 @@ export async function processIncomingWhatsappReply({ phone, message }) {
     return {
       success: false,
       ignored: true,
-      reason: "Resposta ambigua: existem lembretes pendentes em mais de uma empresa para este telefone.",
+      reason: "Resposta ambigua: ha mais de um lembrete pendente para este telefone; confirme o atendimento manualmente.",
     };
   }
 

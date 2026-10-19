@@ -255,7 +255,7 @@ export function WhatsappSettingsPage() {
 
                       const nextValue = !whatsappEnabled;
                       setLembretesAtivos(nextValue);
-                      setWhatsappAtivo(nextValue);
+                      if (nextValue) setWhatsappAtivo(true);
                     }}
                     title={isDeliveryAvailable ? undefined : "WhatsApp indisponivel sem provedor configurado"}
                     type="button"
@@ -263,6 +263,7 @@ export function WhatsappSettingsPage() {
                     <span className="app-switch-thumb" />
                   </button>
                 </div>
+                <p className="mt-2 text-xs text-slate-500">Desativar lembretes de atendimento nao desativa mensagens de cobranca ou renovacao de planos.</p>
               </div>
 
               <div className="space-y-2 rounded-[22px] bg-slate-50 px-4 py-4">

@@ -21,4 +21,6 @@ test("lembrete de dois dias vence no mesmo horario dois dias antes", () => {
   assert.equal(isReminderDue({ appointment, settings, now: new Date("2026-10-22T18:01:00Z") }), false);
   assert.equal(isReminderDue({ appointment, settings: { ...settings, whatsapp_tempo_lembrete_minutos: 1440 }, now: new Date("2026-10-21T18:00:00Z") }), true);
   assert.equal(isReminderDue({ appointment, settings: { ...settings, whatsapp_tempo_lembrete_minutos: 60 }, now: new Date("2026-10-22T17:00:00Z") }), true);
+  assert.equal(isReminderDue({ appointment: { ...appointment, status: "concluido" }, settings, now: new Date("2026-10-20T18:00:00Z") }), false);
+  assert.equal(isReminderDue({ appointment: { ...appointment, status: "cancelado" }, settings, now: new Date("2026-10-20T18:00:00Z") }), false);
 });

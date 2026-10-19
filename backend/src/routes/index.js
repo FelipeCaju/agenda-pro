@@ -116,6 +116,9 @@ import {
   updateAdminOrganizationSubscriptionController,
 } from "../controllers/platform-admin.controller.js";
 import { getRequestPlatformAdminContext } from "../lib/request-auth.js";
+import { getRequestActiveAuthContext } from "../lib/request-auth.js";
+import { listServicePlans, saveServicePlan } from "../services/service-plan-catalog.service.js";
+import { getPlanDashboard, listPlanMemberships, previewPlanMembership, savePlanMembership } from "../services/service-plan-membership.service.js";
 
 export const router = Router();
 
@@ -153,6 +156,43 @@ router.get("/tenants", async (request, response) => {
   }
 });
 router.get("/dashboard/summary", getDashboardSummaryController);
+router.get("/service-plan-dashboard", async (request, response) => {
+  try { const { organization } = await getRequestActiveAuthContext(request); response.json({ data: await getPlanDashboard(organization.id, request.query) }); }
+  catch (error) { response.status(error.statusCode ?? 500).json({ message: error.message }); }
+});
+router.get("/service-plan-memberships", async (request, response) => {
+  try { const { organization } = await getRequestActiveAuthContext(request); response.json({ data: await listPlanMemberships(organization.id) }); }
+  catch (error) { response.status(error.statusCode ?? 500).json({ message: error.message }); }
+});
+for (const [path, action, renewal] of [
+  ["/service-plan-memberships/preview", previewPlanMembership, false],
+  ["/service-plan-memberships", savePlanMembership, false],
+  ["/service-plan-memberships/:membershipId/preview", previewPlanMembership, true],
+  ["/service-plan-memberships/:membershipId/renew", savePlanMembership, true],
+]) {
+  router.post(path, async (request, response) => {
+    try { const { organization } = await getRequestActiveAuthContext(request); response.json({ data: await action(organization.id, request.body ?? {}, renewal ? request.params.membershipId : null) }); }
+    catch (error) { response.status(error.statusCode ?? 500).json({ message: error.message, details: error.conflicts }); }
+  });
+}
+router.get("/service-plans", async (request, response) => {
+  try {
+    const { organization } = await getRequestActiveAuthContext(request);
+    response.json({ data: await listServicePlans(organization.id) });
+  } catch (error) { response.status(error.statusCode ?? 500).json({ message: error.message }); }
+});
+router.post("/service-plans", async (request, response) => {
+  try {
+    const { organization } = await getRequestActiveAuthContext(request);
+    response.status(201).json({ data: await saveServicePlan(organization.id, request.body ?? {}) });
+  } catch (error) { response.status(error.statusCode ?? 500).json({ message: error.message }); }
+});
+router.put("/service-plans/:planId", async (request, response) => {
+  try {
+    const { organization } = await getRequestActiveAuthContext(request);
+    response.json({ data: await saveServicePlan(organization.id, request.body ?? {}, request.params.planId) });
+  } catch (error) { response.status(error.statusCode ?? 500).json({ message: error.message }); }
+});
 router.get("/billing/overview", getBillingOverviewController);
 router.post("/billing/checkout/start", startBillingCheckoutController);
 router.post("/billing/checkout/card", startHostedCardCheckoutController);

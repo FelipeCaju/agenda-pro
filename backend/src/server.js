@@ -5,6 +5,9 @@ import { loadEnvironment } from "./lib/env.js";
 import { ensureBillingInfrastructure } from "./repositories/billing.repository.js";
 import { processRecurringAutomation } from "./services/recurrence.service.js";
 import { processAutomaticReminders } from "./services/reminder.service.js";
+import { ensureServicePlanCatalog } from "./services/service-plan-catalog.service.js";
+import { processPlanExpiryReminders } from "./services/service-plan-reminder.service.js";
+import { ensureMessageGuards } from "./services/message-lock.service.js";
 
 loadEnvironment();
 
@@ -49,7 +52,9 @@ function startRecurringScheduler() {
     isRunning = true;
 
     try {
-      await processRecurringAutomation();
+      const result = await processRecurringAutomation();
+      for (const error of result.errors) console.error("Falha na automacao de cobrancas:", error);
+      await processPlanExpiryReminders();
     } catch (error) {
       console.error("Falha ao processar cobrancas recorrentes.");
       console.error(error.message ?? error);
@@ -68,6 +73,13 @@ async function startServer() {
   try {
     await verifyDatabaseConnection();
     await initDataStore();
+    await ensureMessageGuards();
+    try {
+      await ensureServicePlanCatalog();
+    } catch (error) {
+      console.error("Falha ao preparar o cadastro de planos de atendimento.");
+      console.error(error.message ?? error);
+    }
     try {
       await ensureBillingInfrastructure();
     } catch (error) {

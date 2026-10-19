@@ -19,6 +19,7 @@ const links = [
   { to: "/orcamentos", label: "Orcamentos", icon: "receipt" },
   { to: "/clientes", label: "Clientes", icon: "users" },
   { to: "/servicos", label: "Servicos", icon: "scissors" },
+  { to: "/planos-atendimento", label: "Planos", icon: "receipt" },
   { to: "/", label: "Painel", icon: "grid" },
   { to: "/configuracoes", label: "Configuracoes", icon: "settings" },
   { to: "/dados-da-empresa", label: "Dados da empresa", icon: "building" },

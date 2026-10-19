@@ -24,8 +24,10 @@ import {
   type RecurringChargeFilters,
 } from "@/services/recurrenceService";
 import { formatDateBr, formatDateTimeBr, getCurrentMonthRange } from "@/utils/date";
+import { apiClient } from "@/services/apiClient";
 
-type DashboardView = "agenda" | "recorrencia" | "orcamentos";
+type DashboardView = "agenda" | "recorrencia" | "orcamentos" | "planos";
+type PlanDashboard = { paidCents: number; memberships: Array<{ id: string; clientName: string; planName: string; endDate: string }>; upcoming: Array<{ id: string; clientName: string; planName: string; endDate: string }> };
 type RecurrenceDashboardStatus = "all" | "pendente" | "pago" | "vencido" | "cancelado";
 
 function safeNumber(value: unknown) {
@@ -259,12 +261,15 @@ export function DashboardPage() {
   const [endDate, setEndDate] = useState(monthRange.end);
   const [clientId, setClientId] = useState("");
   const [serviceId, setServiceId] = useState("");
+  const [planId, setPlanId] = useState("");
   const [agendaStatus, setAgendaStatus] = useState<DashboardStatusFilter>("all");
   const [quoteStatus, setQuoteStatus] = useState<"all" | OrcamentoStatus>("all");
   const [recurrenceStatus, setRecurrenceStatus] = useState<RecurrenceDashboardStatus>("all");
   const { data: settings } = useSettingsQuery();
   const { data: clients = [] } = useClientsQuery();
   const { data: services = [] } = useServicesQuery();
+  const { data: planOptions = [] } = useQuery({ queryKey: ["service-plans"], queryFn: async () => (await apiClient.get<Array<{ id: string; name: string }>>("/service-plans")).data, enabled: activeView === "planos" });
+  const { data: planDashboard, error: planError } = useQuery({ queryKey: ["plan-dashboard", startDate, endDate, clientId, serviceId, planId], queryFn: async () => (await apiClient.get<PlanDashboard>("/service-plan-dashboard", { query: { startDate, endDate, clientId, serviceId, planId } })).data, enabled: activeView === "planos" });
 
   const deferredFilters = useDeferredValue({
     startDate,
@@ -505,6 +510,7 @@ export function DashboardPage() {
 
           <div className="inline-flex flex-wrap gap-2 rounded-full bg-slate-100 p-1">
             <SegmentedButton active={activeView === "agenda"} label="Agenda" onClick={() => setActiveView("agenda")} />
+            <SegmentedButton active={activeView === "planos"} label="Planos" onClick={() => setActiveView("planos")} />
             <SegmentedButton
               active={activeView === "recorrencia"}
               label="Recorrencia"
@@ -569,7 +575,7 @@ export function DashboardPage() {
             </select>
           </label>
 
-          <label className="block space-y-2">
+          {activeView === "planos" ? <label className="block space-y-2"><span className="text-sm text-slate-500">Plano</span><select className="app-input" value={planId} onChange={(event) => setPlanId(event.target.value)}><option value="">Todos os planos</option>{planOptions.map((plan) => <option key={plan.id} value={plan.id}>{plan.name}</option>)}</select></label> : <label className="block space-y-2">
             <span className="text-sm text-slate-500">Status</span>
             <select className="app-input" onChange={(event) => handleStatusChange(event.target.value)} value={selectedStatusValue}>
               {statusOptions.map((option) => (
@@ -578,7 +584,7 @@ export function DashboardPage() {
                 </option>
               ))}
             </select>
-          </label>
+          </label>}
         </div>
 
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[18px] bg-slate-50 px-4 py-3 text-sm text-slate-500">
@@ -598,6 +604,11 @@ export function DashboardPage() {
         </div>
       </Card>
 
+      {activeView === "planos" ? <div className="space-y-4">
+        {planError ? <Card><p className="text-rose-600">{planError.message}</p></Card> : null}
+        {planDashboard ? <><div className="grid gap-3 md:grid-cols-2"><MetricCard icon={<MoneyIcon className="h-5 w-5 text-emerald-600" />} iconTone="bg-emerald-50" label="Recebido em planos no periodo" value={currencyFormatter.format(planDashboard.paidCents / 100)} /><MetricCard icon={<ClockIcon className="h-5 w-5 text-brand-600" />} iconTone="bg-brand-50" label="Vencimentos nos proximos 7 dias" value={String(planDashboard.upcoming.length)} /></div>
+          <Card><h2 className="mb-3 font-semibold">Clientes vinculados</h2>{planDashboard.memberships.length ? planDashboard.memberships.map((item) => <div className="flex flex-wrap justify-between gap-2 border-t border-slate-100 py-3" key={item.id}><span>{item.clientName} · {item.planName}</span><span className="text-sm text-slate-500">Vencimento: {formatDateBr(item.endDate)}{planDashboard.upcoming.some((upcoming) => upcoming.id === item.id) ? " · Proximo" : ""}</span></div>) : <p className="text-sm text-slate-500">Nenhum cliente vinculado encontrado.</p>}</Card></> : null}
+      </div> : null}
       {activeView === "agenda" ? (
         <>
           {isAgendaLoading ? (
@@ -618,7 +629,7 @@ export function DashboardPage() {
                 <MetricCard
                   icon={<MoneyIcon className="h-5 w-5 text-emerald-600" />}
                   iconTone="bg-emerald-50"
-                  label="Valor Recebido"
+                  label="Recebido em atendimentos avulsos"
                   value={currencyFormatter.format(safeNumber(agendaData.kpis.paidRevenue))}
                 />
                 <MetricCard

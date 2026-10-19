@@ -19,6 +19,8 @@ export type Reminder = {
   respostaWhatsapp: string | null;
   dataEnvioLembrete: string | null;
   canSend: boolean;
+  deliveryStatus?: string | null;
+  deliveryError?: string | null;
 };
 
 export type ReminderReplyInput = {

@@ -68,6 +68,8 @@ export function RecurringChargeList({
                   <span>{formatCurrency(charge.valor)}</span>
                   <span>Vencimento {formatDateBr(charge.dataVencimento)}</span>
                 </div>
+                {charge.whatsappStatus === "incerto" ? <p className="mt-2 text-sm text-amber-700">Resultado do envio incerto. Confira a conversa no WhatsApp antes de tentar novamente.</p> : null}
+                {charge.whatsappStatus === "falha" ? <p className="mt-2 text-sm text-rose-600">Falha no WhatsApp: {charge.whatsappUltimoErro || "verifique a configuracao e o telefone."}</p> : null}
                 <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-500">
                   <span>Competencia {formatMonthYearBr(charge.referenciaCompetencia)}</span>
                   <span>{charge.whatsappEnviado ? "WhatsApp enviado" : "WhatsApp pendente"}</span>

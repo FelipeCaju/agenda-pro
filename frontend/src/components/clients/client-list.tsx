@@ -6,10 +6,19 @@ import { useClientRecentAppointmentsQuery } from "@/hooks/use-agenda-query";
 
 type ClientListProps = {
   items: Client[];
+  plans: ClientPlanMembership[];
   onEdit: (client: Client) => void;
   onOpenAppointment: (appointment: Appointment) => void;
   onSelect: (client: Client) => void;
   selectedClientId: string | null;
+};
+
+export type ClientPlanMembership = {
+  id: string;
+  clientId: string;
+  planName: string;
+  anchorDate: string;
+  endDate: string;
 };
 
 function getInitial(name: string) {
@@ -163,11 +172,19 @@ function ClientAppointmentHistory({
 
 export function ClientList({
   items,
+  plans,
   onEdit,
   onOpenAppointment,
   onSelect,
   selectedClientId,
 }: ClientListProps) {
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+  const plansByClient = new Map<string, ClientPlanMembership[]>();
+  for (const plan of plans) {
+    const clientPlans = plansByClient.get(plan.clientId) ?? [];
+    clientPlans.push(plan);
+    plansByClient.set(plan.clientId, clientPlans);
+  }
   if (!items.length) {
     return (
       <Card className="bg-white">
@@ -217,6 +234,14 @@ export function ClientList({
                     <span className="truncate">{client.email || "Sem email"}</span>
                   </span>
                 </div>
+                {(plansByClient.get(client.id) ?? []).map((plan) => {
+                  const status = plan.endDate <= today ? "Encerrado" : plan.anchorDate > today ? "Agendado" : "Ativo";
+                  return (
+                    <span className="mt-1 inline-flex max-w-full flex-wrap items-center gap-1 rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700 sm:mt-0" key={plan.id}>
+                      Plano: {plan.planName} · {status} · Vencimento: {formatDate(plan.endDate)}
+                    </span>
+                  );
+                })}
               </div>
             </button>
 

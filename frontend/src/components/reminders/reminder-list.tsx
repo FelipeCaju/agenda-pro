@@ -57,6 +57,8 @@ export function ReminderList({
             <p>{reminder.channel}</p>
             {reminder.clienteTelefone ? <p>Telefone: {reminder.clienteTelefone}</p> : null}
             {reminder.respostaWhatsapp ? <p>Resposta: {reminder.respostaWhatsapp}</p> : null}
+            {reminder.deliveryStatus === "falha" ? <p className="text-rose-600">Falha no envio: {reminder.deliveryError}</p> : null}
+            {["incerto", "enviando"].includes(reminder.deliveryStatus ?? "") ? <p className="text-amber-700">Envio em andamento ou resultado incerto. Confira a conversa no WhatsApp para evitar mensagens repetidas.</p> : null}
           </div>
 
           {onSendManual || onReply ? (

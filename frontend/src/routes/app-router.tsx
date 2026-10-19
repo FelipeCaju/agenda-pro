@@ -51,6 +51,9 @@ const ClientFormPage = lazy(async () => ({
 const ServicesPage = lazy(async () => ({
   default: (await import("@/pages/services-page")).ServicesPage,
 }));
+const ServicePlansPage = lazy(async () => ({
+  default: (await import("@/pages/service-plans-page")).ServicePlansPage,
+}));
 const ServiceFormPage = lazy(async () => ({
   default: (await import("@/pages/service-form-page")).ServiceFormPage,
 }));
@@ -200,6 +203,7 @@ export const router = createBrowserRouter([
                 element: withRouteSuspense(<ClientFormPage />),
               },
               { path: "/servicos", element: withRouteSuspense(<ServicesPage />) },
+              { path: "/planos-atendimento", element: withRouteSuspense(<ServicePlansPage />) },
               { path: "/servicos/novo", element: withRouteSuspense(<ServiceFormPage />) },
               {
                 path: "/servicos/:serviceId/editar",

@@ -126,14 +126,8 @@ export function SettingsPage({ section }: SettingsPageProps) {
   const [appNotificationSoundEnabled, setAppNotificationSoundEnabled] = useState(
     notificationPreferences.soundEnabled,
   );
-  const [appNotificationReminderMinutes, setAppNotificationReminderMinutes] = useState(
-    String(notificationPreferences.reminderMinutes),
-  );
   const [companyValidationError, setCompanyValidationError] = useState<string | null>(null);
   const [appValidationError, setAppValidationError] = useState<string | null>(null);
-  const [notificationPreferencesError, setNotificationPreferencesError] = useState<string | null>(
-    null,
-  );
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
@@ -199,7 +193,6 @@ export function SettingsPage({ section }: SettingsPageProps) {
   useEffect(() => {
     setAppNotificationsEnabled(notificationPreferences.enabled);
     setAppNotificationSoundEnabled(notificationPreferences.soundEnabled);
-    setAppNotificationReminderMinutes(String(notificationPreferences.reminderMinutes));
   }, [notificationPreferences]);
 
   const isLoading = isLoadingOrganization || isLoadingSettings;
@@ -376,19 +369,10 @@ export function SettingsPage({ section }: SettingsPageProps) {
 
   function handleNotificationPreferencesSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setNotificationPreferencesError(null);
-
-    const normalizedReminderMinutes = Number(appNotificationReminderMinutes);
-
-    if (!Number.isFinite(normalizedReminderMinutes) || normalizedReminderMinutes < 0) {
-      setNotificationPreferencesError("A antecedencia do lembrete deve ser zero ou maior.");
-      return;
-    }
-
     savePreferences({
       enabled: appNotificationsEnabled,
       soundEnabled: appNotificationSoundEnabled,
-      reminderMinutes: normalizedReminderMinutes,
+      reminderMinutes: notificationPreferences.reminderMinutes,
     });
     setSuccessMessage("Preferencias de notificacao do app atualizadas com sucesso.");
   }
@@ -600,15 +584,6 @@ export function SettingsPage({ section }: SettingsPageProps) {
 
       {!isCompanyPage ? (
       <>
-      <Card>
-        <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Empresa</p>
-        <h3 className="mt-1 text-lg font-semibold text-ink">Dados da empresa</h3>
-        <p className="mt-2 text-sm text-slate-600">Cadastro, dados de cobranca, funcionarios e bloqueios.</p>
-        <Button className="mt-4 w-full sm:w-auto" onClick={() => navigate("/dados-da-empresa", { state: buildNavigationState(location.pathname) })} type="button">
-          Abrir dados da empresa
-        </Button>
-      </Card>
-
       <details className="group rounded-3xl border border-slate-200 bg-white p-4 sm:p-5">
         <summary className="cursor-pointer text-lg font-semibold text-ink">Assinatura, pagamentos e atalhos</summary>
         <div className="mt-4"><ManagementPage embedded /></div>
@@ -833,29 +808,6 @@ export function SettingsPage({ section }: SettingsPageProps) {
               </span>
             </span>
           </label>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-ink" htmlFor="app-reminder-minutes">
-              Antecedencia do lembrete
-            </label>
-            <input
-              className="app-input"
-              disabled={!appNotificationsEnabled}
-              id="app-reminder-minutes"
-              min="0"
-              onChange={(event) => setAppNotificationReminderMinutes(event.target.value)}
-              step="1"
-              type="number"
-              value={appNotificationReminderMinutes}
-            />
-            <p className="text-sm text-slate-500">
-              Exemplo: `10` para avisar 10 minutos antes do atendimento.
-            </p>
-          </div>
-
-          {notificationPreferencesError ? (
-            <p className="text-sm text-rose-600">{notificationPreferencesError}</p>
-          ) : null}
 
           <Button className="w-full sm:w-auto" type="submit">
             Salvar preferencias de notificacao

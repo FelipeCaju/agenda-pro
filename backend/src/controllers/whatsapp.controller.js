@@ -78,22 +78,12 @@ function validateWebhookSecret(request) {
   }
 }
 
-function readIncomingMessage(body) {
-  return (
-    body?.message ??
-    body?.text ??
-    body?.body ??
-    body?.text?.message ??
-    body?.text?.body ??
-    body?.data?.text ??
-    body?.data?.body ??
-    body?.data?.message ??
-    body?.data?.text?.message ??
-    body?.message?.text ??
-    body?.message?.body ??
-    body?.message?.message ??
-    ""
-  );
+export function readIncomingMessage(body) {
+  const candidates = [body?.message, body?.text, body?.body, body?.text?.message,
+    body?.text?.body, body?.data?.text, body?.data?.body, body?.data?.message,
+    body?.data?.text?.message, body?.data?.message?.text, body?.data?.message?.body,
+    body?.message?.text, body?.message?.body, body?.message?.message];
+  return candidates.find((value) => typeof value === "string" && value.trim()) ?? "";
 }
 
 export async function receiveWhatsappWebhookController(request, response) {

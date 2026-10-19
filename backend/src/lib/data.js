@@ -2885,11 +2885,8 @@ async function replaceAppointmentItems(connection, organizationId, appointmentId
   }
 }
 
-export async function createAppointmentForOrganization(organizationId, input) {
-  await ensureInitialized();
+export async function insertAppointmentInTransaction(connection, organizationId, input) {
   const id = randomUUID();
-
-  await withTransaction(async (connection) => {
     await connection.execute(
       `INSERT INTO appointments (
         id, organization_id, cliente_id, cliente_nome, cliente_email,
@@ -2933,7 +2930,12 @@ export async function createAppointmentForOrganization(organizationId, input) {
     );
 
     await replaceAppointmentItems(connection, organizationId, id, input.items ?? []);
-  });
+  return id;
+}
+
+export async function createAppointmentForOrganization(organizationId, input) {
+  await ensureInitialized();
+  const id = await withTransaction((connection) => insertAppointmentInTransaction(connection, organizationId, input));
 
   return getAppointmentByIdForOrganization(organizationId, id);
 }

@@ -8,6 +8,7 @@ import {
   listOrganizations,
 } from "../lib/data.js";
 import { isWhatsappDeliveryAvailable, sendWhatsappMessage } from "./whatsapp.service.js";
+import { beginMessageDelivery, finishMessageDelivery, withMessageLock } from "./message-lock.service.js";
 
 const DEFAULT_RECURRING_WHATSAPP_TEMPLATE =
   "Bom dia, aqui e da {EMPRESA_NOME}.\n\nOie {NOME_CLIENTE}!\n\nPassando para te lembrar da sua cobranca de {NOME_SERVICO}.\n\nValor: R$ {VALOR}\nVencimento: {DATA_VENCIMENTO}\nChave Pix: {CHAVE_PIX}\n\nSe o pagamento ja foi realizado, pode desconsiderar esta mensagem.\nObrigada!";
@@ -356,7 +357,11 @@ async function sendChargeWhatsappInternal({
   profile = null,
   createdByUserId = null,
   connection = null,
+  automatic = false,
 }) {
+  return withMessageLock("charge", organizationId, charge.id, async () => {
+  charge = await getRecurringChargeOrFail(organizationId, charge.id);
+  if (automatic && (charge.whatsapp_enviado || !["pendente", "vencido"].includes(charge.status))) return false;
   const client = await getClientByIdForOrganization(organizationId, charge.client_id);
 
   if (!client?.telefone?.trim()) {
@@ -375,12 +380,27 @@ async function sendChargeWhatsappInternal({
   const sentAt = new Date().toISOString().slice(0, 19).replace("T", " ");
   const executor = connection ?? { execute: query };
 
+  if (!(await beginMessageDelivery(organizationId, "charge", charge.id, { allowResend: !automatic }))) return false;
   try {
     await sendWhatsappMessage({
       organizationId,
       phone: client.telefone,
       message,
     });
+
+  } catch (error) {
+    const errorMessage = error.message ?? "Falha ao enviar WhatsApp.";
+    await finishMessageDelivery(organizationId, "charge", charge.id, error.deliveryUncertain ? "incerto" : "falha", errorMessage);
+    await executor.execute(
+      `UPDATE recurring_charges SET whatsapp_status = ?, whatsapp_ultimo_erro = ?, whatsapp_tentativas = whatsapp_tentativas + 1,
+        whatsapp_ultimo_envio_em = ? WHERE organization_id = ? AND id = ?`,
+      [error.deliveryUncertain ? "incerto" : "falha", String(errorMessage), sentAt, organizationId, charge.id],
+    );
+    await logRecurringEvent({ organizationId, recurringProfileId: charge.recurring_profile_id,
+      recurringChargeId: charge.id, tipoEvento: "whatsapp_falha", descricao: "Falha ao enviar cobranca recorrente por WhatsApp.",
+      payload: { error: errorMessage }, createdByUserId, connection });
+    throw error;
+  }
 
     await executor.execute(
       `UPDATE recurring_charges
@@ -400,29 +420,9 @@ async function sendChargeWhatsappInternal({
       createdByUserId,
       connection,
     });
-  } catch (error) {
-    const errorMessage = error.message ?? "Falha ao enviar WhatsApp.";
-    await executor.execute(
-      `UPDATE recurring_charges
-        SET mensagem_whatsapp_utilizada = ?, whatsapp_status = ?, whatsapp_tentativas = whatsapp_tentativas + 1,
-            whatsapp_ultimo_envio_em = ?, whatsapp_ultimo_erro = ?
-        WHERE organization_id = ? AND id = ?`,
-      [message, "falha", sentAt, String(errorMessage), organizationId, charge.id],
-    );
-
-    await logRecurringEvent({
-      organizationId,
-      recurringProfileId: charge.recurring_profile_id,
-      recurringChargeId: charge.id,
-      tipoEvento: "whatsapp_falha",
-      descricao: "Falha ao enviar cobranca recorrente por WhatsApp.",
-      payload: { error: errorMessage },
-      createdByUserId,
-      connection,
-    });
-
-    throw error;
-  }
+    await finishMessageDelivery(organizationId, "charge", charge.id, "enviado");
+    return true;
+  });
 }
 
 function shouldGenerateChargeForDate(profile, targetDate) {
@@ -991,11 +991,11 @@ async function listPendingChargesForAutomaticWhatsapp({ organizationId, targetDa
     `SELECT *
       FROM recurring_charges
       WHERE organization_id = ?
-        AND status = 'pendente'
-        AND data_vencimento = ?
+        AND status IN ('pendente', 'vencido')
+        AND data_vencimento BETWEEN DATE_SUB(?, INTERVAL 7 DAY) AND ?
         AND whatsapp_enviado = 0
       ORDER BY created_at ASC`,
-    [organizationId, targetDate],
+    [organizationId, targetDate, targetDate],
   );
 
   return rows.map(mapRecurringCharge);
@@ -1080,13 +1080,14 @@ export async function processRecurringAutomation({
       for (const charge of pendingCharges) {
         try {
           const profile = await getRecurringProfileOrFail(organization.id, charge.recurring_profile_id);
-          await sendChargeWhatsappInternal({
+          const sent = await sendChargeWhatsappInternal({
             organizationId: organization.id,
             charge,
             profile,
             createdByUserId,
+            automatic: true,
           });
-          result.sentWhatsapp += 1;
+          if (sent) result.sentWhatsapp += 1;
         } catch (error) {
           result.errors.push({
             organizationId: organization.id,

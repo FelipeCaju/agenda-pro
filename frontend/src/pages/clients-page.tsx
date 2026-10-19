@@ -1,12 +1,14 @@
 import { useDeferredValue, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { MobilePageHeader } from "@/components/layout/mobile-page-header";
-import { ClientList } from "@/components/clients/client-list";
+import { ClientList, type ClientPlanMembership } from "@/components/clients/client-list";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FloatingActionButton } from "@/components/ui/floating-action-button";
 import { SearchIcon } from "@/components/ui/icons";
 import { useClientsQuery } from "@/hooks/use-clients-query";
+import { apiClient } from "@/services/apiClient";
 
 export function ClientsPage() {
   const navigate = useNavigate();
@@ -14,6 +16,10 @@ export function ClientsPage() {
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const deferredSearch = useDeferredValue(search);
   const { data = [], error, isLoading, isError } = useClientsQuery(deferredSearch);
+  const { data: plans = [], isError: isPlansError } = useQuery({
+    queryKey: ["service-plan-memberships"],
+    queryFn: async () => (await apiClient.get<ClientPlanMembership[]>("/service-plan-memberships")).data,
+  });
 
   return (
     <section className="space-y-4">
@@ -53,9 +59,12 @@ export function ClientsPage() {
         </Card>
       ) : null}
 
+      {isPlansError ? <p className="text-sm text-rose-600" role="alert">Nao foi possivel carregar os planos vinculados aos clientes.</p> : null}
+
       {!isLoading && !isError ? (
         <ClientList
           items={data}
+          plans={plans}
           onEdit={(client) => navigate(`/clientes/${client.id}/editar`)}
           onOpenAppointment={(appointment) => navigate(`/agenda/${appointment.id}`)}
           onSelect={(client) =>
