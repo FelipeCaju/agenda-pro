@@ -94,8 +94,8 @@ export function OnboardingPage() {
       return;
     }
 
-    if (!isSocialOnboarding && senha.trim().length < 8) {
-      setLocalError("A senha precisa ter pelo menos 8 caracteres.");
+    if (!isSocialOnboarding && !senha.length) {
+      setLocalError("Informe uma senha.");
       return;
     }
 
@@ -121,6 +121,8 @@ export function OnboardingPage() {
         senha,
       });
       navigate(getPostAuthRedirect(session), { replace: true });
+    } catch {
+      // A mensagem de erro e exibida pelo contexto de autenticacao.
     } finally {
       setIsSubmitting(false);
     }

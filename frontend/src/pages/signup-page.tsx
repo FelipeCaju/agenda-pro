@@ -28,7 +28,7 @@ function isValidCityIbge(value: string) {
 export function SignupPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { clearError, completeOnboarding, error, isLoading, signIn } = useAuth();
+  const { clearError, error, isLoading, registerAccount } = useAuth();
   const prefillEmail = useMemo(
     () => ((location.state as { prefillEmail?: string } | null)?.prefillEmail ?? "").trim(),
     [location.state],
@@ -111,8 +111,8 @@ export function SignupPage() {
       return;
     }
 
-    if (senha.trim().length < 8) {
-      setLocalError("A senha precisa ter pelo menos 8 caracteres.");
+    if (!senha.length) {
+      setLocalError("Informe uma senha.");
       return;
     }
 
@@ -124,18 +124,7 @@ export function SignupPage() {
     setIsSubmitting(true);
 
     try {
-      const session = await signIn({
-        email: normalizedEmail,
-        password: "__start_onboarding__",
-        provider: "email",
-      });
-
-      if (!session.access.needsOnboarding) {
-        navigate(getPostAuthRedirect(session), { replace: true });
-        return;
-      }
-
-      const onboardedSession = await completeOnboarding({
+      const onboardedSession = await registerAccount(normalizedEmail, {
         nome: nome.trim(),
         nomeEmpresa: nomeEmpresa.trim(),
         telefone: telefone.trim(),
@@ -151,7 +140,7 @@ export function SignupPage() {
 
       navigate(getPostAuthRedirect(onboardedSession), { replace: true });
     } catch (signupError) {
-      if (signupError instanceof ApiError && [401, 403, 409].includes(signupError.status)) {
+      if (signupError instanceof ApiError && [401, 409].includes(signupError.status)) {
         setLocalError("Esse email ja possui conta. Volte para o login para entrar com sua senha.");
       } else if (signupError instanceof Error) {
         setLocalError(signupError.message);

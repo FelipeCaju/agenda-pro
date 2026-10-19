@@ -608,7 +608,7 @@ export async function completeOnboarding({
   validateOptionalBillingAddress({ billingPostalCode, billingCityIbge });
 
   if (provider === "email" && !isValidPassword(senha)) {
-    const error = new Error("A senha precisa ter pelo menos 8 caracteres.");
+    const error = new Error("Informe uma senha.");
     error.statusCode = 400;
     throw error;
   }

@@ -34,6 +34,7 @@ type AuthContextValue = {
   needsOnboarding: boolean;
   error: string | null;
   signIn: (input: SignInInput) => Promise<AuthSession>;
+  registerAccount: (email: string, input: CompleteOnboardingInput) => Promise<AuthSession>;
   restoreSession: () => Promise<void>;
   completeOnboarding: (input: CompleteOnboardingInput) => Promise<AuthSession>;
   signOut: (options?: { expired?: boolean }) => Promise<void>;
@@ -43,8 +44,8 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-function getFriendlyError(error: unknown) {
-  if (error instanceof ApiError && error.status === 401) {
+function getFriendlyError(error: unknown, expiredSession = false) {
+  if (expiredSession && error instanceof ApiError && error.status === 401) {
     return "Sua sessao expirou. Entre novamente para continuar.";
   }
 
@@ -83,7 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setStatus("error");
       }
 
-      setError(getFriendlyError(sessionError));
+      setError(getFriendlyError(sessionError, true));
     }
   }, [applySession]);
 
@@ -92,7 +93,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [restoreSession]);
 
   const signIn = useCallback(async (input: SignInInput) => {
-    setStatus("loading");
     setError(null);
 
     try {
@@ -111,8 +111,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const registerAccount = useCallback(async (email: string, input: CompleteOnboardingInput) => {
+    setError(null);
+    try {
+      const nextSession = await authService.registerAccount(email, input);
+      setSession(nextSession);
+      setStatus("authenticated");
+      return nextSession;
+    } catch (registrationError) {
+      setSession(null);
+      setStatus("unauthenticated");
+      throw registrationError;
+    }
+  }, []);
+
   const completeOnboarding = useCallback(async (input: CompleteOnboardingInput) => {
-    setStatus("loading");
     setError(null);
 
     try {
@@ -168,13 +181,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       needsOnboarding: session?.access.needsOnboarding ?? false,
       error,
       signIn,
+      registerAccount,
       restoreSession,
       completeOnboarding,
       signOut,
       deleteAccount,
       clearError: () => setError(null),
     }),
-    [deleteAccount, error, restoreSession, session, signIn, signOut, status, completeOnboarding],
+    [deleteAccount, error, registerAccount, restoreSession, session, signIn, signOut, status, completeOnboarding],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

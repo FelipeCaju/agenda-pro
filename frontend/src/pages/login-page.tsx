@@ -54,6 +54,8 @@ export function LoginPage() {
 
     try {
       await finishSignIn("email");
+    } catch {
+      // O contexto exibe a mensagem retornada pelo servidor no formulario.
     } finally {
       setIsSubmitting(false);
     }

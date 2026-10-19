@@ -118,7 +118,7 @@ function normalizeOrganizationInput(input) {
     ownerName:
       normalizeString(input.owner_name ?? input.ownerName ?? input.nome_responsavel ?? input.nomeResponsavel) ||
       "Responsavel",
-    initialPassword: normalizeString(input.initial_password ?? input.initialPassword ?? input.senha_inicial),
+    initialPassword: input.initial_password ?? input.initialPassword ?? input.senha_inicial ?? "",
   };
 }
 
@@ -229,7 +229,7 @@ export async function createOrganizationForPlatformAdmin(input) {
   }
 
   if (!isValidPassword(normalized.initialPassword)) {
-    const error = new Error("A senha inicial precisa ter pelo menos 8 caracteres.");
+    const error = new Error("Informe uma senha inicial.");
     error.statusCode = 400;
     throw error;
   }

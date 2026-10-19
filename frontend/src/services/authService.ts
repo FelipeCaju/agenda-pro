@@ -1,5 +1,5 @@
 import { storage } from "@/lib/storage";
-import { apiClient } from "@/services/apiClient";
+import { ApiError, apiClient } from "@/services/apiClient";
 
 export type UserRole = "owner" | "admin" | "manager" | "staff" | "viewer";
 
@@ -83,6 +83,18 @@ async function fetchSession() {
 }
 
 export const authService = {
+  async registerAccount(email: string, input: CompleteOnboardingInput): Promise<AuthSession> {
+    try {
+      const session = await this.signIn({ email, password: "__start_onboarding__", provider: "email" });
+      if (!session.access.needsOnboarding) {
+        throw new ApiError({ message: "Esse email ja possui conta. Volte para o login para entrar com sua senha.", status: 409 });
+      }
+      return await this.completeOnboarding(input);
+    } catch (error) {
+      storage.clearSession();
+      throw error;
+    }
+  },
   async signIn(input: SignInInput): Promise<AuthSession> {
     const response = await apiClient.post<LoginResponse>("/auth/login", input);
     storage.setAuthToken(response.data.token);

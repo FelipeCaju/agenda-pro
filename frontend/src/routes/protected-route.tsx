@@ -57,7 +57,7 @@ export function ProtectedRoute({
     return <Navigate replace to="/" />;
   }
 
-  if (error && allowBlocked) {
+  if (error && allowBlocked && !allowOnboarding) {
     return (
       <FullscreenState
         eyebrow="Acesso"

@@ -13,9 +13,9 @@ declare(strict_types=1);
  */
 const APP_VERSION_MAJOR = 1;
 const APP_VERSION_MINOR = 4;
-const APP_VERSION_PATCH = 0;
+const APP_VERSION_PATCH = 1;
 const APP_BUILD_DATE = '20261019';
-const APP_BUILD_NUMBER = 6;
+const APP_BUILD_NUMBER = 7;
 
 function app_version(): string
 {

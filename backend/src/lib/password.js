@@ -39,5 +39,5 @@ export function verifyPassword(password, storedHash) {
 }
 
 export function isValidPassword(password) {
-  return typeof password === "string" && password.trim().length >= 8;
+  return typeof password === "string" && password.length > 0;
 }
