@@ -145,8 +145,6 @@ export function AgendaPage() {
   const isToday = selectedDate === getTodayDate();
   const agendaStartHour = settings?.horaInicioAgenda ?? "08:00";
   const agendaEndHour = settings?.horaFimAgenda ?? "18:00";
-  const selectedProfessionalName =
-    professionals.find((professional) => professional.id === selectedProfessionalId)?.nome ?? "Equipe completa";
   const headerStats = [
     {
       label: view === "month" ? "Itens no periodo" : "Atendimentos",
@@ -204,7 +202,7 @@ export function AgendaPage() {
 
   return (
     <PullToRefresh isRefreshing={isFetching} onRefresh={refetch}>
-      <section className="space-y-4 pb-2 xl:space-y-5 xl:pb-0">
+      <section className="space-y-4 pb-2 xl:space-y-3 xl:pb-0">
         <div>
           <div
             className="sticky top-0 z-[55] -mx-3 space-y-4 border-b border-slate-100 bg-white/95 px-3 pb-4 backdrop-blur-xl sm:-mx-4 sm:px-4 xl:hidden"
@@ -268,11 +266,11 @@ export function AgendaPage() {
             </div>
           </div>
 
-          <Card className="mt-0 hidden border-slate-200/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(244,248,252,0.96))] p-6 shadow-[0_26px_55px_rgba(15,23,42,0.08)] xl:block xl:mt-0">
-          <div className="flex items-start justify-between gap-6">
+          <Card className="mt-0 hidden border-slate-200/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(244,248,252,0.96))] shadow-[0_26px_55px_rgba(15,23,42,0.08)] xl:mt-0 xl:block xl:p-4">
+          <div className="flex items-center justify-between gap-4">
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-brand-700">Agenda de trabalho</p>
-              <p className="mt-2 text-[2rem] font-bold tracking-[-0.055em] text-ink">{heroDateLabel}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-brand-700">Agenda de trabalho</p>
+              <p className="mt-1 text-xl font-bold tracking-[-0.04em] text-ink">{heroDateLabel}</p>
             </div>
 
             <div className="flex flex-wrap items-center justify-end gap-3">
@@ -288,7 +286,7 @@ export function AgendaPage() {
               <ArrowButton direction="left" onClick={() => navigateDate("prev")} />
               <ArrowButton direction="right" onClick={() => navigateDate("next")} />
               <button
-                className="inline-flex h-12 min-w-[190px] items-center justify-center rounded-[18px] bg-brand-500 px-5 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(29,140,248,0.22)] transition hover:bg-brand-600"
+                className="inline-flex h-10 items-center justify-center rounded-xl bg-brand-500 px-4 text-xs font-semibold text-white shadow-[0_16px_30px_rgba(29,140,248,0.22)] transition hover:bg-brand-600"
                 onClick={() => navigate("/agenda/novo", { state: { selectedDate } })}
                 type="button"
               >
@@ -297,10 +295,10 @@ export function AgendaPage() {
             </div>
           </div>
 
-          <div className="mt-5 grid items-center gap-4 xl:grid-cols-[minmax(230px,0.95fr)_220px_minmax(480px,1.8fr)]">
+          <div className="mt-3 grid items-center gap-3 xl:grid-cols-[minmax(200px,1fr)_200px_minmax(360px,1.5fr)]">
             <div className="relative">
               <select
-                className="app-select h-14 appearance-none bg-white pr-10 text-sm"
+                className="app-select h-10 appearance-none bg-white py-2 pr-10 text-xs"
                 onChange={(event) => setSelectedProfessionalId(event.target.value)}
                 value={selectedProfessionalId}
               >
@@ -314,11 +312,11 @@ export function AgendaPage() {
               <ChevronDownIcon className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             </div>
 
-            <div className="rounded-[18px] bg-white/80 p-1.5 shadow-[0_10px_24px_rgba(15,23,42,0.05)]">
-              <div className="grid grid-cols-3 gap-1.5">
+            <div className="rounded-xl bg-white/80 p-1 shadow-[0_10px_24px_rgba(15,23,42,0.05)]">
+              <div className="grid grid-cols-3 gap-1">
                 {viewOptions.map((option) => (
                   <button
-                    className={`rounded-[14px] px-3 py-2.5 text-sm font-semibold transition ${
+                    className={`rounded-lg px-2 py-2 text-xs font-semibold transition ${
                       view === option.value
                         ? "bg-brand-500 text-white shadow-soft"
                         : "text-slate-500 hover:bg-slate-50"
@@ -333,29 +331,16 @@ export function AgendaPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-3 gap-2">
               {headerStats.map((item) => (
                 <div
-                  className="min-w-0 rounded-[20px] border border-slate-200/80 bg-white/90 px-4 py-4 text-left shadow-[0_12px_24px_rgba(15,23,42,0.05)]"
+                  className="min-w-0 rounded-xl border border-slate-200/80 bg-white/90 px-3 py-2 text-left shadow-[0_12px_24px_rgba(15,23,42,0.05)]"
                   key={item.label}
                 >
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">{item.label}</p>
-                  <p
-                    className={`mt-2 break-words font-semibold text-ink ${
-                      item.label === "Janela"
-                        ? "text-[1.15rem] tracking-[-0.04em]"
-                        : "text-[1.45rem] tracking-[-0.05em] 2xl:text-[1.65rem]"
-                    }`}
-                  >
-                    {item.value}
-                  </p>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">{item.label}</p>
+                  <p className="mt-0.5 break-words text-sm font-semibold text-ink">{item.value}</p>
                 </div>
               ))}
-              <div className="min-w-0 rounded-[20px] border border-slate-200/80 bg-slate-950/[0.03] px-4 py-4">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Contexto</p>
-                <p className="mt-2 break-words text-base font-semibold text-ink">{selectedProfessionalName}</p>
-                <p className="mt-1 text-xs text-slate-500">{agendaTimezoneLabel}</p>
-              </div>
             </div>
           </div>
           </Card>
