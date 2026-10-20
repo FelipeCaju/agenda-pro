@@ -151,11 +151,6 @@ export function WhatsappSettingsPage() {
   return (
     <section className="space-y-4 pb-8">
       <MobilePageHeader
-        action={
-          <Button onClick={() => navigate("/configuracoes")} type="button" variant="secondary">
-            Voltar
-          </Button>
-        }
         subtitle="Lembretes automaticos e previa da mensagem"
         title="Configurar WhatsApp"
       />

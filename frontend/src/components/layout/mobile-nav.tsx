@@ -168,6 +168,7 @@ export function MobileNav() {
               <div className="space-y-1">
         {visibleLinks.map((link) => (
           <NavLink
+            end={link.to === "/configuracoes"}
             key={link.to}
             to={link.to}
             onClick={() => setIsOpen(false)}

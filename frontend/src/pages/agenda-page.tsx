@@ -208,7 +208,7 @@ export function AgendaPage() {
             className="sticky top-0 z-[55] -mx-3 space-y-4 border-b border-slate-100 bg-white/95 px-3 pb-4 backdrop-blur-xl sm:-mx-4 sm:px-4 xl:hidden"
             style={{ paddingTop: "env(safe-area-inset-top)" }}
           >
-            <div className="flex items-center justify-between gap-3 xl:gap-6">
+            <div className="flex items-center justify-between gap-3 pl-12 xl:gap-6 xl:pl-0">
               <div>
                 <p className="text-[1.9rem] font-bold tracking-[-0.04em] text-ink xl:text-[2.3rem]">{heroDateLabel}</p>
               </div>
