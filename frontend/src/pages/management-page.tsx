@@ -22,7 +22,17 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
-export function ManagementPage({ embedded = false }: { embedded?: boolean }) {
+type ManagementPageProps = {
+  embedded?: boolean;
+  showPayment?: boolean;
+  showShortcuts?: boolean;
+};
+
+export function ManagementPage({
+  embedded = false,
+  showPayment = true,
+  showShortcuts = true,
+}: ManagementPageProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { data: organization, error: organizationError, isLoading: isLoadingOrganization } =
@@ -63,7 +73,7 @@ export function ManagementPage({ embedded = false }: { embedded?: boolean }) {
         </Card>
       ) : null}
 
-      {billingAlert.hasAlert ? (
+      {showPayment && billingAlert.hasAlert ? (
         <Card
           className={
             billingAlert.tone === "danger"
@@ -94,7 +104,8 @@ export function ManagementPage({ embedded = false }: { embedded?: boolean }) {
 
       {organization ? (
         <>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 xl:gap-4">
+          <div className={showPayment && showShortcuts ? "grid gap-3 md:grid-cols-2 xl:grid-cols-3 xl:gap-4" : "grid gap-3"}>
+            {showPayment ? (
             <Card>
               <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Pagamento</p>
               <h3 className="mt-2 text-lg font-semibold text-ink">Situacao da assinatura</h3>
@@ -146,27 +157,15 @@ export function ManagementPage({ embedded = false }: { embedded?: boolean }) {
                 </div>
               ) : null}
             </Card>
+            ) : null}
 
+            {showShortcuts ? (
             <Card>
               <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Acoes</p>
-              <h3 className="mt-2 text-lg font-semibold text-ink">Atalhos uteis</h3>
+              <h3 className="mt-2 text-lg font-semibold text-ink">Atalhos</h3>
               <div className="mt-4 flex flex-col gap-3">
                 <Button onClick={() => navigate("/funcionarios")} type="button">
                   Abrir funcionarios
-                </Button>
-                <Button
-                  onClick={() => navigate("/meu-plano", { state: buildNavigationState(location.pathname) })}
-                  type="button"
-                  variant="secondary"
-                >
-                  Abrir meu plano
-                </Button>
-                <Button
-                  onClick={() => navigate("/faturas", { state: buildNavigationState(location.pathname) })}
-                  type="button"
-                  variant="secondary"
-                >
-                  Abrir faturas
                 </Button>
                 <Button
                   onClick={() => navigate("/bloqueios", { state: buildNavigationState(location.pathname) })}
@@ -177,6 +176,7 @@ export function ManagementPage({ embedded = false }: { embedded?: boolean }) {
                 </Button>
               </div>
             </Card>
+            ) : null}
           </div>
 
         </>

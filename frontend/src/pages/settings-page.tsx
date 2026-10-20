@@ -14,7 +14,6 @@ import { useSettingsMutations } from "@/hooks/use-settings-mutations";
 import { useSettingsQuery } from "@/hooks/use-settings-query";
 import { isValidCep, lookupCep, normalizeCep } from "@/services/cepService";
 import { authService } from "@/services/authService";
-import { buildNavigationState } from "@/utils/navigation";
 
 type SettingsLocationState = {
   successMessage?: string;
@@ -55,6 +54,8 @@ function toMinutes(value: string) {
 type SettingsPageProps = {
   section?: "company";
 };
+
+type ConfigSection = "subscription" | "notifications" | "account";
 
 export function SettingsPage({ section }: SettingsPageProps) {
   const isCompanyPage = section === "company";
@@ -98,6 +99,7 @@ export function SettingsPage({ section }: SettingsPageProps) {
   const [horaInicioAgenda, setHoraInicioAgenda] = useState("08:00");
   const [horaFimAgenda, setHoraFimAgenda] = useState("18:00");
   const [permitirConflito, setPermitirConflito] = useState(false);
+  const [openConfigSection, setOpenConfigSection] = useState<ConfigSection | null>(null);
   const { preferences: notificationPreferences, savePreferences } = useNotificationPreferences();
   const [appNotificationsEnabled, setAppNotificationsEnabled] = useState(notificationPreferences.enabled);
   const [appNotificationSoundEnabled, setAppNotificationSoundEnabled] = useState(
@@ -514,22 +516,6 @@ export function SettingsPage({ section }: SettingsPageProps) {
             <Button className="w-full sm:w-auto" disabled={isUpdatingOrganization || isUpdatingSettings} type="submit">
               {isUpdatingOrganization || isUpdatingSettings ? "Salvando empresa..." : "Salvar dados da empresa"}
             </Button>
-            <Button
-              className="w-full sm:w-auto"
-              onClick={() => navigate("/funcionarios", { state: buildNavigationState(location.pathname) })}
-              type="button"
-              variant="secondary"
-            >
-              Abrir funcionarios da empresa
-            </Button>
-            <Button
-              className="w-full sm:w-auto"
-              onClick={() => navigate("/bloqueios", { state: buildNavigationState(location.pathname) })}
-              type="button"
-              variant="secondary"
-            >
-              Gerenciar bloqueios de horario
-            </Button>
           </div>
         </form>
       </Card>
@@ -537,13 +523,13 @@ export function SettingsPage({ section }: SettingsPageProps) {
 
       {!isCompanyPage ? (
       <>
-      <details className="group rounded-3xl border border-slate-200 bg-white p-4 sm:p-5">
-        <summary className="cursor-pointer text-lg font-semibold text-ink">Assinatura, pagamentos e atalhos</summary>
-        <div className="mt-4"><ManagementPage embedded /></div>
+      <details className="group rounded-3xl border border-slate-200 bg-white p-4 sm:p-5" open={openConfigSection === "subscription"}>
+        <summary className="cursor-pointer text-lg font-semibold text-ink" onClick={(event) => { event.preventDefault(); setOpenConfigSection((current) => current === "subscription" ? null : "subscription"); }}>Assinatura, pagamentos e atalhos</summary>
+        <div className="mt-4"><ManagementPage embedded showPayment={false} /></div>
       </details>
 
-      <details className="group rounded-3xl border border-slate-200 bg-white p-4 sm:p-5">
-      <summary className="cursor-pointer text-lg font-semibold text-ink">Notificacoes do aplicativo</summary>
+      <details className="group rounded-3xl border border-slate-200 bg-white p-4 sm:p-5" open={openConfigSection === "notifications"}>
+      <summary className="cursor-pointer text-lg font-semibold text-ink" onClick={(event) => { event.preventDefault(); setOpenConfigSection((current) => current === "notifications" ? null : "notifications"); }}>Notificacoes do aplicativo</summary>
       <div className="mt-4">
       <Card className="space-y-4">
           <label className="app-toggle-panel">
@@ -571,8 +557,8 @@ export function SettingsPage({ section }: SettingsPageProps) {
       </div>
       </details>
 
-      <details className="group rounded-3xl border border-slate-200 bg-white p-4 sm:p-5">
-      <summary className="cursor-pointer text-lg font-semibold text-ink">Conta e seguranca</summary>
+      <details className="group rounded-3xl border border-slate-200 bg-white p-4 sm:p-5" open={openConfigSection === "account"}>
+      <summary className="cursor-pointer text-lg font-semibold text-ink" onClick={(event) => { event.preventDefault(); setOpenConfigSection((current) => current === "account" ? null : "account"); }}>Conta e seguranca</summary>
       <div className="mt-4">
       <Card>
         <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Conta</p>
@@ -632,6 +618,7 @@ export function SettingsPage({ section }: SettingsPageProps) {
       </Card>
       </div>
       </details>
+      <ManagementPage embedded showShortcuts={false} />
       </>
       ) : null}
     </section>
