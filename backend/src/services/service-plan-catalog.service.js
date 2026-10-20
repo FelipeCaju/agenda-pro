@@ -43,10 +43,15 @@ export async function ensureServicePlanCatalog() {
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
   await execute(`CREATE TABLE IF NOT EXISTS service_plan_reminders (
     organization_id CHAR(36) NOT NULL, period_id CHAR(36) NOT NULL,
-    status VARCHAR(20) NOT NULL, error_message TEXT NULL,
+    reminder_days_before TINYINT UNSIGNED NOT NULL DEFAULT 0, status VARCHAR(20) NOT NULL, error_message TEXT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (organization_id, period_id)
+    PRIMARY KEY (organization_id, period_id, reminder_days_before)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+  const reminderColumns = await query(`SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'service_plan_reminders' AND COLUMN_NAME = 'reminder_days_before'`);
+  if (!reminderColumns.length) {
+    await execute("ALTER TABLE service_plan_reminders ADD COLUMN reminder_days_before TINYINT UNSIGNED NOT NULL DEFAULT 0 AFTER period_id");
+    await execute("ALTER TABLE service_plan_reminders DROP PRIMARY KEY, ADD PRIMARY KEY (organization_id, period_id, reminder_days_before)");
+  }
   const columns = await query(`SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'service_plans' AND COLUMN_NAME IN ('appointment_mode', 'appointment_count')`);
   const existing = new Set(columns.map((column) => column.COLUMN_NAME));
   if (!existing.has("appointment_mode")) await execute("ALTER TABLE service_plans ADD COLUMN appointment_mode VARCHAR(16) NOT NULL DEFAULT 'weekly' AFTER duration_months");

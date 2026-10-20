@@ -15,7 +15,7 @@ export async function listPlanMemberships(organizationId) {
     m.end_date AS endDate, m.start_time AS startTime, c.nome AS clientName, r.status AS reminderStatus, r.error_message AS reminderError
     FROM service_plan_memberships m JOIN clients c ON c.organization_id = m.organization_id AND c.id = m.client_id
     LEFT JOIN service_plan_periods p ON p.organization_id = m.organization_id AND p.membership_id = m.id AND p.end_date = m.end_date
-    LEFT JOIN service_plan_reminders r ON r.organization_id = p.organization_id AND r.period_id = p.id
+    LEFT JOIN service_plan_reminders r ON r.organization_id = p.organization_id AND r.period_id = p.id AND r.reminder_days_before = 0
     WHERE m.organization_id = ? ORDER BY m.end_date, c.nome`, [organizationId]);
 }
 
