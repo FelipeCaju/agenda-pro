@@ -35,7 +35,6 @@ export function WeekView({
       appointments={appointments}
       blockedSlots={blockedSlots}
       dates={dates}
-      emptyState="Semana sem atendimentos ainda. A grade horaria completa fica visivel para apoiar o planejamento."
       endHour={endHour}
       highlightedAppointmentIds={highlightedAppointmentIds}
       onCreateAppointment={onCreateAppointment}
