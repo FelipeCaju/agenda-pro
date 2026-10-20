@@ -114,7 +114,7 @@ export function WhatsappSettingsPage() {
   }, [settings]);
 
   const isDeliveryAvailable = Boolean(whatsappStatus?.configurado);
-  const whatsappEnabled = isDeliveryAvailable && lembretesAtivos && whatsappAtivo;
+  const whatsappEnabled = lembretesAtivos && whatsappAtivo;
   const subtitleHelper = useMemo(
     () =>
       !isDeliveryAvailable
@@ -236,17 +236,11 @@ export function WhatsappSettingsPage() {
                     aria-pressed={whatsappEnabled}
                     className="app-switch"
                     data-state={whatsappEnabled ? "checked" : "unchecked"}
-                    disabled={!isDeliveryAvailable}
                     onClick={() => {
-                      if (!isDeliveryAvailable) {
-                        return;
-                      }
-
                       const nextValue = !whatsappEnabled;
                       setLembretesAtivos(nextValue);
-                      if (nextValue) setWhatsappAtivo(true);
+                      setWhatsappAtivo(nextValue);
                     }}
-                    title={isDeliveryAvailable ? undefined : "WhatsApp indisponivel sem provedor configurado"}
                     type="button"
                   >
                     <span className="app-switch-thumb" />

@@ -15,12 +15,12 @@ import { SYSTEM_VERSION_LABEL } from "@/config/system-version";
 
 const links = [
   { to: "/agenda", label: "Agenda", icon: "calendar" },
+  { to: "/", label: "Painel", icon: "grid" },
   { to: "/recorrencia", label: "Recorrencia", icon: "money" },
   { to: "/orcamentos", label: "Orcamentos", icon: "receipt" },
   { to: "/clientes", label: "Clientes", icon: "users" },
   { to: "/servicos", label: "Servicos", icon: "scissors" },
   { to: "/planos-atendimento", label: "Planos", icon: "receipt" },
-  { to: "/", label: "Painel", icon: "grid" },
   { to: "/configuracoes", label: "Configuracoes", icon: "settings" },
   { to: "/dados-da-empresa", label: "Dados da empresa", icon: "building" },
 ] as const;
