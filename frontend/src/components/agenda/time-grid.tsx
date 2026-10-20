@@ -304,9 +304,8 @@ export function TimeGrid({
       }
 
       const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
-      const mobileNavReserve = 96;
-      const bottomGap = 12;
-      const availableHeight = Math.floor(viewportHeight - rect.top - mobileNavReserve - bottomGap);
+      const bottomGap = 16;
+      const availableHeight = Math.floor(viewportHeight - rect.top - bottomGap);
 
       setMobileCardHeight(Math.max(320, availableHeight));
     }
@@ -341,7 +340,7 @@ export function TimeGrid({
 
   return (
     <Card
-      className="mb-24 flex min-h-0 flex-col overflow-hidden border-slate-200/80 bg-white/90 p-0 shadow-[0_20px_45px_rgba(15,23,42,0.08)] xl:mb-0 xl:h-[calc(100vh-17.5rem)] xl:min-h-[760px] xl:rounded-[30px] xl:border-slate-200/70 xl:bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.96))] xl:shadow-[0_28px_60px_rgba(15,23,42,0.10)]"
+      className="mb-0 flex min-h-0 flex-col overflow-hidden border-slate-200/80 bg-white/90 p-0 shadow-[0_20px_45px_rgba(15,23,42,0.08)] xl:h-[calc(100vh-17.5rem)] xl:min-h-[760px] xl:rounded-[30px] xl:border-slate-200/70 xl:bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.96))] xl:shadow-[0_28px_60px_rgba(15,23,42,0.10)]"
       ref={cardRef}
       style={mobileCardHeight ? { height: `${mobileCardHeight}px` } : undefined}
     >
