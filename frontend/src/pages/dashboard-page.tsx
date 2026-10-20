@@ -1,4 +1,4 @@
-import { useDeferredValue, useMemo, useState, type ReactNode } from "react";
+import { useDeferredValue, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { MobilePageHeader } from "@/components/layout/mobile-page-header";
 import { Card } from "@/components/ui/card";
@@ -256,7 +256,7 @@ function MobileDataCard({
 
 export function DashboardPage() {
   const monthRange = useMemo(() => getCurrentMonthRange(), []);
-  const [activeView, setActiveView] = useState<DashboardView>("agenda");
+  const [selectedView, setActiveView] = useState<DashboardView>("agenda");
   const [startDate, setStartDate] = useState(monthRange.start);
   const [endDate, setEndDate] = useState(monthRange.end);
   const [clientId, setClientId] = useState("");
@@ -266,6 +266,12 @@ export function DashboardPage() {
   const [quoteStatus, setQuoteStatus] = useState<"all" | OrcamentoStatus>("all");
   const [recurrenceStatus, setRecurrenceStatus] = useState<RecurrenceDashboardStatus>("all");
   const { data: settings } = useSettingsQuery();
+  const viewEnabled = (selectedView !== "recorrencia" || settings?.criarRecorrencias === true) &&
+    (selectedView !== "orcamentos" || settings?.criarOrcamentos === true);
+  const activeView = viewEnabled ? selectedView : "agenda";
+  useEffect(() => {
+    if (settings && !viewEnabled) setActiveView("agenda");
+  }, [settings, viewEnabled]);
   const { data: clients = [] } = useClientsQuery();
   const { data: services = [] } = useServicesQuery();
   const { data: planOptions = [] } = useQuery({ queryKey: ["service-plans"], queryFn: async () => (await apiClient.get<Array<{ id: string; name: string }>>("/service-plans")).data, enabled: activeView === "planos" });
@@ -511,16 +517,16 @@ export function DashboardPage() {
           <div className="inline-flex flex-wrap gap-2 rounded-full bg-slate-100 p-1">
             <SegmentedButton active={activeView === "agenda"} label="Agenda" onClick={() => setActiveView("agenda")} />
             <SegmentedButton active={activeView === "planos"} label="Planos" onClick={() => setActiveView("planos")} />
-            <SegmentedButton
+            {settings?.criarRecorrencias === true ? <SegmentedButton
               active={activeView === "recorrencia"}
               label="Recorrencia"
               onClick={() => setActiveView("recorrencia")}
-            />
-            <SegmentedButton
+            /> : null}
+            {settings?.criarOrcamentos === true ? <SegmentedButton
               active={activeView === "orcamentos"}
               label="Orcamentos"
               onClick={() => setActiveView("orcamentos")}
-            />
+            /> : null}
           </div>
         </div>
 
