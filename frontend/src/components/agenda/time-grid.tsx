@@ -76,14 +76,6 @@ function formatDayNumber(date: string) {
   }).format(new Date(`${date}T12:00:00`));
 }
 
-function formatShortDate(date: string) {
-  return new Intl.DateTimeFormat("pt-BR", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  }).format(new Date(`${date}T12:00:00`));
-}
-
 function buildPosition(startMinutes: number, endMinutes: number, rangeStart: number, totalMinutes: number) {
   const safeStart = Math.max(startMinutes, rangeStart);
   const safeEnd = Math.max(endMinutes, safeStart + 15);
@@ -362,9 +354,9 @@ export function TimeGrid({
           className="grid min-w-fit"
           style={{ gridTemplateColumns }}
         >
-          <div className="sticky left-0 top-0 z-40 border-b border-r border-slate-200/80 bg-[linear-gradient(180deg,rgba(248,250,252,0.98),rgba(255,255,255,0.96))] px-2 py-2.5 xl:px-4 xl:py-5">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Fuso</p>
-            <p className="mt-0.5 text-xs font-semibold text-slate-500">{getTimezoneLabel(timezoneLabel)}</p>
+          <div className="sticky left-0 top-0 z-40 border-b border-r border-slate-200/80 bg-slate-50 px-2 py-2 xl:px-4 xl:py-5">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">Fuso</p>
+            <p className="mt-0.5 text-[11px] font-semibold text-slate-500">{getTimezoneLabel(timezoneLabel)}</p>
           </div>
 
           {dates.map((date) => {
@@ -374,21 +366,21 @@ export function TimeGrid({
             return (
               <button
                 className={cn(
-                  "sticky top-0 z-30 flex min-w-0 flex-col items-center justify-center gap-0.5 border-b border-r border-slate-200/80 px-3 py-2 text-center transition last:border-r-0 xl:gap-1 xl:px-4 xl:py-4",
+                  "sticky top-0 z-30 flex min-w-0 flex-row items-center justify-center gap-2 border-b border-r border-slate-200/80 bg-white px-3 py-2 text-center transition last:border-r-0 xl:flex-col xl:gap-1 xl:px-4 xl:py-4",
                   isSelected
-                    ? "bg-[linear-gradient(180deg,rgba(239,246,255,0.98),rgba(255,255,255,0.96))]"
-                    : "bg-[linear-gradient(180deg,rgba(248,250,252,0.98),rgba(255,255,255,0.96))] hover:bg-slate-50/95",
+                    ? "bg-sky-50"
+                    : "bg-white hover:bg-slate-50",
                 )}
                 key={date}
                 onClick={() => onSelectDate?.(date)}
                 type="button"
               >
-                <span className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500 xl:text-[11px] xl:tracking-[0.22em]">
                   {formatDayLabel(date)}
                 </span>
                 <span
                   className={cn(
-                    "inline-flex h-9 w-9 items-center justify-center rounded-full text-xl font-semibold tracking-[-0.04em]",
+                    "inline-flex h-8 w-8 items-center justify-center rounded-full text-base font-semibold tracking-[-0.04em]",
                     "xl:h-12 xl:w-12 xl:text-[1.6rem]",
                     isToday
                       ? "bg-brand-600 text-white shadow-[0_10px_24px_rgba(29,140,248,0.28)]"
@@ -525,14 +517,6 @@ export function TimeGrid({
         </div>
       </div>
 
-      <div className="border-t border-slate-200/80 bg-slate-50/70 px-4 py-3 xl:flex xl:items-center xl:justify-between xl:px-6">
-        <p className="text-sm text-slate-500">
-          {dates.length === 1 ? formatShortDate(dates[0]) : "Arraste a leitura pela grade para localizar horarios livres com mais rapidez."}
-        </p>
-        <p className="hidden text-xs font-medium uppercase tracking-[0.18em] text-slate-400 xl:block">
-          Grade visual para leitura rapida de disponibilidade
-        </p>
-      </div>
     </Card>
   );
 }
