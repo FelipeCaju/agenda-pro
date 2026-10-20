@@ -509,10 +509,6 @@ export function DashboardPage() {
 
       <Card className="rounded-[22px] border border-slate-200/70 bg-white px-4 py-4 shadow-[0_4px_16px_rgba(15,23,36,0.05)] xl:px-5 xl:py-5">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-          <div>
-            <p className="text-sm font-semibold text-ink">Visao do painel</p>
-            <p className="text-sm text-slate-500">Separei por modulo para a tela continuar leve no celular e no desktop.</p>
-          </div>
 
           <div className="inline-flex flex-wrap gap-2 rounded-full bg-slate-100 p-1">
             <SegmentedButton active={activeView === "agenda"} label="Agenda" onClick={() => setActiveView("agenda")} />

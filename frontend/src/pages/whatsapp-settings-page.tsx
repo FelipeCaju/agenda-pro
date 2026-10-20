@@ -171,7 +171,7 @@ export function WhatsappSettingsPage() {
                   Lembretes por WhatsApp
                 </h3>
                 <p className="mt-1 text-sm text-slate-500">
-                  Envio automatico antes do atendimento, sem uso de email.
+                  Envio automatico
                 </p>
               </div>
             </div>
