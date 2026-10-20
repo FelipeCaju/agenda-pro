@@ -29,6 +29,7 @@ export function ProfessionalsPage() {
     isUpdating,
   } = useProfessionalMutations();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
   const [values, setValues] = useState<ProfessionalInput>(EMPTY_VALUES);
   const [successMessage, setSuccessMessage] = useState("");
   const [fieldError, setFieldError] = useState<string | null>(null);
@@ -91,6 +92,9 @@ export function ProfessionalsPage() {
         await createProfessional(values);
         setSuccessMessage("Funcionario criado com sucesso.");
       }
+      setSelectedId(null);
+      setValues(EMPTY_VALUES);
+      setIsFormOpen(false);
     } catch {
       return;
     }
@@ -101,6 +105,14 @@ export function ProfessionalsPage() {
     setValues(EMPTY_VALUES);
     setFieldError(null);
     setSuccessMessage("");
+    setIsFormOpen(true);
+  }
+
+  function handleCloseForm() {
+    setSelectedId(null);
+    setValues(EMPTY_VALUES);
+    setFieldError(null);
+    setIsFormOpen(false);
   }
 
   return (
@@ -108,8 +120,8 @@ export function ProfessionalsPage() {
       <MobilePageHeader
         action={
           <div className="flex items-center gap-2">
-            <Button className="hidden xl:inline-flex" onClick={handleNewProfessional} type="button">
-              Novo funcionario
+            <Button className="hidden xl:inline-flex" onClick={isFormOpen ? handleCloseForm : handleNewProfessional} type="button">
+              {isFormOpen ? "Voltar para lista" : "Novo funcionario"}
             </Button>
             <Button onClick={() => navigate("/configuracoes")} type="button" variant="secondary">
               Voltar
@@ -138,12 +150,12 @@ export function ProfessionalsPage() {
         </Card>
       ) : null}
 
-      <div className="space-y-3">
+      {!isFormOpen ? <div className="space-y-3">
         {professionals.map((professional) => (
           <button
             className="block w-full text-left"
             key={professional.id}
-            onClick={() => setSelectedId(professional.id)}
+            onClick={() => { setSelectedId(professional.id); setIsFormOpen(true); }}
             type="button"
           >
             <Card
@@ -182,9 +194,9 @@ export function ProfessionalsPage() {
             <p className="text-sm text-slate-500">Nenhum funcionario cadastrado ainda.</p>
           </Card>
         ) : null}
-      </div>
+      </div> : null}
 
-      <Card>
+      {isFormOpen ? <Card>
         <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
           {selectedProfessional ? "Editar funcionario" : "Novo funcionario"}
         </p>
@@ -270,16 +282,12 @@ export function ProfessionalsPage() {
                   ? "Salvar funcionario"
                   : "Cadastrar funcionario"}
             </Button>
-            {selectedProfessional ? (
-              <Button onClick={handleNewProfessional} type="button" variant="secondary">
-                Novo cadastro
-              </Button>
-            ) : null}
+            <Button onClick={handleCloseForm} type="button" variant="secondary">Cancelar</Button>
           </div>
         </form>
-      </Card>
+      </Card> : null}
 
-      <FloatingActionButton label="Novo" onClick={handleNewProfessional} />
+      {!isFormOpen ? <FloatingActionButton label="Novo" onClick={handleNewProfessional} /> : null}
     </section>
   );
 }
