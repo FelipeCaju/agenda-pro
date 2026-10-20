@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { AppBrandIcon } from "@/components/ui/app-brand-icon";
+import { Button } from "@/components/ui/button";
+import { SYSTEM_VERSION_LABEL } from "@/config/system-version";
+import { useAuth } from "@/hooks/use-auth";
 import {
   useOrganizationPaymentsQuery,
   useOrganizationQuery,
@@ -132,6 +135,7 @@ function NavIcon({ icon }: { icon: (typeof links)[number]["icon"] }) {
 
 export function MobileNav() {
   const [isOpen, setIsOpen] = useState(false);
+  const { signOut, user } = useAuth();
   const { data: organization } = useOrganizationQuery();
   const { data: payments = [] } = useOrganizationPaymentsQuery();
   const { data: settings } = useSettingsQuery();
@@ -164,6 +168,14 @@ export function MobileNav() {
               <AppBrandIcon className="h-9 w-9 shrink-0 rounded-2xl p-0" />
               <p className="text-[11px] uppercase tracking-[0.32em] text-brand-800">AgendaPro</p>
             </div>
+            <div className="border-b border-[#c4d5e7] py-4">
+              <p className="truncate text-base font-semibold text-ink">
+                {organization?.nomeEmpresa ?? "Configuracao inicial em andamento"}
+              </p>
+              <p className="mt-1 truncate text-sm text-slate-600">
+                {user?.nome ?? "Usuario"}
+              </p>
+            </div>
             <nav className="mt-5 min-h-0 flex-1 overflow-y-auto">
               <div className="space-y-1">
         {visibleLinks.map((link) => (
@@ -188,6 +200,14 @@ export function MobileNav() {
         ))}
               </div>
             </nav>
+            <div className="mt-4 border-t border-[#c4d5e7] pt-4">
+              <Button className="w-full bg-night text-white hover:bg-ink" onClick={() => void signOut()}>
+                Sair
+              </Button>
+              <p className="mt-3 text-center text-[10px] leading-4 text-slate-500" aria-label={SYSTEM_VERSION_LABEL}>
+                {SYSTEM_VERSION_LABEL}
+              </p>
+            </div>
           </aside>
         </>
       ) : null}
