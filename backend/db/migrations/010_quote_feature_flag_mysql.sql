@@ -8,7 +8,7 @@ SET @has_criar_orcamentos := (
 
 SET @sql := IF(
   @has_criar_orcamentos = 0,
-  'ALTER TABLE app_settings ADD COLUMN criar_orcamentos TINYINT(1) NOT NULL DEFAULT 1 AFTER timezone',
+  'ALTER TABLE app_settings ADD COLUMN criar_orcamentos TINYINT(1) NOT NULL DEFAULT 0 AFTER timezone',
   'SELECT 1'
 );
 

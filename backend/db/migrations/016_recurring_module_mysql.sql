@@ -9,7 +9,7 @@ SET @has_criar_recorrencias := (
 );
 SET @sql := IF(
   @has_criar_recorrencias = 0,
-  'ALTER TABLE app_settings ADD COLUMN criar_recorrencias TINYINT(1) NOT NULL DEFAULT 1 AFTER criar_orcamentos',
+  'ALTER TABLE app_settings ADD COLUMN criar_recorrencias TINYINT(1) NOT NULL DEFAULT 0 AFTER criar_orcamentos',
   'SELECT 1'
 );
 PREPARE stmt FROM @sql;

@@ -226,6 +226,11 @@ export function SettingsPage({ section }: SettingsPageProps) {
       return;
     }
 
+    if (!isValidTime(horaInicioAgenda) || !isValidTime(horaFimAgenda) || toMinutes(horaFimAgenda) <= toMinutes(horaInicioAgenda)) {
+      setCompanyValidationError("Preencha horarios validos; a hora final deve ser maior que a inicial.");
+      return;
+    }
+
     if (!billingPostalCode.trim() || !isValidCep(billingPostalCode)) {
       setCompanyValidationError("CEP invalido. Use 8 digitos.");
       return;
@@ -237,7 +242,7 @@ export function SettingsPage({ section }: SettingsPageProps) {
     }
 
     try {
-      await updateOrganization({
+      await Promise.all([updateOrganization({
         nomeEmpresa: normalizedName,
         emailResponsavel: normalizedEmail,
         telefone: companyPhone.trim(),
@@ -248,7 +253,7 @@ export function SettingsPage({ section }: SettingsPageProps) {
         billingPostalCode: normalizeDocument(billingPostalCode) || null,
         billingProvince: billingProvince.trim() || null,
         billingCityIbge: normalizeDocument(billingCityIbge) || null,
-      });
+      }), updateSettings({ subtitulo: subtitulo.trim(), horaInicioAgenda, horaFimAgenda })]);
 
       setSuccessMessage("Dados da empresa atualizados com sucesso.");
     } catch {
@@ -444,13 +449,6 @@ export function SettingsPage({ section }: SettingsPageProps) {
             </p>
           </div>
 
-          <div className="rounded-[22px] border border-slate-200 bg-slate-50/80 px-4 py-4">
-            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Checkout com cartao</p>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              Para liberar o checkout hospedado com cartao recorrente no Asaas, preencha tambem os dados de endereco do pagador.
-            </p>
-          </div>
-
           <div className="space-y-2">
             <label className="text-sm font-medium text-ink" htmlFor="billing-address">
               Endereco de billing
@@ -525,11 +523,27 @@ export function SettingsPage({ section }: SettingsPageProps) {
                 : "A cidade e o codigo IBGE sao resolvidos automaticamente pelo CEP."}
           </div>
 
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-ink" htmlFor="company-subtitle">Subtitulo</label>
+            <input className="app-input" id="company-subtitle" onChange={(event) => setSubtitulo(event.target.value)} placeholder="Opcional" value={subtitulo} />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-ink" htmlFor="company-agenda-start">Hora inicial</label>
+              <input className="app-input" id="company-agenda-start" onChange={(event) => setHoraInicioAgenda(event.target.value)} type="time" value={horaInicioAgenda} />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-ink" htmlFor="company-agenda-end">Hora final</label>
+              <input className="app-input" id="company-agenda-end" onChange={(event) => setHoraFimAgenda(event.target.value)} type="time" value={horaFimAgenda} />
+            </div>
+          </div>
+
           {companyErrorMessage ? <p className="text-sm text-rose-600">{companyErrorMessage}</p> : null}
 
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-            <Button className="w-full sm:w-auto" disabled={isUpdatingOrganization} type="submit">
-              {isUpdatingOrganization ? "Salvando empresa..." : "Salvar dados da empresa"}
+            <Button className="w-full sm:w-auto" disabled={isUpdatingOrganization || isUpdatingSettings} type="submit">
+              {isUpdatingOrganization || isUpdatingSettings ? "Salvando empresa..." : "Salvar dados da empresa"}
             </Button>
             <Button
               className="w-full sm:w-auto"
@@ -578,47 +592,6 @@ export function SettingsPage({ section }: SettingsPageProps) {
             />
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-ink" htmlFor="business-subtitle">
-              Subtitulo
-            </label>
-            <input
-              className="app-input"
-              id="business-subtitle"
-              onChange={(event) => setSubtitulo(event.target.value)}
-              placeholder="Opcional"
-              value={subtitulo}
-            />
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-ink" htmlFor="agenda-start">
-                Hora inicial
-              </label>
-              <input
-                className="app-input"
-                id="agenda-start"
-                onChange={(event) => setHoraInicioAgenda(event.target.value)}
-                type="time"
-                value={horaInicioAgenda}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-ink" htmlFor="agenda-end">
-                Hora final
-              </label>
-              <input
-                className="app-input"
-                id="agenda-end"
-                onChange={(event) => setHoraFimAgenda(event.target.value)}
-                type="time"
-                value={horaFimAgenda}
-              />
-            </div>
-          </div>
-
           <label className="app-toggle-panel">
             <input
               checked={permitirConflito}
@@ -634,20 +607,13 @@ export function SettingsPage({ section }: SettingsPageProps) {
             </span>
           </label>
 
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="flex">
             <Button
               className="border-emerald-600 bg-emerald-500 text-white hover:bg-emerald-600 focus:ring-emerald-100"
               onClick={() => navigate("/configuracoes/whatsapp")}
               type="button"
             >
               Configurar WhatsApp
-            </Button>
-            <Button
-              className="border-slate-300 bg-slate-500 text-white hover:bg-slate-600 focus:ring-slate-200"
-              onClick={() => navigate("/configuracoes/orcamentos")}
-              type="button"
-            >
-              Configurar orcamentos
             </Button>
           </div>
 

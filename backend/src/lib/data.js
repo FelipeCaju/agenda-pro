@@ -732,8 +732,8 @@ function mapAppSettings(row) {
     duracao_padrao: Number(row.duracao_padrao),
     moeda: row.moeda,
     timezone: row.timezone,
-    criar_orcamentos: toBoolean(row.criar_orcamentos ?? 1),
-    criar_recorrencias: toBoolean(row.criar_recorrencias ?? 1),
+    criar_orcamentos: toBoolean(row.criar_orcamentos ?? 0),
+    criar_recorrencias: toBoolean(row.criar_recorrencias ?? 0),
     permitir_conflito: toBoolean(row.permitir_conflito),
     lembretes_ativos: toBoolean(row.lembretes_ativos),
     lembrete_horas_antes: Number(row.lembrete_horas_antes),
@@ -966,14 +966,14 @@ async function ensurePlatformSettingsInfrastructure() {
     if (!(await hasColumn("app_settings", "criar_orcamentos"))) {
       await execute(
         `ALTER TABLE app_settings
-          ADD COLUMN criar_orcamentos TINYINT(1) NOT NULL DEFAULT 1 AFTER timezone`,
+          ADD COLUMN criar_orcamentos TINYINT(1) NOT NULL DEFAULT 0 AFTER timezone`,
       );
     }
 
     if (!(await hasColumn("app_settings", "criar_recorrencias"))) {
       await execute(
         `ALTER TABLE app_settings
-          ADD COLUMN criar_recorrencias TINYINT(1) NOT NULL DEFAULT 1 AFTER criar_orcamentos`,
+          ADD COLUMN criar_recorrencias TINYINT(1) NOT NULL DEFAULT 0 AFTER criar_orcamentos`,
       );
     }
 
@@ -2176,10 +2176,10 @@ export async function createOrganization({
       `INSERT INTO app_settings (
         id, organization_id, nome_negocio, subtitulo, logo, cor_primaria,
         hora_inicio_agenda, hora_fim_agenda, duracao_padrao, moeda, timezone,
-        criar_orcamentos, permitir_conflito, lembretes_ativos, lembrete_horas_antes, lembrete_mensagem,
+        criar_orcamentos, criar_recorrencias, permitir_conflito, lembretes_ativos, lembrete_horas_antes, lembrete_mensagem,
         whatsapp_ativo, whatsapp_api_provider, whatsapp_api_url, whatsapp_api_token,
         whatsapp_instance_id, whatsapp_tempo_lembrete_minutos
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         randomUUID(),
         organization.id,
@@ -2192,7 +2192,8 @@ export async function createOrganization({
         30,
         "BRL",
         "America/Sao_Paulo",
-        1,
+        0,
+        0,
         0,
         1,
         24,

@@ -240,6 +240,13 @@ export function WhatsappSettingsPage() {
                       const nextValue = !whatsappEnabled;
                       setLembretesAtivos(nextValue);
                       setWhatsappAtivo(nextValue);
+                      setSuccessMessage("");
+                      void updateSettings({ lembretesAtivos: nextValue, whatsappAtivo: nextValue })
+                        .then(() => setSuccessMessage(nextValue ? "Lembretes ativados." : "Lembretes desativados."))
+                        .catch(() => {
+                          setLembretesAtivos(!nextValue);
+                          setWhatsappAtivo(!nextValue);
+                        });
                     }}
                     type="button"
                   >
