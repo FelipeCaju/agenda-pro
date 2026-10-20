@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { NavLink } from "react-router-dom";
+import { AppBrandIcon } from "@/components/ui/app-brand-icon";
 import {
   useOrganizationPaymentsQuery,
   useOrganizationQuery,
@@ -15,6 +17,7 @@ const links = [
   { to: "/clientes", label: "Clientes", icon: "users" },
   { to: "/servicos", label: "Servicos", icon: "scissors" },
   { to: "/planos-atendimento", label: "Planos", icon: "receipt" },
+  { to: "/configuracoes/whatsapp", label: "WhatsApp", icon: "whatsapp" },
   { to: "/configuracoes", label: "Config.", icon: "settings" },
   { to: "/dados-da-empresa", label: "Empresa", icon: "building" },
 ];
@@ -103,6 +106,15 @@ function NavIcon({ icon }: { icon: (typeof links)[number]["icon"] }) {
     );
   }
 
+  if (icon === "whatsapp") {
+    return (
+      <svg {...baseProps}>
+        <path d="M8.5 18.2 4 20l1.8-4.2A7.5 7.5 0 1 1 19.5 12a7.4 7.4 0 0 1-11 6.2Z" />
+        <path d="M9.5 9.3c0 2.8 2.4 5.2 5.2 5.2" />
+      </svg>
+    );
+  }
+
   return (
     <svg {...baseProps}>
       <circle cx="12" cy="12" r="3" />
@@ -119,6 +131,7 @@ function NavIcon({ icon }: { icon: (typeof links)[number]["icon"] }) {
 }
 
 export function MobileNav() {
+  const [isOpen, setIsOpen] = useState(false);
   const { data: organization } = useOrganizationQuery();
   const { data: payments = [] } = useOrganizationPaymentsQuery();
   const { data: settings } = useSettingsQuery();
@@ -130,21 +143,38 @@ export function MobileNav() {
   );
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-slate-200 bg-white px-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-2 xl:hidden">
-      <div
-        className={cn(
-          "mx-auto max-w-3xl gap-1.5 rounded-[24px] bg-white p-2 grid",
-        )}
-        style={{ gridTemplateColumns: `repeat(${visibleLinks.length}, minmax(0, 1fr))` }}
+    <div className="xl:hidden">
+      <button
+        aria-expanded={isOpen}
+        aria-label={isOpen ? "Fechar menu" : "Abrir menu"}
+        className="fixed left-3 top-[max(env(safe-area-inset-top),0.75rem)] z-[70] flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-ink shadow-[0_8px_18px_rgba(15,23,42,0.12)] transition hover:bg-slate-50"
+        onClick={() => setIsOpen((current) => !current)}
+        type="button"
       >
+        <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2" viewBox="0 0 24 24">
+          {isOpen ? <path d="m6 6 12 12M18 6 6 18" /> : <path d="M4 7h16M4 12h16M4 17h16" />}
+        </svg>
+      </button>
+
+      {isOpen ? (
+        <>
+          <button aria-label="Fechar menu" className="fixed inset-0 z-50 bg-slate-950/30" onClick={() => setIsOpen(false)} type="button" />
+          <aside className="fixed inset-y-0 left-0 z-[60] flex w-[272px] max-w-[86vw] flex-col border-r border-[#c9d9ea] bg-[#dce8f5] px-5 pb-6 pt-[max(calc(env(safe-area-inset-top)+4.75rem),5rem)] shadow-2xl">
+            <div className="flex items-center gap-2 border-b border-[#c4d5e7] pb-4">
+              <AppBrandIcon className="h-9 w-9 shrink-0 rounded-2xl p-0" />
+              <p className="text-[11px] uppercase tracking-[0.32em] text-brand-800">AgendaPro</p>
+            </div>
+            <nav className="mt-5 min-h-0 flex-1 overflow-y-auto">
+              <div className="space-y-1">
         {visibleLinks.map((link) => (
           <NavLink
             key={link.to}
             to={link.to}
+            onClick={() => setIsOpen(false)}
             className={({ isActive }) =>
               cn(
-                "relative flex flex-col items-center justify-center gap-1 rounded-[20px] px-2 py-2.5 text-center text-[10px] font-semibold text-slate-400 transition sm:text-xs",
-                isActive && "bg-brand-50 text-brand-700 shadow-soft",
+                "relative flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] font-semibold text-slate-600 transition hover:bg-white/45 hover:text-brand-800",
+                isActive && "bg-white/75 text-brand-800 shadow-[0_6px_18px_rgba(37,99,235,0.08)]",
               )
             }
           >
@@ -155,7 +185,11 @@ export function MobileNav() {
             {link.label}
           </NavLink>
         ))}
+              </div>
+            </nav>
+          </aside>
+        </>
+      ) : null}
       </div>
-    </nav>
   );
 }

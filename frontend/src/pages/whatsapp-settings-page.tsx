@@ -7,7 +7,6 @@ import { FullscreenState } from "@/components/ui/fullscreen-state";
 import { useAuth } from "@/hooks/use-auth";
 import { useSettingsMutations } from "@/hooks/use-settings-mutations";
 import { useSettingsQuery } from "@/hooks/use-settings-query";
-import { useWhatsappStatusQuery } from "@/hooks/use-whatsapp-status-query";
 
 const WHATSAPP_REMINDER_TEMPLATE =
   "Bom dia, aqui e da {{nome_organizacao}}.\n\nOie {{cliente_nome}}!\n\nPassando para te lembrar do seu horario de {{servico_nome}}.\n\nData: {{data}}\nHorario: {{horario}}\n\nEstamos te aguardando por aqui.";
@@ -29,25 +28,6 @@ function WhatsappBadgeIcon() {
       >
         <path d="M8.5 18.2 4 20l1.8-4.2A7.5 7.5 0 1 1 19.5 12a7.4 7.4 0 0 1-11 6.2Z" />
         <path d="M9.5 9.3c0 2.8 2.4 5.2 5.2 5.2" />
-      </svg>
-    </div>
-  );
-}
-
-function ShieldNoteIcon() {
-  return (
-    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/80 text-emerald-600">
-      <svg
-        className="h-4 w-4"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1.8"
-        viewBox="0 0 24 24"
-      >
-        <path d="M12 3.5 18.5 6v5.6c0 4.2-2.7 7.4-6.5 8.9-3.8-1.5-6.5-4.7-6.5-8.9V6L12 3.5Z" />
-        <path d="m9.5 12 1.7 1.7 3.6-3.8" />
       </svg>
     </div>
   );
@@ -90,7 +70,6 @@ export function WhatsappSettingsPage() {
     isError,
     isLoading,
   } = useSettingsQuery();
-  const { data: whatsappStatus } = useWhatsappStatusQuery();
   const { updateSettings, isUpdatingSettings, updateSettingsError } = useSettingsMutations();
   const [lembretesAtivos, setLembretesAtivos] = useState(true);
   const [whatsappAtivo, setWhatsappAtivo] = useState(false);
@@ -113,17 +92,7 @@ export function WhatsappSettingsPage() {
     setNomeNegocio(settings.nomeNegocio ?? "AgendaPro");
   }, [settings]);
 
-  const isDeliveryAvailable = Boolean(whatsappStatus?.configurado);
   const whatsappEnabled = lembretesAtivos && whatsappAtivo;
-  const subtitleHelper = useMemo(
-    () =>
-      !isDeliveryAvailable
-        ? "O envio por WhatsApp esta pausado porque nao ha provedor configurado."
-        : whatsappEnabled
-        ? "O sistema envia a mensagem automaticamente no WhatsApp antes do atendimento."
-        : "As mensagens automaticas do WhatsApp ficam pausadas para esta empresa.",
-    [isDeliveryAvailable, whatsappEnabled],
-  );
   const whatsappPreviewMessage = useMemo(
     () => buildPreviewMessage(lembreteMensagem, nomeNegocio.trim()),
     [nomeNegocio, lembreteMensagem],
@@ -207,20 +176,7 @@ export function WhatsappSettingsPage() {
                   Lembretes por WhatsApp
                 </h3>
                 <p className="mt-1 text-sm text-slate-500">
-                  {isDeliveryAvailable
-                    ? "Envio automatico antes do atendimento, sem uso de email."
-                    : "Envios pausados enquanto o provedor de WhatsApp estiver desativado."}
-                </p>
-              </div>
-            </div>
-
-            <div className="app-whatsapp-note">
-              <div className="flex items-start gap-3">
-                <ShieldNoteIcon />
-                <p className="text-sm font-medium leading-6 text-emerald-700">
-                  {isDeliveryAvailable
-                    ? "Integracao gerenciada automaticamente pelo sistema. Nenhuma configuracao tecnica necessaria."
-                    : "Nenhuma mensagem sera enviada por este sistema ate um provedor de WhatsApp ser reativado."}
+                  Envio automatico antes do atendimento, sem uso de email.
                 </p>
               </div>
             </div>
@@ -230,7 +186,6 @@ export function WhatsappSettingsPage() {
                 <div className="flex items-center justify-between gap-4">
                   <div className="min-w-0">
                     <p className="text-base font-semibold text-ink">Ativar lembretes</p>
-                    <p className="mt-1 text-sm text-slate-500">{subtitleHelper}</p>
                   </div>
                   <button
                     aria-pressed={whatsappEnabled}
@@ -253,7 +208,6 @@ export function WhatsappSettingsPage() {
                     <span className="app-switch-thumb" />
                   </button>
                 </div>
-                <p className="mt-2 text-xs text-slate-500">Desativar lembretes de atendimento nao desativa mensagens de cobranca ou renovacao de planos.</p>
               </div>
 
               <div className="space-y-3 rounded-[22px] bg-slate-50 px-4 py-4">

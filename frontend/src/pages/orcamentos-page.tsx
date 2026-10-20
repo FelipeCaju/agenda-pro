@@ -24,7 +24,7 @@ export function OrcamentosPage() {
   const { data: quotes = [], error, isError, isLoading } = useOrcamentosQuery();
 
   return (
-    <section className="space-y-4 pb-24">
+    <section className="space-y-4">
       <MobilePageHeader
         action={
           <Button className="hidden xl:inline-flex" onClick={() => navigate("/orcamentos/novo")} type="button">

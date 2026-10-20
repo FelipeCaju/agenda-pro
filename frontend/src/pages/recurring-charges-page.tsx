@@ -70,7 +70,7 @@ export function RecurringChargesPage() {
   }
 
   return (
-    <section className="space-y-4 pb-24">
+    <section className="space-y-4">
       <MobilePageHeader
         action={
           <Button onClick={() => navigate("/recorrencia")} type="button" variant="secondary">

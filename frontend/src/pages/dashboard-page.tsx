@@ -504,7 +504,7 @@ export function DashboardPage() {
   }
 
   return (
-    <section className="space-y-4 pb-24 xl:space-y-5">
+    <section className="space-y-4 xl:space-y-5">
       <MobilePageHeader subtitle="Agenda, recorrencia e orcamentos" title="Painel" />
 
       <Card className="rounded-[22px] border border-slate-200/70 bg-white px-4 py-4 shadow-[0_4px_16px_rgba(15,23,36,0.05)] xl:px-5 xl:py-5">

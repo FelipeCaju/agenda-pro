@@ -97,7 +97,7 @@ export function NewAppointmentPage() {
   }
 
   return (
-    <section className="space-y-4 pb-24">
+    <section className="space-y-4">
       <MobilePageHeader
         leading={
           <button className="text-slate-500" onClick={() => navigate("/agenda")} type="button">

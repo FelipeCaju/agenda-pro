@@ -76,7 +76,7 @@ export function ServiceFormPage() {
   }
 
   return (
-    <section className="space-y-4 pb-24">
+    <section className="space-y-4">
       <MobilePageHeader
         leading={
           <Link className="inline-flex" to="/servicos">
