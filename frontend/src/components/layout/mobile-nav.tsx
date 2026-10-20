@@ -163,10 +163,12 @@ export function MobileNav() {
       {isOpen ? (
         <>
           <button aria-label="Fechar menu" className="fixed inset-0 z-50 bg-slate-950/30" onClick={() => setIsOpen(false)} type="button" />
-          <aside className="fixed inset-y-0 left-0 z-[60] flex w-[272px] max-w-[86vw] flex-col border-r border-[#c9d9ea] bg-[#dce8f5] px-5 pb-6 pt-[max(calc(env(safe-area-inset-top)+3.75rem),4rem)] shadow-2xl">
-            <div className="flex items-center gap-2 border-b border-[#c4d5e7] pb-4">
-              <AppBrandIcon className="h-9 w-9 shrink-0 rounded-2xl p-0" />
-              <p className="text-[11px] uppercase tracking-[0.32em] text-brand-800">AgendaPro</p>
+          <aside className="fixed inset-y-0 left-0 z-[60] flex w-[272px] max-w-[86vw] flex-col border-r border-[#c9d9ea] bg-[#dce8f5] px-5 pb-6 pt-[max(env(safe-area-inset-top),0.75rem)] shadow-2xl">
+            <div className="border-b border-[#c4d5e7] pb-3">
+              <div className="ml-12 flex items-center gap-2">
+                <AppBrandIcon className="h-9 w-9 shrink-0 rounded-2xl p-0" />
+                <p className="text-[11px] uppercase tracking-[0.32em] text-brand-800">AgendaPro</p>
+              </div>
             </div>
             <div className="border-b border-[#c4d5e7] py-4">
               <p className="truncate text-base font-semibold text-ink">
