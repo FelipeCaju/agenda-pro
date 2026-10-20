@@ -14,8 +14,7 @@ import { query } from "../lib/database.js";
 
 const VALID_REPLY_STATUS = ["pendente", "confirmado", "cancelado", "sem_resposta"];
 const DEFAULT_WHATSAPP_REMINDER_TEMPLATE =
-  "Bom dia, aqui e da {{nome_organizacao}}.\n\nOie {{cliente_nome}}! \u{1F44B}\n\nPassando para te lembrar do seu horario de {{servico_nome}}.\n\n\u{1F4C5} Data: {{data}}\n\u23F0 Horario: {{horario}}\n\nEstamos te aguardando por aqui. \u{1F49A}\n\nConfirmar agendamento?\nResponda com Sim ou Nao.";
-const WHATSAPP_CONFIRMATION_PROMPT = "Confirmar agendamento?\nResponda com Sim ou Nao.";
+  "Bom dia, aqui e da {{nome_organizacao}}.\n\nOie {{cliente_nome}}! \u{1F44B}\n\nPassando para te lembrar do seu horario de {{servico_nome}}.\n\n\u{1F4C5} Data: {{data}}\n\u23F0 Horario: {{horario}}\n\nEstamos te aguardando por aqui. \u{1F49A}";
 const LEGACY_WHATSAPP_CONFIRMATION_PROMPT = "Responda com 1 para confirmar ou 2 para cancelar.";
 
 function buildError(message, statusCode) {
@@ -93,12 +92,23 @@ function normalizeReminderTemplate(template) {
     return DEFAULT_WHATSAPP_REMINDER_TEMPLATE;
   }
 
-  const withoutLegacyPrompt = normalized
+  return normalized
     .replace(LEGACY_WHATSAPP_CONFIRMATION_PROMPT, "")
-    .replace(WHATSAPP_CONFIRMATION_PROMPT, "")
+    .replace("Confirmar agendamento?\nResponda com Sim ou Nao.", "")
     .trim();
+}
 
-  return `${withoutLegacyPrompt}\n\n${WHATSAPP_CONFIRMATION_PROMPT}`;
+function getReminderLeadMinutes(settings) {
+  try {
+    const source = Array.isArray(settings.whatsapp_lembrete_minutos)
+      ? settings.whatsapp_lembrete_minutos
+      : JSON.parse(settings.whatsapp_lembrete_minutos || "[]");
+    const values = [...new Set(source.map(Number).filter((value) => Number.isInteger(value) && value >= 0 && value <= 10080))];
+    if (values.length) return values.slice(0, 3);
+  } catch {
+    // Mantem compatibilidade com configuracoes anteriores.
+  }
+  return [Number(settings.whatsapp_tempo_lembrete_minutos ?? 60)];
 }
 
 function buildReminderStatus(appointment) {
@@ -185,18 +195,19 @@ function buildReminderMessage({ appointment, settings }) {
     .replaceAll("{{data}}", formatDateBR(appointment.data));
 }
 
-export function isReminderDue({ appointment, settings, now }) {
+export function isReminderDue({ appointment, settings, now, leadMinutes }) {
   if (!settings.lembretes_ativos || !settings.whatsapp_ativo) {
     return false;
   }
 
-  if (appointment.lembrete_enviado || ["cancelado", "concluido"].includes(appointment.status)) {
+  if ((leadMinutes === undefined && appointment.lembrete_enviado) || ["cancelado", "concluido"].includes(appointment.status)) {
     return false;
   }
 
+  const reminderLeadMinutes = leadMinutes ?? Number(settings.whatsapp_tempo_lembrete_minutos ?? 60);
   const appointmentAt = toDateTime(appointment.data, appointment.horario_inicial, settings.timezone);
   const reminderAt = new Date(
-    appointmentAt.getTime() - Number(settings.whatsapp_tempo_lembrete_minutos ?? 0) * 60 * 1000,
+    appointmentAt.getTime() - reminderLeadMinutes * 60 * 1000,
   );
 
   return reminderAt <= now && appointmentAt >= now;
@@ -290,9 +301,6 @@ export async function processAutomaticReminders() {
     }
 
     for (const appointment of appointments) {
-      if (!isReminderDue({ appointment, settings, now })) {
-        continue;
-      }
 
       const client = clientsById.get(appointment.cliente_id);
 
@@ -300,11 +308,14 @@ export async function processAutomaticReminders() {
         continue;
       }
 
+      for (const leadMinutes of getReminderLeadMinutes(settings)) {
+      if (!isReminderDue({ appointment, settings, now, leadMinutes })) continue;
+      const deliveryKind = `reminder-${leadMinutes}`;
       try {
-        await withMessageLock("reminder", organization.id, appointment.id, async () => {
+        await withMessageLock(deliveryKind, organization.id, appointment.id, async () => {
         const current = await getOrganizationAppointment(organization.id, appointment.id);
-        if (!isReminderDue({ appointment: current, settings, now: new Date() })) return;
-        if (!(await beginMessageDelivery(organization.id, "reminder", appointment.id))) return;
+        if (!isReminderDue({ appointment: current, settings, now: new Date(), leadMinutes })) return;
+        if (!(await beginMessageDelivery(organization.id, deliveryKind, appointment.id))) return;
         try {
         await sendWhatsappMessage({
           organizationId: organization.id,
@@ -312,7 +323,7 @@ export async function processAutomaticReminders() {
           message: buildReminderMessage({ appointment: current, settings }),
         });
         } catch (error) {
-          await finishMessageDelivery(organization.id, "reminder", appointment.id, error.deliveryUncertain ? "incerto" : "falha", error.message);
+          await finishMessageDelivery(organization.id, deliveryKind, appointment.id, error.deliveryUncertain ? "incerto" : "falha", error.message);
           throw error;
         }
 
@@ -323,13 +334,14 @@ export async function processAutomaticReminders() {
           data_envio_lembrete: nowIso(),
           resposta_whatsapp: null,
         });
-        await finishMessageDelivery(organization.id, "reminder", appointment.id, "enviado");
+        await finishMessageDelivery(organization.id, deliveryKind, appointment.id, "enviado");
         });
       } catch (error) {
         console.error(
           `Falha ao enviar lembrete automatico do agendamento ${appointment.id}:`,
           error.message ?? error,
         );
+      }
       }
     }
   }

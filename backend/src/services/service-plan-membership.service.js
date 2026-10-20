@@ -11,7 +11,7 @@ function fail(message, statusCode = 400) {
 
 export async function listPlanMemberships(organizationId) {
   return query(`SELECT m.id, m.plan_id AS planId, m.client_id AS clientId, m.plan_name AS planName,
-    m.price_cents AS priceCents, m.duration_months AS durationMonths, m.anchor_date AS anchorDate,
+    m.price_cents AS priceCents, m.duration_months AS durationMonths, m.appointment_mode AS appointmentMode, m.appointment_count AS appointmentCount, m.anchor_date AS anchorDate,
     m.end_date AS endDate, m.start_time AS startTime, c.nome AS clientName, r.status AS reminderStatus, r.error_message AS reminderError
     FROM service_plan_memberships m JOIN clients c ON c.organization_id = m.organization_id AND c.id = m.client_id
     LEFT JOIN service_plan_periods p ON p.organization_id = m.organization_id AND p.membership_id = m.id AND p.end_date = m.end_date
@@ -54,7 +54,7 @@ async function prepare(organizationId, input, membershipId) {
   let anchorDate;
   if (membershipId) {
     const membership = await getMembership(organizationId, membershipId);
-    plan = { id: membership.plan_id, name: membership.plan_name, priceCents: Number(membership.price_cents), durationMonths: Number(membership.duration_months), serviceIds: JSON.parse(membership.service_ids) };
+    plan = { id: membership.plan_id, name: membership.plan_name, priceCents: Number(membership.price_cents), durationMonths: Number(membership.duration_months), appointmentMode: membership.appointment_mode === "quantity" ? "quantity" : "weekly", appointmentCount: membership.appointment_count === null ? null : Number(membership.appointment_count), serviceIds: JSON.parse(membership.service_ids) };
     clientId = membership.client_id;
     professionalId = membership.professional_id;
     startTime = String(membership.start_time).slice(0, 5);
@@ -70,7 +70,7 @@ async function prepare(organizationId, input, membershipId) {
     anchorDate = startDate;
   }
   let period;
-  try { period = buildServicePlanPeriod(startDate, plan.durationMonths, anchorDate); }
+  try { period = buildServicePlanPeriod(startDate, plan.durationMonths, anchorDate, plan.appointmentMode, plan.appointmentCount); }
   catch (error) { throw fail(error.message); }
   const appointmentInput = { cliente_id: clientId, profissional_id: professionalId, horario_inicial: startTime,
     valor: 0, payment_status: "pago", status: "pendente", items: plan.serviceIds.map((id) => ({ servico_id: id, valor_unitario: 0, valor_total: 0 })) };
@@ -108,8 +108,8 @@ export async function savePlanMembership(organizationId, input, membershipId = n
     if (membershipId) {
       await connection.execute("UPDATE service_plan_memberships SET end_date = ? WHERE organization_id = ? AND id = ?", [prepared.period.endDateExclusive, organizationId, id]);
     } else {
-      await connection.execute(`INSERT INTO service_plan_memberships (id, organization_id, plan_id, client_id, professional_id, plan_name, service_ids, duration_months, price_cents, anchor_date, end_date, start_time)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [id, organizationId, prepared.plan.id, prepared.clientId, prepared.professionalId, prepared.plan.name, JSON.stringify(prepared.plan.serviceIds), prepared.plan.durationMonths, prepared.plan.priceCents, prepared.anchorDate, prepared.period.endDateExclusive, prepared.startTime]);
+      await connection.execute(`INSERT INTO service_plan_memberships (id, organization_id, plan_id, client_id, professional_id, plan_name, service_ids, duration_months, appointment_mode, appointment_count, price_cents, anchor_date, end_date, start_time)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [id, organizationId, prepared.plan.id, prepared.clientId, prepared.professionalId, prepared.plan.name, JSON.stringify(prepared.plan.serviceIds), prepared.plan.durationMonths, prepared.plan.appointmentMode, prepared.plan.appointmentCount, prepared.plan.priceCents, prepared.anchorDate, prepared.period.endDateExclusive, prepared.startTime]);
     }
     await connection.execute("INSERT INTO service_plan_periods (id, organization_id, membership_id, start_date, end_date, amount_cents, paid_at) VALUES (?, ?, ?, ?, ?, ?, NOW())", [periodId, organizationId, id, prepared.period.startDate, prepared.period.endDateExclusive, prepared.plan.priceCents]);
     for (const [index, appointment] of prepared.appointments.entries()) {

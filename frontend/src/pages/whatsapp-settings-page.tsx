@@ -10,23 +10,10 @@ import { useSettingsQuery } from "@/hooks/use-settings-query";
 import { useWhatsappStatusQuery } from "@/hooks/use-whatsapp-status-query";
 
 const WHATSAPP_REMINDER_TEMPLATE =
-  "Bom dia, aqui e da {{nome_organizacao}}.\n\nOie {{cliente_nome}}!\n\nPassando para te lembrar do seu horario de {{servico_nome}}.\n\nData: {{data}}\nHorario: {{horario}}\n\nEstamos te aguardando por aqui.\n\nConfirmar agendamento?\nResponda com Sim ou Nao.";
-const WHATSAPP_CONFIRMATION_PROMPT = "Confirmar agendamento?\nResponda com Sim ou Nao.";
+  "Bom dia, aqui e da {{nome_organizacao}}.\n\nOie {{cliente_nome}}!\n\nPassando para te lembrar do seu horario de {{servico_nome}}.\n\nData: {{data}}\nHorario: {{horario}}\n\nEstamos te aguardando por aqui.";
 const LEGACY_WHATSAPP_CONFIRMATION_PROMPT = "Responda com 1 para confirmar ou 2 para cancelar.";
 
-function appendConfirmationPrompt(template: string) {
-  const normalized = template
-    .trim()
-    .replace(LEGACY_WHATSAPP_CONFIRMATION_PROMPT, "")
-    .replace(WHATSAPP_CONFIRMATION_PROMPT, "")
-    .trim();
-
-  if (!normalized) {
-    return WHATSAPP_REMINDER_TEMPLATE;
-  }
-
-  return `${normalized}\n\n${WHATSAPP_CONFIRMATION_PROMPT}`;
-}
+type ReminderSchedule = { amount: string; unit: "minutes" | "days" };
 
 function WhatsappBadgeIcon() {
   return (
@@ -67,7 +54,7 @@ function ShieldNoteIcon() {
 }
 
 function buildPreviewMessage(template: string, organizationName: string) {
-  return appendConfirmationPrompt(template.trim() || WHATSAPP_REMINDER_TEMPLATE)
+  return (template.trim() || WHATSAPP_REMINDER_TEMPLATE)
     .replace(/\{\{cliente_nome\}\}/g, "Cliente")
     .replace(/\{\{nome_organizacao\}\}/g, organizationName || "AgendaPro")
     .replace(/\{\{servico_nome\}\}/g, "Atendimento")
@@ -88,7 +75,10 @@ function normalizeReminderTemplate(template?: string | null) {
     return WHATSAPP_REMINDER_TEMPLATE;
   }
 
-  return appendConfirmationPrompt(normalized);
+  return normalized
+    .replace(LEGACY_WHATSAPP_CONFIRMATION_PROMPT, "")
+    .replace("Confirmar agendamento?\nResponda com Sim ou Nao.", "")
+    .trim() || WHATSAPP_REMINDER_TEMPLATE;
 }
 
 export function WhatsappSettingsPage() {
@@ -104,8 +94,8 @@ export function WhatsappSettingsPage() {
   const { updateSettings, isUpdatingSettings, updateSettingsError } = useSettingsMutations();
   const [lembretesAtivos, setLembretesAtivos] = useState(true);
   const [whatsappAtivo, setWhatsappAtivo] = useState(false);
-  const [whatsappTempoLembreteMinutos, setWhatsappTempoLembreteMinutos] = useState("60");
-  const [reminderUnit, setReminderUnit] = useState<"minutes" | "days">("minutes");
+  const [schedules, setSchedules] = useState<ReminderSchedule[]>([{ amount: "60", unit: "minutes" }]);
+  const [lembreteMensagem, setLembreteMensagem] = useState(WHATSAPP_REMINDER_TEMPLATE);
   const [nomeNegocio, setNomeNegocio] = useState("AgendaPro");
   const [validationError, setValidationError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState("");
@@ -117,10 +107,9 @@ export function WhatsappSettingsPage() {
 
     setLembretesAtivos(Boolean(settings.lembretesAtivos));
     setWhatsappAtivo(Boolean(settings.whatsappAtivo));
-    const minutes = settings.whatsappTempoLembreteMinutos ?? 60;
-    const useDays = minutes > 0 && minutes % 1440 === 0;
-    setReminderUnit(useDays ? "days" : "minutes");
-    setWhatsappTempoLembreteMinutos(String(useDays ? minutes / 1440 : minutes));
+    const minutes = settings.whatsappReminderMinutes?.length ? settings.whatsappReminderMinutes : [settings.whatsappTempoLembreteMinutos ?? 60];
+    setSchedules(minutes.slice(0, 3).map((value) => ({ amount: String(value > 0 && value % 1440 === 0 ? value / 1440 : value), unit: value > 0 && value % 1440 === 0 ? "days" : "minutes" })));
+    setLembreteMensagem(normalizeReminderTemplate(settings.lembreteMensagem));
     setNomeNegocio(settings.nomeNegocio ?? "AgendaPro");
   }, [settings]);
 
@@ -136,28 +125,28 @@ export function WhatsappSettingsPage() {
     [isDeliveryAvailable, whatsappEnabled],
   );
   const whatsappPreviewMessage = useMemo(
-    () => buildPreviewMessage(normalizeReminderTemplate(settings?.lembreteMensagem), nomeNegocio.trim()),
-    [nomeNegocio, settings?.lembreteMensagem],
+    () => buildPreviewMessage(lembreteMensagem, nomeNegocio.trim()),
+    [nomeNegocio, lembreteMensagem],
   );
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setValidationError(null);
 
-    const amount = Number(whatsappTempoLembreteMinutos);
-    const normalizedWhatsappMinutes = amount * (reminderUnit === "days" ? 1440 : 1);
-
-    if (!whatsappTempoLembreteMinutos.trim() || !Number.isInteger(amount) || amount < 0 || normalizedWhatsappMinutes > 10080) {
-      setValidationError("Informe um numero inteiro entre 0 e 10080 minutos ou 0 e 7 dias.");
+    const normalizedSchedules = schedules.map((schedule) => Number(schedule.amount) * (schedule.unit === "days" ? 1440 : 1));
+    if (!normalizedSchedules.length || normalizedSchedules.some((value, index) => !schedules[index].amount.trim() || !Number.isInteger(value) || value < 0 || value > 10080) || new Set(normalizedSchedules).size !== normalizedSchedules.length) {
+      setValidationError("Informe ate 3 antecedencias diferentes, entre 0 e 10080 minutos.");
       return;
     }
 
     try {
       await updateSettings({
         lembretesAtivos,
-        lembreteHorasAntes: Math.ceil(normalizedWhatsappMinutes / 60),
+        lembreteHorasAntes: Math.ceil(normalizedSchedules[0] / 60),
         whatsappAtivo,
-        whatsappTempoLembreteMinutos: normalizedWhatsappMinutes,
+        whatsappTempoLembreteMinutos: normalizedSchedules[0],
+        whatsappReminderMinutes: normalizedSchedules,
+        lembreteMensagem,
       });
       setSuccessMessage("Configuracoes de WhatsApp atualizadas com sucesso.");
     } catch {
@@ -236,7 +225,7 @@ export function WhatsappSettingsPage() {
               </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4 md:grid-cols-2">
               <div className="rounded-[22px] bg-slate-50 px-4 py-4">
                 <div className="flex items-center justify-between gap-4">
                   <div className="min-w-0">
@@ -266,36 +255,13 @@ export function WhatsappSettingsPage() {
                 <p className="mt-2 text-xs text-slate-500">Desativar lembretes de atendimento nao desativa mensagens de cobranca ou renovacao de planos.</p>
               </div>
 
-              <div className="space-y-2 rounded-[22px] bg-slate-50 px-4 py-4">
-                <label className="text-sm font-medium text-ink" htmlFor="whatsapp-delay">
-                  Antecedencia do lembrete ({reminderUnit === "minutes" ? "minutos" : "dias"})
-                </label>
-                <select
-                  aria-label="Unidade da antecedencia do lembrete"
-                  className="app-select"
-                  onChange={(event) => {
-                    const unit = event.target.value as "minutes" | "days";
-                    setReminderUnit(unit);
-                    setWhatsappTempoLembreteMinutos(unit === "days" ? "1" : "60");
-                  }}
-                  value={reminderUnit}
-                >
-                  <option value="minutes">Minutos</option>
-                  <option value="days">Dias</option>
-                </select>
-                <input
-                  className="app-input"
-                  id="whatsapp-delay"
-                  min="0"
-                  max={reminderUnit === "days" ? 7 : 10080}
-                  step="1"
-                  onChange={(event) => setWhatsappTempoLembreteMinutos(event.target.value)}
-                  type="number"
-                  value={whatsappTempoLembreteMinutos}
-                />
-                <p className="text-xs text-slate-500">{reminderUnit === "days" ? "Enviado no mesmo horario do atendimento, nos dias anteriores escolhidos." : "Enviado pela quantidade de minutos escolhida antes do atendimento."}</p>
+              <div className="space-y-3 rounded-[22px] bg-slate-50 px-4 py-4">
+                <div className="flex items-center justify-between gap-3"><p className="text-sm font-medium text-ink">Antecedencias dos lembretes</p>{schedules.length < 3 ? <Button type="button" variant="secondary" onClick={() => setSchedules([...schedules, { amount: "", unit: "minutes" }])}>Adicionar</Button> : null}</div>
+                {schedules.map((schedule, index) => <div className="grid grid-cols-[1fr_9rem_auto] gap-2" key={index}><input aria-label={`Antecedencia ${index + 1}`} className="app-input" min="0" max={schedule.unit === "days" ? 7 : 10080} step="1" type="number" value={schedule.amount} onChange={(event) => setSchedules(schedules.map((item, itemIndex) => itemIndex === index ? { ...item, amount: event.target.value } : item))} /><select className="app-select" value={schedule.unit} onChange={(event) => setSchedules(schedules.map((item, itemIndex) => itemIndex === index ? { ...item, unit: event.target.value as ReminderSchedule["unit"] } : item))}><option value="minutes">Minutos</option><option value="days">Dias</option></select>{schedules.length > 1 ? <Button type="button" variant="secondary" onClick={() => setSchedules(schedules.filter((_, itemIndex) => itemIndex !== index))}>Remover</Button> : <span />}</div>)}
               </div>
             </div>
+
+            <label className="block space-y-2"><span className="text-sm font-medium text-ink">Mensagem enviada ao cliente</span><textarea className="app-textarea min-h-44" value={lembreteMensagem} onChange={(event) => setLembreteMensagem(event.target.value)} /><span className="block text-xs text-slate-500">Use as variaveis de cliente, negocio, servico, data e horario do modelo padrao.</span></label>
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">

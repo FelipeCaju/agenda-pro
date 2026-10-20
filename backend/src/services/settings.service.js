@@ -4,10 +4,9 @@ import {
 } from "../lib/data.js";
 
 const DEFAULT_WHATSAPP_REMINDER_TEMPLATE =
-  "Bom dia, aqui e da {{nome_organizacao}}.\n\nOie {{cliente_nome}}! \u{1F44B}\n\nPassando para te lembrar do seu horario de {{servico_nome}}.\n\n\u{1F4C5} Data: {{data}}\n\u23F0 Horario: {{horario}}\n\nEstamos te aguardando por aqui. \u{1F49A}\n\nConfirmar agendamento?\nResponda com Sim ou Nao.";
+  "Bom dia, aqui e da {{nome_organizacao}}.\n\nOie {{cliente_nome}}! \u{1F44B}\n\nPassando para te lembrar do seu horario de {{servico_nome}}.\n\n\u{1F4C5} Data: {{data}}\n\u23F0 Horario: {{horario}}\n\nEstamos te aguardando por aqui. \u{1F49A}";
 const DEFAULT_RECURRING_WHATSAPP_TEMPLATE =
   "Bom dia, aqui e da {EMPRESA_NOME}.\n\nOie {NOME_CLIENTE}!\n\nPassando para te lembrar da sua cobranca de {NOME_SERVICO}.\n\nValor: R$ {VALOR}\nVencimento: {DATA_VENCIMENTO}\nChave Pix: {CHAVE_PIX}\n\nSe o pagamento ja foi realizado, pode desconsiderar esta mensagem.\nObrigada!";
-const WHATSAPP_CONFIRMATION_PROMPT = "Confirmar agendamento?\nResponda com Sim ou Nao.";
 const LEGACY_WHATSAPP_CONFIRMATION_PROMPT = "Responda com 1 para confirmar ou 2 para cancelar.";
 
 function normalizeString(value) {
@@ -54,12 +53,18 @@ function normalizeReminderTemplate(value) {
     return DEFAULT_WHATSAPP_REMINDER_TEMPLATE;
   }
 
-  const withoutLegacyPrompt = normalized
-    .replace(LEGACY_WHATSAPP_CONFIRMATION_PROMPT, "")
-    .replace(WHATSAPP_CONFIRMATION_PROMPT, "")
-    .trim();
+  return normalized.replace(LEGACY_WHATSAPP_CONFIRMATION_PROMPT, "").trim();
+}
 
-  return `${withoutLegacyPrompt}\n\n${WHATSAPP_CONFIRMATION_PROMPT}`;
+function normalizeReminderMinutes(value, fallback = []) {
+  let source = fallback;
+  if (Array.isArray(value)) source = value;
+  else if (typeof value === "string") {
+    try { source = JSON.parse(value || "[]"); } catch { source = fallback; }
+  }
+  const minutes = [...new Set(source.map((item) => normalizeInteger(item)).filter((item) => Number.isFinite(item) && item >= 0 && item <= 10080))];
+  if (minutes.length > 3) throw Object.assign(new Error("Cadastre no maximo 3 lembretes de WhatsApp."), { statusCode: 400 });
+  return minutes.sort((a, b) => b - a);
 }
 
 function normalizeRecurringTemplate(value) {
@@ -90,6 +95,7 @@ function buildSettingsPayload(settings) {
     whatsapp_api_provider: settings.whatsapp_api_provider,
     whatsapp_instance_id: settings.whatsapp_instance_id,
     whatsapp_tempo_lembrete_minutos: settings.whatsapp_tempo_lembrete_minutos,
+    whatsapp_lembrete_minutos: normalizeReminderMinutes(settings.whatsapp_lembrete_minutos, [settings.whatsapp_tempo_lembrete_minutos ?? 60]),
     recurring_whatsapp_automatico: Boolean(settings.recurring_whatsapp_automatico),
     recurring_marcar_vencido_automaticamente: Boolean(
       settings.recurring_marcar_vencido_automaticamente,
@@ -122,6 +128,7 @@ export async function updateSettings({ organizationId, input }) {
   const timezone = input.timezone;
   const lembreteHorasAntes = input.lembrete_horas_antes ?? input.lembreteHorasAntes;
   const whatsappMinutes = input.whatsapp_tempo_lembrete_minutos ?? input.whatsappTempoLembreteMinutos;
+  const whatsappReminderMinutes = input.whatsapp_lembrete_minutos ?? input.whatsappReminderMinutes;
 
   if (nomeNegocio !== undefined && !normalizeString(nomeNegocio)) {
     const error = new Error("Nome do negocio e obrigatorio.");
@@ -188,6 +195,11 @@ export async function updateSettings({ organizationId, input }) {
     error.statusCode = 400;
     throw error;
   }
+  let normalizedReminderMinutes;
+  if (whatsappReminderMinutes !== undefined) {
+    try { normalizedReminderMinutes = normalizeReminderMinutes(whatsappReminderMinutes); }
+    catch (error) { throw error; }
+  }
 
   const updated = await updateAppSettingsByOrganization(organizationId, {
     nome_negocio: nomeNegocio !== undefined ? normalizeString(nomeNegocio) : undefined,
@@ -250,6 +262,8 @@ export async function updateSettings({ organizationId, input }) {
             input.whatsapp_tempo_lembrete_minutos ?? input.whatsappTempoLembreteMinutos,
           )
         : undefined,
+    whatsapp_lembrete_minutos:
+      normalizedReminderMinutes !== undefined ? JSON.stringify(normalizedReminderMinutes) : undefined,
     recurring_whatsapp_automatico:
       input.recurring_whatsapp_automatico !== undefined ||
       input.recurringWhatsappAutomatico !== undefined

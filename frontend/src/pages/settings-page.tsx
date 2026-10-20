@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { MobilePageHeader } from "@/components/layout/mobile-page-header";
 import { ManagementPage } from "@/pages/management-page";
@@ -9,16 +9,11 @@ import { PasswordField } from "@/components/ui/password-field";
 import { useAuth } from "@/hooks/use-auth";
 import { useNotificationPreferences } from "@/hooks/use-notification-preferences";
 import { useOrganizationMutations } from "@/hooks/use-organization-mutations";
-import {
-  useOrganizationPaymentsQuery,
-  useOrganizationQuery,
-} from "@/hooks/use-organization-query";
+import { useOrganizationQuery } from "@/hooks/use-organization-query";
 import { useSettingsMutations } from "@/hooks/use-settings-mutations";
 import { useSettingsQuery } from "@/hooks/use-settings-query";
 import { isValidCep, lookupCep, normalizeCep } from "@/services/cepService";
 import { authService } from "@/services/authService";
-import { getBillingPaymentAccessFromOrganization } from "@/utils/billing";
-import { formatDateBR, formatMonthYearBR } from "@/utils/date";
 import { buildNavigationState } from "@/utils/navigation";
 
 type SettingsLocationState = {
@@ -57,21 +52,6 @@ function toMinutes(value: string) {
   return hours * 60 + minutes;
 }
 
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(value);
-}
-
-function getPaymentStatusLabel(status?: string | null) {
-  if (status === "paid") return "Pago";
-  if (status === "pending") return "Pendente";
-  if (status === "overdue") return "Em atraso";
-  if (status === "canceled") return "Cancelado";
-  return "Sem status";
-}
-
 type SettingsPageProps = {
   section?: "company";
 };
@@ -87,7 +67,6 @@ export function SettingsPage({ section }: SettingsPageProps) {
     isError: isOrganizationError,
     isLoading: isLoadingOrganization,
   } = useOrganizationQuery();
-  const { data: payments = [] } = useOrganizationPaymentsQuery();
   const {
     data: settings,
     error: settingsError,
@@ -199,11 +178,6 @@ export function SettingsPage({ section }: SettingsPageProps) {
   const isInitialLoading = isLoading && !organization && !settings;
   const companyErrorMessage = companyValidationError ?? updateOrganizationError?.message ?? null;
   const appErrorMessage = appValidationError ?? updateSettingsError?.message ?? null;
-  const latestPayment = payments[0] ?? null;
-  const paymentAccess = useMemo(
-    () => getBillingPaymentAccessFromOrganization(organization, latestPayment),
-    [latestPayment, organization],
-  );
 
   async function handleBillingCepBlur() {
     if (!billingPostalCode.trim() || !isValidCep(billingPostalCode)) {
@@ -367,14 +341,10 @@ export function SettingsPage({ section }: SettingsPageProps) {
     }
   }
 
-  function handleNotificationPreferencesSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    savePreferences({
-      enabled: appNotificationsEnabled,
-      soundEnabled: appNotificationSoundEnabled,
-      reminderMinutes: notificationPreferences.reminderMinutes,
-    });
-    setSuccessMessage("Preferencias de notificacao do app atualizadas com sucesso.");
+  function saveNotificationPreferences(nextEnabled: boolean, nextSoundEnabled: boolean) {
+    setAppNotificationsEnabled(nextEnabled);
+    setAppNotificationSoundEnabled(nextSoundEnabled);
+    savePreferences({ enabled: nextEnabled, soundEnabled: nextSoundEnabled, reminderMinutes: notificationPreferences.reminderMinutes });
   }
 
   if (isInitialLoading) {
@@ -679,13 +649,6 @@ export function SettingsPage({ section }: SettingsPageProps) {
             >
               Configurar orcamentos
             </Button>
-            <Button
-              className="border-sky-300 bg-sky-500 text-white hover:bg-sky-600 focus:ring-sky-200"
-              onClick={() => navigate("/configuracoes/recorrencia")}
-              type="button"
-            >
-              Configurar recorrencia
-            </Button>
           </div>
 
           {appErrorMessage ? <p className="text-sm text-rose-600">{appErrorMessage}</p> : null}
@@ -699,98 +662,17 @@ export function SettingsPage({ section }: SettingsPageProps) {
       </details>
 
       <details className="group rounded-3xl border border-slate-200 bg-white p-4 sm:p-5">
-      <summary className="cursor-pointer text-lg font-semibold text-ink">Ultima cobranca</summary>
-      <div className="mt-4">
-      <Card>
-        <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Cobranca</p>
-        <h3 className="mt-1 text-lg font-semibold text-ink">Ultima cobranca da organizacao</h3>
-
-        {organization?.pixKey ? (
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-            <Button
-              disabled={!paymentAccess.canOpen}
-              onClick={() => navigate("/pagamento", { state: buildNavigationState(location.pathname) })}
-              type="button"
-            >
-              Abrir pagamentos
-            </Button>
-            <Button
-              onClick={() => navigate("/faturas", { state: buildNavigationState(location.pathname) })}
-              type="button"
-              variant="secondary"
-            >
-              Ver faturas
-            </Button>
-          </div>
-        ) : null}
-
-        {!paymentAccess.canOpen ? (
-          <p className="mt-4 text-sm text-slate-500">{paymentAccess.reason}</p>
-        ) : null}
-
-        {organization?.paymentNoticeVisible ? (
-          <div className="mt-4 space-y-3 rounded-2xl border border-amber-100 bg-amber-50/80 px-4 py-4">
-            <p className="text-sm font-semibold text-amber-800">Pagamento disponivel</p>
-            <p className="text-sm text-amber-700">
-              Quando o gateway confirmar o pagamento, a assinatura e liberada automaticamente.
-            </p>
-          </div>
-        ) : null}
-
-        <div className="mt-4 space-y-3">
-          {latestPayment ? (
-            <div
-              className="flex items-start justify-between gap-3 rounded-2xl border border-slate-100 bg-slate-50/80 px-3 py-3"
-              key={latestPayment.id}
-            >
-              <div className="min-w-0">
-                <p className="font-medium text-ink">{formatMonthYearBR(latestPayment.referenceMonth)}</p>
-                <p className="text-sm text-slate-500">Vencimento {formatDateBR(latestPayment.dueDate)}</p>
-                {latestPayment.paidAt ? (
-                  <p className="text-sm text-slate-500">
-                    Pago em {formatDateBR(latestPayment.paidAt)}
-                  </p>
-                ) : null}
-              </div>
-              <div className="text-right">
-                <p className="font-semibold text-ink">{formatCurrency(latestPayment.amount)}</p>
-                <p className="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-brand-600">
-                  {getPaymentStatusLabel(latestPayment.status)}
-                </p>
-              </div>
-            </div>
-          ) : (
-            <p className="text-sm text-slate-500">Nenhum pagamento registrado para esta organizacao.</p>
-          )}
-        </div>
-      </Card>
-      </div>
-      </details>
-
-      <details className="group rounded-3xl border border-slate-200 bg-white p-4 sm:p-5">
       <summary className="cursor-pointer text-lg font-semibold text-ink">Notificacoes do aplicativo</summary>
       <div className="mt-4">
-      <Card>
-        <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Notificacoes</p>
-        <h3 className="mt-1 text-lg font-semibold text-ink">Lembretes do app Android</h3>
-        <p className="mt-2 text-sm text-slate-500">
-          Essas preferencias controlam os lembretes locais do app. Na web o comportamento continua seguro sem agendar notificacoes.
-        </p>
-
-        <form className="mt-4 space-y-4" onSubmit={handleNotificationPreferencesSubmit}>
+      <Card className="space-y-4">
           <label className="app-toggle-panel">
             <input
               checked={appNotificationsEnabled}
               className="app-checkbox"
-              onChange={(event) => setAppNotificationsEnabled(event.target.checked)}
+              onChange={(event) => saveNotificationPreferences(event.target.checked, event.target.checked ? appNotificationSoundEnabled : false)}
               type="checkbox"
             />
-            <span>
-              <span className="block text-sm font-medium text-ink">Ativar lembretes locais</span>
-              <span className="block text-sm text-slate-500">
-                Agenda notificacoes antes do atendimento e reage a alteracoes da agenda.
-              </span>
-            </span>
+            <span className="block text-sm font-medium text-ink">Ativar lembretes locais</span>
           </label>
 
           <label className="app-toggle-panel">
@@ -798,21 +680,12 @@ export function SettingsPage({ section }: SettingsPageProps) {
               checked={appNotificationSoundEnabled}
               className="app-checkbox"
               disabled={!appNotificationsEnabled}
-              onChange={(event) => setAppNotificationSoundEnabled(event.target.checked)}
+              onChange={(event) => saveNotificationPreferences(appNotificationsEnabled, event.target.checked)}
               type="checkbox"
             />
-            <span>
-              <span className="block text-sm font-medium text-ink">Tocar som no lembrete</span>
-              <span className="block text-sm text-slate-500">
-                Quando desligado, o app usa canal silencioso no Android.
-              </span>
-            </span>
+            <span className="block text-sm font-medium text-ink">Tocar som no lembrete</span>
           </label>
 
-          <Button className="w-full sm:w-auto" type="submit">
-            Salvar preferencias de notificacao
-          </Button>
-        </form>
       </Card>
       </div>
       </details>

@@ -134,6 +134,7 @@ CREATE TABLE IF NOT EXISTS app_settings (
   whatsapp_api_token TEXT NULL,
   whatsapp_instance_id VARCHAR(120) NULL,
   whatsapp_tempo_lembrete_minutos INT NOT NULL DEFAULT 60,
+  whatsapp_lembrete_minutos TEXT NULL,
   recurring_whatsapp_automatico TINYINT(1) NOT NULL DEFAULT 1,
   recurring_marcar_vencido_automaticamente TINYINT(1) NOT NULL DEFAULT 1,
   recurring_whatsapp_template TEXT NULL,

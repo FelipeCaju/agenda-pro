@@ -23,6 +23,7 @@ export type AppSettings = {
   whatsappApiProvider?: string | null;
   whatsappInstanceId?: string | null;
   whatsappTempoLembreteMinutos?: number;
+  whatsappReminderMinutes?: number[];
   recurringWhatsappAutomatico?: boolean;
   recurringMarcarVencidoAutomaticamente?: boolean;
   recurringChavePixPadrao?: string | null;
@@ -53,6 +54,7 @@ type AppSettingsApiModel = {
   whatsapp_api_provider?: string | null;
   whatsapp_instance_id?: string | null;
   whatsapp_tempo_lembrete_minutos?: number;
+  whatsapp_lembrete_minutos?: number[];
   recurring_whatsapp_automatico?: boolean;
   recurring_marcar_vencido_automaticamente?: boolean;
   recurring_chave_pix_padrao?: string | null;
@@ -84,6 +86,7 @@ function mapSettings(model: AppSettingsApiModel): AppSettings {
     whatsappApiProvider: model.whatsapp_api_provider ?? null,
     whatsappInstanceId: model.whatsapp_instance_id ?? null,
     whatsappTempoLembreteMinutos: Number(model.whatsapp_tempo_lembrete_minutos ?? 0),
+    whatsappReminderMinutes: Array.isArray(model.whatsapp_lembrete_minutos) ? model.whatsapp_lembrete_minutos.map(Number) : [],
     recurringWhatsappAutomatico: Boolean(model.recurring_whatsapp_automatico),
     recurringMarcarVencidoAutomaticamente: Boolean(
       model.recurring_marcar_vencido_automaticamente,

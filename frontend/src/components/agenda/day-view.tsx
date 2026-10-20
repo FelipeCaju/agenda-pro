@@ -30,7 +30,6 @@ export function DayView({
       appointments={appointments}
       blockedSlots={blockedSlots}
       dates={[selectedDate]}
-      emptyState="Nenhum agendamento neste dia. A grade continua visivel para facilitar novos encaixes."
       endHour={endHour}
       highlightedAppointmentIds={highlightedAppointmentIds}
       onCreateAppointment={onCreateAppointment}

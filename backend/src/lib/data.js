@@ -744,6 +744,7 @@ function mapAppSettings(row) {
     whatsapp_api_token: row.whatsapp_api_token,
     whatsapp_instance_id: row.whatsapp_instance_id,
     whatsapp_tempo_lembrete_minutos: Number(row.whatsapp_tempo_lembrete_minutos),
+    whatsapp_lembrete_minutos: row.whatsapp_lembrete_minutos ?? null,
     recurring_whatsapp_automatico: toBoolean(row.recurring_whatsapp_automatico ?? 1),
     recurring_marcar_vencido_automaticamente: toBoolean(
       row.recurring_marcar_vencido_automaticamente ?? 1,
@@ -980,6 +981,13 @@ async function ensurePlatformSettingsInfrastructure() {
       await execute(
         `ALTER TABLE app_settings
           ADD COLUMN recurring_whatsapp_automatico TINYINT(1) NOT NULL DEFAULT 1 AFTER whatsapp_tempo_lembrete_minutos`,
+      );
+    }
+
+    if (!(await hasColumn("app_settings", "whatsapp_lembrete_minutos"))) {
+      await execute(
+        `ALTER TABLE app_settings
+          ADD COLUMN whatsapp_lembrete_minutos TEXT NULL AFTER whatsapp_tempo_lembrete_minutos`,
       );
     }
 
@@ -2666,6 +2674,7 @@ export async function updateAppSettingsByOrganization(organizationId, input) {
     "whatsapp_api_token",
     "whatsapp_instance_id",
     "whatsapp_tempo_lembrete_minutos",
+    "whatsapp_lembrete_minutos",
     "recurring_whatsapp_automatico",
     "recurring_marcar_vencido_automaticamente",
     "recurring_chave_pix_padrao",

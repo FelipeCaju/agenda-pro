@@ -12,7 +12,7 @@ export async function ensureServicePlanCatalog() {
   await execute(`CREATE TABLE IF NOT EXISTS service_plans (
     id CHAR(36) NOT NULL PRIMARY KEY, organization_id CHAR(36) NOT NULL,
     name VARCHAR(160) NOT NULL, description TEXT NULL, price_cents INT UNSIGNED NOT NULL,
-    duration_months TINYINT UNSIGNED NOT NULL, active TINYINT(1) NOT NULL DEFAULT 1,
+    duration_months TINYINT UNSIGNED NOT NULL, appointment_mode VARCHAR(16) NOT NULL DEFAULT 'weekly', appointment_count TINYINT UNSIGNED NULL, active TINYINT(1) NOT NULL DEFAULT 1,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     KEY idx_service_plans_org (organization_id, active)
@@ -47,6 +47,14 @@ export async function ensureServicePlanCatalog() {
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (organization_id, period_id)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+  const columns = await query(`SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'service_plans' AND COLUMN_NAME IN ('appointment_mode', 'appointment_count')`);
+  const existing = new Set(columns.map((column) => column.COLUMN_NAME));
+  if (!existing.has("appointment_mode")) await execute("ALTER TABLE service_plans ADD COLUMN appointment_mode VARCHAR(16) NOT NULL DEFAULT 'weekly' AFTER duration_months");
+  if (!existing.has("appointment_count")) await execute("ALTER TABLE service_plans ADD COLUMN appointment_count TINYINT UNSIGNED NULL AFTER appointment_mode");
+  const membershipColumns = await query(`SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'service_plan_memberships' AND COLUMN_NAME IN ('appointment_mode', 'appointment_count')`);
+  const existingMembershipColumns = new Set(membershipColumns.map((column) => column.COLUMN_NAME));
+  if (!existingMembershipColumns.has("appointment_mode")) await execute("ALTER TABLE service_plan_memberships ADD COLUMN appointment_mode VARCHAR(16) NOT NULL DEFAULT 'weekly' AFTER duration_months");
+  if (!existingMembershipColumns.has("appointment_count")) await execute("ALTER TABLE service_plan_memberships ADD COLUMN appointment_count TINYINT UNSIGNED NULL AFTER appointment_mode");
 }
 
 export async function listServicePlans(organizationId) {
@@ -54,7 +62,7 @@ export async function listServicePlans(organizationId) {
     query("SELECT * FROM service_plans WHERE organization_id = ? ORDER BY active DESC, name ASC", [organizationId]),
     query("SELECT plan_id, service_id FROM service_plan_services WHERE organization_id = ? ORDER BY position", [organizationId]),
   ]);
-  return plans.map((plan) => ({ id: plan.id, name: plan.name, description: plan.description || "", priceCents: Number(plan.price_cents), durationMonths: Number(plan.duration_months), active: Boolean(plan.active), serviceIds: services.filter((item) => item.plan_id === plan.id).map((item) => item.service_id) }));
+  return plans.map((plan) => ({ id: plan.id, name: plan.name, description: plan.description || "", priceCents: Number(plan.price_cents), durationMonths: Number(plan.duration_months), appointmentMode: plan.appointment_mode === "quantity" ? "quantity" : "weekly", appointmentCount: plan.appointment_count === null ? null : Number(plan.appointment_count), active: Boolean(plan.active), serviceIds: services.filter((item) => item.plan_id === plan.id).map((item) => item.service_id) }));
 }
 
 export async function saveServicePlan(organizationId, input, planId = null) {
@@ -62,20 +70,23 @@ export async function saveServicePlan(organizationId, input, planId = null) {
   const description = String(input.description ?? "").trim();
   const priceCents = Number(input.priceCents);
   const durationMonths = Number(input.durationMonths);
+  const appointmentMode = input.appointmentMode === "quantity" ? "quantity" : "weekly";
+  const appointmentCount = appointmentMode === "quantity" ? Number(input.appointmentCount) : null;
   const serviceIds = Array.isArray(input.serviceIds) ? [...new Set(input.serviceIds)] : [];
   if (!name || name.length > 160) throw fail("Informe o nome do plano (ate 160 caracteres).");
   if (!Number.isSafeInteger(priceCents) || priceCents <= 0 || priceCents > 4294967295) throw fail("Informe um valor valido para o plano.");
   if (![1, 2, 6, 12].includes(durationMonths)) throw fail("Duracao invalida para o plano.");
+  if (appointmentMode === "quantity" && (!Number.isInteger(appointmentCount) || appointmentCount < 1 || appointmentCount > 31)) throw fail("Informe entre 1 e 31 atendimentos para o plano.");
   if (!serviceIds.length || serviceIds.some((id) => typeof id !== "string" || !id.trim())) throw fail("Selecione pelo menos um servico.");
   for (const serviceId of serviceIds) if (!(await getServiceByIdForOrganization(organizationId, serviceId))) throw fail("Servico nao encontrado.");
   const id = planId || randomUUID();
   await withTransaction(async (connection) => {
     if (planId) {
-      const [result] = await connection.execute("UPDATE service_plans SET name = ?, description = ?, price_cents = ?, duration_months = ?, active = ? WHERE organization_id = ? AND id = ?", [name, description || null, priceCents, durationMonths, input.active === false ? 0 : 1, organizationId, id]);
+      const [result] = await connection.execute("UPDATE service_plans SET name = ?, description = ?, price_cents = ?, duration_months = ?, appointment_mode = ?, appointment_count = ?, active = ? WHERE organization_id = ? AND id = ?", [name, description || null, priceCents, durationMonths, appointmentMode, appointmentCount, input.active === false ? 0 : 1, organizationId, id]);
       if (!result.affectedRows) throw fail("Plano nao encontrado.", 404);
       await connection.execute("DELETE FROM service_plan_services WHERE organization_id = ? AND plan_id = ?", [organizationId, id]);
     } else {
-      await connection.execute("INSERT INTO service_plans (id, organization_id, name, description, price_cents, duration_months, active) VALUES (?, ?, ?, ?, ?, ?, ?)", [id, organizationId, name, description || null, priceCents, durationMonths, input.active === false ? 0 : 1]);
+      await connection.execute("INSERT INTO service_plans (id, organization_id, name, description, price_cents, duration_months, appointment_mode, appointment_count, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [id, organizationId, name, description || null, priceCents, durationMonths, appointmentMode, appointmentCount, input.active === false ? 0 : 1]);
     }
     for (const [position, serviceId] of serviceIds.entries()) await connection.execute("INSERT INTO service_plan_services (organization_id, plan_id, service_id, position) VALUES (?, ?, ?, ?)", [organizationId, id, serviceId, position]);
   });

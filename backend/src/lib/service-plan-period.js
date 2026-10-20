@@ -17,7 +17,7 @@ function formatDate(date) {
 }
 
 // O fim e exclusivo: evita contar o mesmo dia em dois periodos consecutivos.
-export function buildServicePlanPeriod(startDate, durationMonths, weekdayAnchor = startDate) {
+export function buildServicePlanPeriod(startDate, durationMonths, weekdayAnchor = startDate, appointmentMode = "weekly", appointmentCount = null) {
   const start = parseDate(startDate);
   const anchor = parseDate(weekdayAnchor);
   if (![1, 2, 6, 12].includes(durationMonths)) throw new Error("Duracao do plano invalida.");
@@ -28,8 +28,17 @@ export function buildServicePlanPeriod(startDate, durationMonths, weekdayAnchor 
   const offset = (anchor.getUTCDay() - start.getUTCDay() + 7) % 7;
   const firstAppointment = new Date(start);
   firstAppointment.setUTCDate(firstAppointment.getUTCDate() + offset);
-  for (let current = firstAppointment; current < end; current.setUTCDate(current.getUTCDate() + 7)) {
-    appointments.push(formatDate(current));
+  if (appointmentMode === "quantity") {
+    if (!Number.isInteger(appointmentCount) || appointmentCount < 1 || appointmentCount > 31) throw new Error("Quantidade de atendimentos invalida.");
+    for (let index = 0; index < appointmentCount; index += 1) {
+      const current = new Date(firstAppointment);
+      current.setUTCDate(current.getUTCDate() + index * 7);
+      appointments.push(formatDate(current));
+    }
+  } else {
+    for (let current = firstAppointment; current < end; current.setUTCDate(current.getUTCDate() + 7)) {
+      appointments.push(formatDate(current));
+    }
   }
   return { startDate: formatDate(start), endDateExclusive: formatDate(end), appointments };
 }
