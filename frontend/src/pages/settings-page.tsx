@@ -1,7 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { MobilePageHeader } from "@/components/layout/mobile-page-header";
-import { ManagementPage } from "@/pages/management-page";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FullscreenState } from "@/components/ui/fullscreen-state";
@@ -60,7 +59,7 @@ export function SettingsPage({ section }: SettingsPageProps) {
   const isCompanyPage = section === "company";
   const navigate = useNavigate();
   const location = useLocation();
-  const { deleteAccount, signOut } = useAuth();
+  const { deleteAccount } = useAuth();
   const {
     data: organization,
     error: organizationError,
@@ -81,7 +80,6 @@ export function SettingsPage({ section }: SettingsPageProps) {
   const {
     isUpdatingSettings,
     updateSettings,
-    updateSettingsError,
   } = useSettingsMutations();
 
   const [companyName, setCompanyName] = useState("");
@@ -95,18 +93,15 @@ export function SettingsPage({ section }: SettingsPageProps) {
   const [billingProvince, setBillingProvince] = useState("");
   const [billingCityIbge, setBillingCityIbge] = useState("");
   const [billingCityLabel, setBillingCityLabel] = useState("");
-  const [nomeNegocio, setNomeNegocio] = useState("");
   const [subtitulo, setSubtitulo] = useState("");
   const [horaInicioAgenda, setHoraInicioAgenda] = useState("08:00");
   const [horaFimAgenda, setHoraFimAgenda] = useState("18:00");
-  const [permitirConflito, setPermitirConflito] = useState(false);
   const { preferences: notificationPreferences, savePreferences } = useNotificationPreferences();
   const [appNotificationsEnabled, setAppNotificationsEnabled] = useState(notificationPreferences.enabled);
   const [appNotificationSoundEnabled, setAppNotificationSoundEnabled] = useState(
     notificationPreferences.soundEnabled,
   );
   const [companyValidationError, setCompanyValidationError] = useState<string | null>(null);
-  const [appValidationError, setAppValidationError] = useState<string | null>(null);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
@@ -155,17 +150,13 @@ export function SettingsPage({ section }: SettingsPageProps) {
       return;
     }
 
-    setNomeNegocio(settings.nomeNegocio ?? "");
     setSubtitulo(settings.subtitulo ?? "");
     setHoraInicioAgenda(settings.horaInicioAgenda ?? "08:00");
     setHoraFimAgenda(settings.horaFimAgenda ?? "18:00");
-    setPermitirConflito(Boolean(settings.permitirConflito));
   }, [
     settings?.horaFimAgenda,
     settings?.horaInicioAgenda,
     settings?.id,
-    settings?.nomeNegocio,
-    settings?.permitirConflito,
     settings?.subtitulo,
   ]);
 
@@ -177,7 +168,6 @@ export function SettingsPage({ section }: SettingsPageProps) {
   const isLoading = isLoadingOrganization || isLoadingSettings;
   const isInitialLoading = isLoading && !organization && !settings;
   const companyErrorMessage = companyValidationError ?? updateOrganizationError?.message ?? null;
-  const appErrorMessage = appValidationError ?? updateSettingsError?.message ?? null;
 
   async function handleBillingCepBlur() {
     if (!billingPostalCode.trim() || !isValidCep(billingPostalCode)) {
@@ -261,42 +251,6 @@ export function SettingsPage({ section }: SettingsPageProps) {
     }
   }
 
-  async function handleSettingsSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setAppValidationError(null);
-
-    const normalizedBusinessName = nomeNegocio.trim();
-
-    if (!normalizedBusinessName) {
-      setAppValidationError("Nome do negocio e obrigatorio.");
-      return;
-    }
-
-    if (!isValidTime(horaInicioAgenda) || !isValidTime(horaFimAgenda)) {
-      setAppValidationError("Preencha horarios validos para a agenda.");
-      return;
-    }
-
-    if (toMinutes(horaFimAgenda) <= toMinutes(horaInicioAgenda)) {
-      setAppValidationError("A hora final deve ser maior que a hora inicial.");
-      return;
-    }
-
-    try {
-      await updateSettings({
-        nomeNegocio: normalizedBusinessName,
-        subtitulo: subtitulo.trim(),
-        horaInicioAgenda,
-        horaFimAgenda,
-        permitirConflito,
-      });
-
-      setSuccessMessage("Configuracoes principais atualizadas com sucesso.");
-    } catch {
-      return;
-    }
-  }
-
   async function handlePasswordSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPasswordError("");
@@ -321,11 +275,6 @@ export function SettingsPage({ section }: SettingsPageProps) {
     } finally {
       setIsChangingPassword(false);
     }
-  }
-
-  async function handleSignOut() {
-    await signOut();
-    navigate("/login", { replace: true });
   }
 
   async function handleDeleteAccount() {
@@ -380,7 +329,7 @@ export function SettingsPage({ section }: SettingsPageProps) {
   return (
     <section className="space-y-4">
       <MobilePageHeader
-        subtitle={isCompanyPage ? "Cadastro e dados para cobranca" : "Empresa, agenda, assinatura e conta"}
+        subtitle={isCompanyPage ? "Cadastro e dados para cobranca" : "Notificacoes e seguranca"}
         title={isCompanyPage ? "Dados da empresa" : "Configuracoes"}
       />
 
@@ -569,65 +518,6 @@ export function SettingsPage({ section }: SettingsPageProps) {
       {!isCompanyPage ? (
       <>
       <details className="group rounded-3xl border border-slate-200 bg-white p-4 sm:p-5">
-        <summary className="cursor-pointer text-lg font-semibold text-ink">Assinatura, pagamentos e atalhos</summary>
-        <div className="mt-4"><ManagementPage embedded /></div>
-      </details>
-
-      <details className="group rounded-3xl border border-slate-200 bg-white p-4 sm:p-5" open>
-      <summary className="cursor-pointer text-lg font-semibold text-ink">Agenda e recursos</summary>
-      <div className="mt-4">
-      <Card>
-        <p className="text-xs uppercase tracking-[0.2em] text-slate-500">App</p>
-        <h3 className="mt-1 text-lg font-semibold text-ink">Agenda principal</h3>
-        <form className="mt-4 space-y-4" onSubmit={handleSettingsSubmit}>
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-ink" htmlFor="business-name">
-              Nome do negocio
-            </label>
-            <input
-              className="app-input"
-              id="business-name"
-              onChange={(event) => setNomeNegocio(event.target.value)}
-              value={nomeNegocio}
-            />
-          </div>
-
-          <label className="app-toggle-panel">
-            <input
-              checked={permitirConflito}
-              className="app-checkbox"
-              onChange={(event) => setPermitirConflito(event.target.checked)}
-              type="checkbox"
-            />
-            <span>
-              <span className="block text-sm font-medium text-ink">Permitir conflitos de horario</span>
-              <span className="block text-sm text-slate-500">
-                Desative para bloquear agendamentos sobrepostos.
-              </span>
-            </span>
-          </label>
-
-          <div className="flex">
-            <Button
-              className="border-emerald-600 bg-emerald-500 text-white hover:bg-emerald-600 focus:ring-emerald-100"
-              onClick={() => navigate("/configuracoes/whatsapp")}
-              type="button"
-            >
-              Configurar WhatsApp
-            </Button>
-          </div>
-
-          {appErrorMessage ? <p className="text-sm text-rose-600">{appErrorMessage}</p> : null}
-
-          <Button className="w-full sm:w-auto" disabled={isUpdatingSettings} type="submit">
-            {isUpdatingSettings ? "Salvando configuracoes..." : "Salvar configuracoes principais"}
-          </Button>
-        </form>
-      </Card>
-      </div>
-      </details>
-
-      <details className="group rounded-3xl border border-slate-200 bg-white p-4 sm:p-5">
       <summary className="cursor-pointer text-lg font-semibold text-ink">Notificacoes do aplicativo</summary>
       <div className="mt-4">
       <Card className="space-y-4">
@@ -686,12 +576,6 @@ export function SettingsPage({ section }: SettingsPageProps) {
               {isChangingPassword ? "Salvando..." : "Salvar nova senha"}
             </Button>
           </form>
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Button className="w-full sm:w-auto" onClick={() => void handleSignOut()} type="button">
-              Sair da conta
-            </Button>
-          </div>
-
           <div className="rounded-3xl border border-rose-100 bg-rose-50/70 p-4">
             <p className="text-sm font-semibold text-rose-700">Excluir conta</p>
             <p className="mt-2 text-sm text-rose-600">
