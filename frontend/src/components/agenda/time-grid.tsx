@@ -354,7 +354,7 @@ export function TimeGrid({
           className="grid min-w-fit"
           style={{ gridTemplateColumns }}
         >
-          <div className="sticky left-0 top-0 z-40 border-b border-r border-slate-200/80 bg-slate-50 px-2 py-2 xl:px-4 xl:py-5">
+          <div className="sticky left-0 top-0 z-[60] border-b border-r border-slate-200/80 bg-white px-2 py-2 xl:px-4 xl:py-5">
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">Fuso</p>
             <p className="mt-0.5 text-[11px] font-semibold text-slate-500">{getTimezoneLabel(timezoneLabel)}</p>
           </div>
@@ -366,9 +366,9 @@ export function TimeGrid({
             return (
               <button
                 className={cn(
-                  "sticky top-0 z-30 flex min-w-0 flex-row items-center justify-center gap-2 border-b border-r border-slate-200/80 bg-white px-3 py-2 text-center transition last:border-r-0 xl:flex-col xl:gap-1 xl:px-4 xl:py-4",
+                  "sticky top-0 z-50 flex min-w-0 flex-row items-center justify-center gap-2 border-b border-r border-slate-200/80 bg-white px-3 py-2 text-center transition last:border-r-0 xl:flex-col xl:gap-1 xl:px-4 xl:py-4",
                   isSelected
-                    ? "bg-sky-50"
+                    ? "bg-white"
                     : "bg-white hover:bg-slate-50",
                 )}
                 key={date}
